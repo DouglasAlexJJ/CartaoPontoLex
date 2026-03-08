@@ -1,0 +1,144 @@
+body { 
+    font-family: 'Segoe UI', sans-serif; 
+    background: #f4f7f6; 
+    margin: 0; 
+    padding-bottom: 90px; 
+}
+
+.container { max-width: 1000px; margin: 20px auto; padding: 20px; }
+
+.card { 
+    background: white; padding: 20px; border-radius: 8px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; 
+}
+
+input, select { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 4px; }
+
+button { 
+    padding: 10px 20px; background: #003366; color: white; 
+    border: none; border-radius: 4px; cursor: pointer; 
+}
+
+table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+
+th { background: #003366; color: white; padding: 12px; }
+
+td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+
+.hidden { display: none; }
+
+.col-dia { font-size: 0.85em; background: #f8f9fa; min-width: 90px; }
+
+/* ESTILO DOS INPUTS DE PONTO */
+.celula-inputs { 
+    position: relative; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+
+.container-batidas { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+
+input.ponto { 
+    width: 55px; text-align: center; font-weight: bold; 
+    border: 1px solid #ccc; background: #fff; 
+}
+
+input.ponto:nth-child(even) { background-color: #f0f7ff; }
+
+/* LÓGICA DE FOLGA */
+.folga { background-color: #fce4ec !important; }
+.folga-input { 
+    background: transparent !important; border: 1px solid transparent !important; 
+    color: #c2185b !important; cursor: default; 
+}
+
+.escala-alterada { border-left: 6px solid #ffc107 !important; }
+
+.total-dia { 
+    background-color: #eef2f7; font-weight: bold; width: 90px; 
+    border-left: 2px solid #003366; 
+}
+
+/* MENU SUSPENSO (DROPDOWN) */
+.dropdown-dia { 
+    position: relative; 
+    margin-left: 10px; 
+    display: flex;
+    align-items: center;
+}
+
+.btn-config { 
+    background: #f8f9fa; 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-size: 1.1em; 
+    padding: 4px 8px; 
+    color: #555; /* Cor da engrenagem */
+}
+
+.menu-dia-content {
+    display: none; 
+    position: absolute; 
+    right: 0; 
+    top: 110%;
+    background-color: #ffffff !important; /* Fundo branco sólido */
+    min-width: 200px; 
+    border-radius: 6px;
+    box-shadow: 0px 8px 24px rgba(0,0,0,0.2); /* Sombra mais forte para destacar */
+    z-index: 1000;
+    border: 1px solid #ccc; 
+    padding: 8px 0; 
+    text-align: left;
+}
+
+.menu-dia-content.show { 
+    display: block; 
+}
+
+/* Itens da lista - Garantindo visibilidade */
+.menu-dia-content button {
+    display: block; 
+    width: 100%; 
+    padding: 10px 15px; 
+    border: none;
+    background: white !important; /* Fundo sempre branco */
+    color: #333 !important; /* Texto sempre cinza escuro/preto */
+    text-align: left; 
+    font-size: 0.9em; 
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+/* Efeito ao passar o mouse */
+.menu-dia-content button:hover { 
+    background-color: #003366 !important; /* Fundo azul ao focar */
+    color: #ffffff !important; /* Texto branco ao focar */
+}
+
+/* Títulos de seção dentro do menu */
+.menu-section { 
+    padding: 8px 15px 4px; 
+    font-size: 0.75em; 
+    font-weight: bold; 
+    color: #888; /* Cinza médio para os títulos internos */
+    text-transform: uppercase;
+    background: #fff;
+}
+
+.divisor { 
+    height: 1px; 
+    background: #eee; 
+    margin: 4px 0; 
+}
+
+/* RODAPÉ */
+#rodape-totalizador {
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    background: #003366; color: white; padding: 15px 0;
+    display: flex; justify-content: center; z-index: 2000;
+}
+
+#total-geral-periodo { color: #00ffcc; font-size: 1.5em; margin-left: 10px; }

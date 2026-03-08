@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CalcPontoLex - Painel de Cálculo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CalcPontoLex</h1>
+            <p id="saudacao">Olá, Dr(a). [Nome]</p>
+        </header>
+
+        <section id="setup-calculo">
+            <div class="card">
+                <h3>Novo Cálculo</h3>
+                <input type="text" id="reclamante" placeholder="Nome do Reclamante">
+                <div class="datas-grupo">
+                    <input type="date" id="dataInicio">
+                    <input type="date" id="dataFim">
+                </div>
+                
+                <select id="escala" onchange="toggleFolgaInicial()">
+                    <option value="seg-sex">Segunda a Sexta</option>
+                    <option value="seg-sab">Segunda a Sábado</option>
+                    <option value="6x2">Escala 6x2</option>
+                    <option value="motorista">Motorista (10 batidas)</option>
+                    <option value="personalizada">⚙️ Escala Personalizada (X por Y)...</option>
+                </select>
+                
+                <div id="container-folga-inicial" style="display:none; margin-top: 10px;">
+                    <label>Data da 1ª Folga (Início do ciclo):</label>
+                    <input type="date" id="dataFolgaInicial">
+                </div>
+
+                <div class="almoco-padrao" style="margin-top: 15px;">
+                    <label>Almoço Padrão:</label>
+                    <input type="text" id="padraoE" value="12:00" maxlength="5" style="width: 60px; text-align: center;">
+                    <span>até</span>
+                    <input type="text" id="padraoS" value="13:00" maxlength="5" style="width: 60px; text-align: center;">
+                </div>
+                
+                <div class="opcoes-adicionais" style="margin-top: 15px;">
+                    <label>
+                        <input type="checkbox" id="intervaloFixo" checked> 
+                        Intervalo Fixo (Auto-Jump E1 para S2)
+                    </label>
+                </div>
+                <button onclick="gerarFolha()" style="margin-top: 15px;">Gerar Folha de Ponto</button>
+            </div>
+        </section>
+
+        <table id="tabela-ponto" class="hidden">
+            <thead>
+                <tr>
+                    <th style="width: 150px;">Data</th>
+                    <th>Horários de Entrada e Saída</th>
+                    <th style="width: 100px;">Total</th>
+                </tr>
+            </thead>
+            <tbody id="corpo-tabela"></tbody>
+        </table>
+
+        <footer id="rodape-totalizador">
+            <div class="total-card">
+                <span>Total de Horas no Período:</span>
+                <strong id="total-geral-periodo">00:00</strong>
+            </div>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
