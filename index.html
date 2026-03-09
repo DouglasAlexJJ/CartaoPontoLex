@@ -11,7 +11,7 @@
 <body>
     <header class="navbar">
         <div class="logo">⚖️ CartaoPontoLex</div>
-        <button class="btn-login" onclick="window.location.href='dashboard.html'">Entrar / Login</button>
+        <button class="btn-primario" onclick="abrirModalLogin()">Acessar o Sistema ➔</button>
     </header>
 
     <main class="hero">
@@ -51,5 +51,48 @@
             <p>Pare o cálculo no meio, e não se preocupe em perder todo o calculo feito. continue depois exatamente de onde parou.</p>
         </div>
     </section>
+
+    <div id="modal-login" class="modal-overlay escondido">
+        <div class="modal-card" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="titulo-login">🔐 Entrar no Sistema</h3>
+                <button class="btn-fechar" onclick="fecharModalLogin()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <button id="btn-login-google" class="btn-secundario" style="width: 100%; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; padding: 10px;">
+                    <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" alt="Google">
+                    Continuar com Google
+                </button>
+
+                <div style="display: flex; align-items: center; text-align: center; margin: 15px 0; color: #94a3b8; font-size: 0.85em;">
+                    <div style="flex: 1; border-bottom: 1px solid #e2e8f0;"></div>
+                    <span style="padding: 0 10px;">ou use seu e-mail</span>
+                    <div style="flex: 1; border-bottom: 1px solid #e2e8f0;"></div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <input type="email" id="email-login" placeholder="E-mail">
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <input type="password" id="senha-login" placeholder="Senha">
+                </div>
+                <p id="msg-erro" style="color: #ef4444; font-size: 0.85em; font-weight: bold; display: none; margin-top: 5px;"></p>
+            </div>
+            
+            <div class="modal-footer" style="flex-direction: column; gap: 12px; align-items: center;">
+                <button id="btn-acao-login" class="btn-primario" style="width: 100%; padding: 12px; font-size: 1.05em;">Entrar com E-mail ➔</button>
+                <a href="#" id="link-trocar-modo" style="color: #64748b; text-decoration: underline; font-size: 0.9em;">Não tem conta? Crie uma agora!</a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/auth.js"></script>
+    
+    <script>
+        // Funções simples para abrir e fechar a janela
+        function abrirModalLogin() { document.getElementById('modal-login').classList.remove('escondido'); }
+        function fecharModalLogin() { document.getElementById('modal-login').classList.add('escondido'); }
+    </script>
 </body>
 </html>
