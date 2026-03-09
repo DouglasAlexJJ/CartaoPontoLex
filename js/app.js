@@ -75,17 +75,25 @@ async function carregarCartaoDaNuvem() {
 
 // 2. FUNÇÕES EXPORTADAS PARA O HTML
 window.voltarEsalvar = async function() {
-    const btn = document.querySelector('.btn-voltar');
-    const textoOriginal = btn.innerHTML;
-    btn.innerText = "Salvando...";
-    
+    const btn = document.querySelector('.btn-secundario');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="animate-spin" style="width:16px; height:16px; border:2px solid #cbd5e1; border-top-color:#64748b; border-radius:50%; display:inline-block; vertical-align:middle; margin-right:8px;"></svg> 
+            Salvando...
+        `;
+    }
+
     try {
-        await salvarProgressoAuto(); // Garante o último save antes de sair
+        await salvarProgressoAuto(); 
         window.location.href = "dashboard.html";
     } catch (e) {
-        console.error("Erro ao salvar:", e);
-        btn.innerHTML = textoOriginal;
-        alert("Erro ao salvar na nuvem. Verifique sua internet.");
+        console.error("Erro no save:", e);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<span style="font-size: 1.2em; line-height: 1;">‹</span> Voltar para o Painel`;
+        }
+        alert("Erro ao salvar na nuvem.");
     }
 };
 
