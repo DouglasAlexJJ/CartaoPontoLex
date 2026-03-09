@@ -141,7 +141,48 @@
             </div>
         </div>
     </div>
-    
+    <div id="modal-onboarding" class="modal-overlay escondido">
+    <div class="modal-card" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3>🎨 Personalize seu Perfil</h3>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.9em; color: #64748b; margin-bottom: 20px;">
+                Seja bem-vindo! Como você gostaria de ser identificado nos documentos e no sistema?
+            </div>
+            
+            <div class="form-group">
+                <label>Tratamento</label>
+                <select id="perfil-tratamento">
+                    <option value="" selected>Padrão (Somente nome)</option>
+                    <option value="Sr.">Sr.</option>
+                    <option value="Sra.">Sra.</option>
+                    <option value="Dr.">Dr.</option>
+                    <option value="Dra.">Dra.</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Nome Completo*</label>
+                <input type="text" id="perfil-nome" placeholder="Ex: João Silva">
+            </div>
+
+            <div class="form-group">
+                <label>OAB (Opcional)</label>
+                <input type="text" id="perfil-oab" placeholder="Ex: 123.456/SP">
+            </div>
+
+            <div class="form-group">
+                <label>Nome da Empresa/Escritório*</label>
+                <input type="text" id="perfil-empresa" placeholder="Ex: Silva Advogados Associados">
+                <small style="color: #94a3b8; font-size: 0.75em;">Este nome será visto pelos seus colaboradores convidados.</small>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="salvarPerfilInicial()" class="btn-primario" style="width: 100%;">Concluir e Acessar Painel ➔</button>
+        </div>
+    </div>
+</div>
     <script type="module" src="js/dashboard.js"></script>
 
 </body>

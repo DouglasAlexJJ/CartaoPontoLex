@@ -24,10 +24,26 @@ let usuarioAtual = null;
 let salvosNuvem = [];
 
 // 1. Verifica quem está logado antes de carregar os dados
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         usuarioAtual = user;
-        carregarDashboard(); 
+        
+        // 1. Verifica se o usuário já tem um perfil na coleção 'usuarios'
+        const docRef = doc(db, "usuarios", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            // Perfil já existe, carrega o dashboard normal
+            const dadosPerfil = docSnap.data();
+            atualizarNomeSidebar(dadosPerfil);
+            carregarDashboard();
+        } else {
+            // Perfil NÃO existe, abre o onboarding
+            document.getElementById('perfil-nome').value = user.displayName || "";
+            document.getElementById('modal-onboarding').classList.remove('escondido');
+        }
+    } else {
+        window.location.href = "index.html";
     }
 });
 
@@ -218,3 +234,41 @@ window.salvarEIniciar = async function() {
     localStorage.setItem('cartaoAtualId', novoCartao.id);
     window.location.href = "app.html";
 };
+window.salvarPerfilInicial = async function() {
+    const nome = document.getElementById('perfil-nome').value.trim();
+    const tratamento = document.getElementById('perfil-tratamento').value;
+    const oab = document.getElementById('perfil-oab').value.trim();
+    const empresa = document.getElementById('perfil-empresa').value.trim();
+
+    if (!nome || !empresa) {
+        alert("Nome e Empresa são obrigatórios para a conta de Administrador!");
+        return;
+    }
+
+    const dadosPerfil = {
+        uid: usuarioAtual.uid,
+        email: usuarioAtual.email,
+        nome: nome,
+        tratamento: tratamento,
+        oab: oab,
+        empresa: empresa,
+        tipoConta: 'admin', // Quem cria a conta é sempre Admin (o pagador)
+        dataCriacao: Date.now()
+    };
+
+    try {
+        await setDoc(doc(db, "usuarios", usuarioAtual.uid), dadosPerfil);
+        document.getElementById('modal-onboarding').classList.add('escondido');
+        atualizarNomeSidebar(dadosPerfil);
+        carregarDashboard();
+    } catch (e) {
+        console.error("Erro ao salvar perfil:", e);
+        alert("Erro ao salvar perfil. Tente novamente.");
+    }
+};
+
+function atualizarNomeSidebar(perfil) {
+    const nomeExibicao = perfil.tratamento ? `${perfil.tratamento} ${perfil.nome}` : perfil.nome;
+    const forteNome = document.querySelector('.info-perfil strong');
+    if (forteNome) forteNome.innerText = nomeExibicao;
+}
