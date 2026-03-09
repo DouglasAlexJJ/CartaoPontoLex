@@ -29,13 +29,14 @@
             <div class="sidebar-content">
                 <button class="btn-primario" style="width: 100%; margin-bottom: 20px;" onclick="abrirModalNovo()">➕ Novo Cartão</button>
                 <div class="divisor"></div>
-                <h4 class="sidebar-title">Cartões Salvos (Em breve)</h4>
+                <h4 class="sidebar-title">Meus Cartões</h4>
+                <ul class="lista-salvos"></ul> 
             </div>
         </aside>
 
         <main class="dashboard-main">
             <div class="dashboard-header">
-                <h2>Bem-vindo ao seu Painel de Controlo</h2>
+                <h2>Bem-vindo ao seu Painel</h2>
                 <p>O que deseja fazer hoje?</p>
             </div>
             
@@ -54,35 +55,11 @@
             </div>
 
             <div class="recentes-section">
-                <h3>Continuar a Editar (Últimos 4)</h3>
+                <h3>Continuar a Editar</h3>
                 <div class="grid-recentes">
-                    <div class="card-recente">
-                        <div class="card-recente-header">
-                            <h4>Carlos Mendes</h4>
-                            <span class="badge-status progresso-baixo">45% Preenchido</span>
-                        </div>
-                        <p><strong>Reclamada:</strong> Transportes Lda.</p>
-                        <small class="data-edicao">Última edição: Hoje, 14:30</small>
                     </div>
-
-                    <div class="card-recente">
-                        <div class="card-recente-header">
-                            <h4>João Pereira</h4>
-                            <span class="badge-status progresso-medio">80% Preenchido</span>
-                        </div>
-                        <p><strong>Reclamada:</strong> Indústria ABC</p>
-                        <small class="data-edicao">Última edição: Ontem, 18:15</small>
-                    </div>
-
-                    <div class="card-recente vazio" onclick="abrirModalNovo()">
-                        <span class="icone-vazio">➕</span>
-                        <p>Espaço Livre</p>
-                        <small>Clique para criar novo</small>
-                    </div>
-                </div>
             </div>
         </main>
-    </div>
 
     <div id="modal-novo" class="modal-overlay escondido">
         <div class="modal-card">
@@ -92,11 +69,11 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Reclamante / Funcionário <span class="obrigatorio">*</span></label>
+                    <label>Reclamante<span class="obrigatorio">*</span></label>
                     <input type="text" id="reclamante" placeholder="Nome completo">
                 </div>
                 <div class="form-group">
-                    <label>Reclamada / Empresa</label>
+                    <label>Reclamada</label>
                     <input type="text" id="reclamada" placeholder="Nome da empresa">
                 </div>
                 <div class="form-row">
@@ -115,6 +92,7 @@
                         <option value="seg-sex">Segunda a Sexta</option>
                         <option value="seg-sab">Segunda a Sábado</option>
                         <option value="6x2">Escala 6x2</option>
+                        <option value="livre">Escala limpa</option>
                         <option value="personalizada">⚙️ Escala Personalizada...</option>
                     </select>
                 </div>

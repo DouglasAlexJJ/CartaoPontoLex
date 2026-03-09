@@ -1,55 +1,60 @@
 /* ==========================================================================
-   MOTOR DA MESA DE TRABALHO (APP) - CartaoPontoLex
+   MOTOR DA MESA DE TRABALHO (APP) COM AUTO-SAVE E EDIÇÃO DE BATIDAS
    ========================================================================== */
 
 const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 let configAtual = {};
+let cartaoAtual = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Puxa os dados do Dashboard
-    const configStr = localStorage.getItem('cartaoPontoConfig');
-    if (!configStr) {
+    const idAtual = localStorage.getItem('cartaoAtualId');
+    let cartoesSalvos = JSON.parse(localStorage.getItem('cartoesPontoSalvos')) || [];
+    
+    cartaoAtual = cartoesSalvos.find(c => c.id == idAtual);
+    
+    if (!cartaoAtual) {
+        alert("Cartão não encontrado! Redirecionando...");
         window.location.href = "dashboard.html";
         return;
     }
-    configAtual = JSON.parse(configStr);
     
-    // 2. Atualiza o cabeçalho com os nomes
+    configAtual = cartaoAtual.config;
+    if(!cartaoAtual.batidas) cartaoAtual.batidas = {}; 
+    
     document.getElementById('info-reclamante').innerText = configAtual.reclamante;
-    
-    // Ajuste de fuso horário seguro para evitar bugs de data
     const dtIn = new Date(configAtual.dataInicio + "T00:00:00").toLocaleDateString('pt-BR');
     const dtFim = new Date(configAtual.dataFim + "T00:00:00").toLocaleDateString('pt-BR');
     document.getElementById('info-periodo').innerText = `${dtIn} a ${dtFim}`;
 
-    // 3. Inicia a mágica
     gerarFolha(configAtual);
 });
 
+function voltarEsalvar() {
+    salvarProgressoAuto();
+    window.location.href = "dashboard.html";
+}
+
 function gerarFolha(cfg) {
     const corpo = document.getElementById('corpo-tabela');
-    if (!corpo) return; // Proteção contra travamento
+    if (!corpo) return; 
     corpo.innerHTML = ''; 
 
-    // Ajuste de data seguro
     let dataAtual = new Date(cfg.dataInicio + "T00:00:00");
     const dataFim = new Date(cfg.dataFim + "T00:00:00");
-
-    // Prevenção contra loop infinito se as datas vierem erradas
-    if (isNaN(dataAtual) || isNaN(dataFim) || dataAtual > dataFim) {
-        alert("Erro nas datas. Volte ao painel e verifique o período inserido.");
-        return;
-    }
 
     while (dataAtual <= dataFim) {
         const numDia = dataAtual.getDay();
         const dataFormatada = dataAtual.toLocaleDateString('pt-BR');
         let ehFolga = false;
+        let destaqueFDSouFeriado = (numDia === 0 || numDia === 6 || ehFeriadoNacional(dataAtual));
 
-        // Lógica de Escalas
-        if (cfg.escala === "seg-sex") ehFolga = (numDia === 0 || numDia === 6);
-        else if (cfg.escala === "seg-sab") ehFolga = (numDia === 0);
-        else if (cfg.escala === "6x2" || cfg.escala === "personalizada") {
+        if (cfg.escala === "livre") {
+            ehFolga = false; 
+        } else if (cfg.escala === "seg-sex") {
+            ehFolga = (numDia === 0 || numDia === 6);
+        } else if (cfg.escala === "seg-sab") {
+            ehFolga = (numDia === 0);
+        } else if (cfg.escala === "6x2" || cfg.escala === "personalizada") {
             if (cfg.dataFolgaInicial) {
                 let ref = new Date(cfg.dataFolgaInicial + "T00:00:00");
                 const diffDays = Math.floor((dataAtual - ref) / (1000 * 60 * 60 * 24));
@@ -62,21 +67,37 @@ function gerarFolha(cfg) {
         }
 
         const tr = document.createElement('tr');
-        tr.className = `linha-ponto ${ehFolga ? 'folga' : ''}`;
+        tr.setAttribute('data-dia', dataFormatada); 
+
+        const batidasSalvasNoBanco = cartaoAtual.batidas[dataFormatada];
         
-        // AQUI ESTÁ A NOVIDADE: Lê a quantidade exata de batidas do modal
-        const qtdBatidas = parseInt(cfg.qtdBatidas) || 4; 
+        if (batidasSalvasNoBanco && batidasSalvasNoBanco.isFolga !== undefined) {
+            ehFolga = batidasSalvasNoBanco.isFolga;
+        }
+
+        if (cfg.escala === "livre" && destaqueFDSouFeriado) {
+            tr.className = `linha-ponto destaque-vermelho ${ehFolga ? 'folga' : ''}`;
+        } else {
+            tr.className = `linha-ponto ${ehFolga ? 'folga' : ''}`;
+        }
+        
+        // PULO DO GATO: Se no banco de dados a linha tinha mais ou menos caixinhas, o sistema respeita!
+        let qtdDaLinha = parseInt(cfg.qtdBatidas) || 4; 
+        if (batidasSalvasNoBanco && batidasSalvasNoBanco.horas) {
+            qtdDaLinha = batidasSalvasNoBanco.horas.length;
+            if (qtdDaLinha < 2) qtdDaLinha = 2; // Segurança mínima
+        }
+        
         let inputsHtml = "";
         
-        for (let i = 0; i < qtdBatidas; i++) {
+        for (let i = 0; i < qtdDaLinha; i++) {
             let val = "";
-            
-            // Se o usuário marcou "Intervalo Fixo", preenche as posições 2 e 3 (índices 1 e 2)
-            if (!ehFolga && cfg.intervaloFixo) {
+            if (batidasSalvasNoBanco && batidasSalvasNoBanco.horas[i] !== undefined) {
+                val = batidasSalvasNoBanco.horas[i];
+            } else if (!ehFolga && cfg.intervaloFixo) {
                 if (i === 1 && cfg.padraoE) val = cfg.padraoE;
                 if (i === 2 && cfg.padraoS) val = cfg.padraoS;
             }
-            
             inputsHtml += `<input type="text" class="ponto ${ehFolga ? 'folga-input' : ''}" maxlength="5" value="${val}" placeholder="--">`;
         }
 
@@ -87,16 +108,14 @@ function gerarFolha(cfg) {
                 <div class="dropdown-dia">
                     <button class="btn-config" onclick="toggleMenuDia(this, event)">⚙️</button>
                     <div class="menu-dia-content">
-                        <div class="menu-section">Batidas</div>
-                        <button onclick="gerenciarBatidas(this, 2)">➕ Adicionar Par</button>
+                        <div class="menu-section">Batidas deste dia</div>
+                        <button onclick="gerenciarBatidas(this, 2)">➕ Adicionar Par Extra</button>
                         <button onclick="gerenciarBatidas(this, -2)">➖ Remover Par</button>
                         <div class="divisor"></div>
-                        <div class="menu-section">Status</div>
                         <button onclick="definirComoFolga(this)">🏝️ Marcar como Folga</button>
                         <button onclick="definirComoTrabalho(this)">🛠️ Marcar como Trabalho</button>
                         <div class="divisor"></div>
-                        <div class="menu-section">Ciclo</div>
-                        <button onclick="aplicarEscalaPersonalizada(this)">⚙️ Escala Personalizada...</button>
+                        <button onclick="aplicarEscalaPersonalizada(this)">⚙️ Escala Personalizada a partir daqui</button>
                     </div>
                 </div>
             </td>
@@ -106,51 +125,156 @@ function gerarFolha(cfg) {
         dataAtual.setDate(dataAtual.getDate() + 1);
     }
     
+    document.querySelectorAll('.linha-ponto').forEach(tr => calcularLinha(tr));
     configurarEventos();
-    atualizarTotalGeral();
 }
 
-// ==========================================================================
-// FUNÇÕES DE CÁLCULO, EVENTOS E MENUS (MANTIDAS INTACTAS E SEGURAS)
-// ==========================================================================
+// --- FUNÇÃO DE AUTO-SAVE COM % REAL ---
+function salvarProgressoAuto() {
+    let linhas = document.querySelectorAll('.linha-ponto');
+    let diasPreenchidos = 0;
+    
+    if (!cartaoAtual) return;
+    
+    cartaoAtual.batidas = {}; 
+    
+    linhas.forEach(tr => {
+        const dataDia = tr.getAttribute('data-dia');
+        const isFolga = tr.classList.contains('folga');
+        const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
+        
+        cartaoAtual.batidas[dataDia] = {
+            isFolga: isFolga,
+            horas: inputs
+        };
+
+        if (isFolga) {
+            diasPreenchidos++;
+        } else {
+            let batidasManuais = 0;
+            inputs.forEach((val, idx) => {
+                if (val.length === 5) {
+                    if (configAtual.intervaloFixo && (idx === 1 || idx === 2)) return; 
+                    batidasManuais++;
+                }
+            });
+            if (batidasManuais > 0) diasPreenchidos++;
+        }
+    });
+
+    cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
+    cartaoAtual.dataEdicao = Date.now();
+
+    let salvos = JSON.parse(localStorage.getItem('cartoesPontoSalvos')) || [];
+    let index = salvos.findIndex(c => c.id == cartaoAtual.id);
+    
+    if(index > -1) {
+        salvos[index] = cartaoAtual;
+        localStorage.setItem('cartoesPontoSalvos', JSON.stringify(salvos));
+    }
+}
+
+// --- RESTAURAÇÃO: GERENCIAR BATIDAS DA LINHA ---
+function gerenciarBatidas(btn, qtd) {
+    const cont = btn.closest('.celula-inputs').querySelector('.container-batidas');
+    const tr = btn.closest('tr');
+    
+    if (qtd > 0) {
+        // Adiciona 2 inputs novos
+        for(let i=0; i<2; i++) {
+            const inp = document.createElement('input');
+            inp.className = 'ponto'; 
+            inp.maxLength = 5; 
+            inp.placeholder = '--';
+            if (tr.classList.contains('folga')) inp.classList.add('folga-input');
+            cont.appendChild(inp);
+        }
+    } else {
+        // Remove os 2 últimos
+        const ins = cont.querySelectorAll('.ponto');
+        if (ins.length > 2) { 
+            ins[ins.length-1].remove(); 
+            ins[ins.length-2].remove(); 
+        } else {
+            alert("Não é possível remover. A linha precisa ter no mínimo 2 batidas.");
+            return;
+        }
+    }
+    
+    // Reconfigura o Tab e o Auto-Complete para os inputs recém-criados
+    configurarEventos();
+    calcularLinha(tr);
+    salvarProgressoAuto(); // Salva a quantidade nova na memória imediatamente!
+}
 
 function configurarEventos() {
     const inputs = Array.from(document.querySelectorAll('.ponto'));
     inputs.forEach((input, index) => {
+        
+        input.onfocus = () => input.select();
         input.onkeypress = (e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); };
-        input.oninput = () => {
-            if (input.value.length === 2 && !input.value.includes(':')) input.value += ":";
+        
+        input.oninput = (e) => {
+            if (e.inputType === 'deleteContentBackward') return;
+            let val = input.value.replace(':', '');
+            if (val.length >= 2) {
+                let h = val.substring(0, 2);
+                if (parseInt(h) > 23) h = "23";
+                input.value = h + ":" + val.substring(2);
+            }
             if (input.value.length === 5) {
-                const linha = input.closest('tr');
-                calcularLinha(linha);
-                
-                const inputsDaLinha = Array.from(linha.querySelectorAll('.ponto'));
-                if (linha.classList.contains('folga')) {
-                    navegar(index, 1);
-                } else {
-                    // Pulo automático inteligente
-                    if (configAtual.intervaloFixo && input === inputsDaLinha[0] && inputsDaLinha.length > 3) {
-                        inputsDaLinha[inputsDaLinha.length - 1].focus();
-                    } else {
-                        navegar(index, 1);
-                    }
-                }
+                let [h, m] = input.value.split(':');
+                if (parseInt(m) > 59) input.value = h + ":59";
+                calcularLinha(input.closest('tr'));
+                pularCampoInteligente(input, index, 1);
             }
         };
+
         input.onkeydown = (e) => {
-            if (e.key === 'Tab') { e.preventDefault(); navegar(index, e.shiftKey ? -1 : 1); }
-            if (e.key === 'Enter') { e.preventDefault(); pularLinha(input.closest('tr')); }
+            if (e.key === 'Tab' || e.key === 'Enter') {
+                e.preventDefault();
+                completarHora(input);
+                if (e.key === 'Tab') pularCampoInteligente(input, index, e.shiftKey ? -1 : 1);
+                else if (e.key === 'Enter') pularLinha(input.closest('tr'));
+            }
+        };
+
+        input.onblur = () => {
+            completarHora(input);
+            salvarProgressoAuto(); 
         };
     });
 }
 
-function navegar(idxAtual, direcao) {
-    const todos = Array.from(document.querySelectorAll('.ponto'));
-    let prox = idxAtual + direcao;
-    while (todos[prox] && todos[prox].closest('tr').classList.contains('folga')) {
-        prox += direcao;
+function completarHora(input) {
+    if (!input.value) return; 
+    let val = input.value.replace(':', '');
+    if (val.length === 0) return;
+    
+    let h = "00", m = "00";
+    if (val.length === 1) h = "0" + val; 
+    else if (val.length === 2) h = val;       
+    else if (val.length === 3) { h = val.substring(0, 2); m = val.charAt(2) + "0"; } 
+    else if (val.length === 4) { h = val.substring(0, 2); m = val.substring(2, 4); }
+
+    if (parseInt(h) > 23) h = "23";
+    if (parseInt(m) > 59) m = "59";
+    
+    input.value = `${h}:${m}`;
+    calcularLinha(input.closest('tr')); 
+}
+
+function pularCampoInteligente(input, index, direcao) {
+    const linha = input.closest('tr');
+    const inputsDaLinha = Array.from(linha.querySelectorAll('.ponto'));
+    if (direcao === 1 && !linha.classList.contains('folga') && configAtual.intervaloFixo && input === inputsDaLinha[0] && inputsDaLinha.length >= 4) {
+        inputsDaLinha[3].focus();
+    } else {
+        const todos = Array.from(document.querySelectorAll('.ponto'));
+        let prox = index + direcao;
+        while (todos[prox] && todos[prox].closest('tr').classList.contains('folga')) prox += direcao;
+        if (todos[prox]) todos[prox].focus();
     }
-    if (todos[prox]) todos[prox].focus();
 }
 
 function pularLinha(trAtual) {
@@ -168,12 +292,13 @@ function calcularLinha(tr) {
         const e = hhmmParaMin(ins[i]?.value), s = hhmmParaMin(ins[i+1]?.value);
         if (e > 0 && s > 0) {
             let d = s - e;
-            if (d < 0) d += 1440; // Resolve a virada de noite automaticamente
+            if (d < 0) d += 1440; 
             minTotal += d;
         }
     }
     tr.querySelector('.total-dia').innerText = minParaHHMM(minTotal);
     atualizarTotalGeral();
+    salvarProgressoAuto(); 
 }
 
 function hhmmParaMin(t) {
@@ -182,9 +307,7 @@ function hhmmParaMin(t) {
     return (h * 60) + m;
 }
 
-function minParaHHMM(t) { 
-    return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; 
-}
+function minParaHHMM(t) { return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; }
 
 function atualizarTotalGeral() {
     let tot = 0;
@@ -200,27 +323,12 @@ function toggleMenuDia(btn, event) {
 }
 document.addEventListener('click', () => document.querySelectorAll('.menu-dia-content').forEach(m => m.classList.remove('show')));
 
-function gerenciarBatidas(btn, qtd) {
-    const cont = btn.closest('.celula-inputs').querySelector('.container-batidas');
-    if (qtd > 0) {
-        for(let i=0; i<2; i++) {
-            const inp = document.createElement('input');
-            inp.className = 'ponto'; inp.maxLength = 5; inp.placeholder = '--';
-            cont.appendChild(inp);
-        }
-    } else {
-        const ins = cont.querySelectorAll('.ponto');
-        if (ins.length > 2) { ins[ins.length-1].remove(); ins[ins.length-2].remove(); }
-    }
-    configurarEventos();
-    calcularLinha(btn.closest('tr'));
-}
-
 function definirComoFolga(btn) {
     const tr = btn.closest('tr');
     tr.classList.add('folga');
     tr.querySelectorAll('.ponto').forEach(i => { i.classList.add('folga-input'); i.value = ''; });
     calcularLinha(tr);
+    salvarProgressoAuto();
 }
 
 function definirComoTrabalho(btn) {
@@ -228,6 +336,7 @@ function definirComoTrabalho(btn) {
     tr.classList.remove('folga');
     tr.querySelectorAll('.ponto').forEach(i => i.classList.remove('folga-input'));
     calcularLinha(tr);
+    salvarProgressoAuto();
 }
 
 function aplicarEscalaPersonalizada(btn) {
@@ -247,5 +356,16 @@ function aplicarEscalaPersonalizada(btn) {
             calcularLinha(linha);
         }
     });
-    btn.closest('tr').classList.add('escala-alterada');
+    salvarProgressoAuto();
+}
+
+function ehFeriadoNacional(data) {
+    const ano = data.getFullYear();
+    const fixos = ['01/01', '21/04', '01/05', '07/09', '12/10', '02/11', '15/11', '25/12'];
+    let a=ano%19,b=Math.floor(ano/100),c=ano%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;
+    let pascoa = new Date(ano, mes-1, dia), carnaval = new Date(pascoa); carnaval.setDate(pascoa.getDate()-47);
+    let sextaSanta = new Date(pascoa); sextaSanta.setDate(pascoa.getDate()-2);
+    let corpus = new Date(pascoa); corpus.setDate(pascoa.getDate()+60);
+    const formata = dt => String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
+    return fixos.includes(formata(data)) || [formata(carnaval), formata(sextaSanta), formata(pascoa), formata(corpus)].includes(formata(data));
 }

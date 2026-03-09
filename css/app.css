@@ -43,3 +43,19 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
 #rodape-totalizador { position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; color: white; padding: 12px 0; display: flex; justify-content: center; z-index: 2000; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); }
 .total-card { display: flex; gap: 20px; align-items: center; font-size: 1.1em; }
 #total-geral-periodo { color: #10b981; font-size: 1.4em; font-weight: 800; }
+/* ==========================================================================
+   DESTAQUE PARA SÁBADOS, DOMINGOS E FERIADOS (ESCALA LIVRE)
+   ========================================================================== */
+.destaque-vermelho .col-dia {
+    background-color: #fef2f2 !important;
+    border-left: 4px solid #ef4444 !important;
+}
+
+.destaque-vermelho .col-dia strong {
+    color: #ef4444 !important;
+}
+
+/* Opcional: Deixar os inputs do dia com um leve tom avermelhado no fundo */
+.destaque-vermelho input.ponto {
+    border-color: #fca5a5;
+}

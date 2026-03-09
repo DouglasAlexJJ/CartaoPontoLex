@@ -1,74 +1,195 @@
+/* ==========================================================================
+   JAVASCRIPT DO DASHBOARD (PERSISTÊNCIA + LIXEIRA LGPD 30 DIAS)
+   ========================================================================== */
+
+document.addEventListener('DOMContentLoaded', carregarDashboard);
+
+function carregarDashboard() {
+    let salvos = JSON.parse(localStorage.getItem('cartoesPontoSalvos')) || [];
+    const agora = Date.now();
+    const trintaDiasEmMs = 30 * 24 * 60 * 60 * 1000;
+
+    // 1. ROTINA DE LIMPEZA LGPD (Auto-Purge 30 dias)
+    salvos = salvos.filter(cartao => {
+        if (cartao.deletedAt) {
+            // Se o tempo na lixeira passou de 30 dias, o filtro remove o cartão definitivamente
+            return (agora - cartao.deletedAt) < trintaDiasEmMs;
+        }
+        return true; 
+    });
+    // Salva o banco limpo
+    localStorage.setItem('cartoesPontoSalvos', JSON.stringify(salvos));
+
+    // 2. SEPARA OS CARTÕES ATIVOS DOS APAGADOS
+    const ativos = salvos.filter(c => !c.deletedAt).sort((a, b) => b.dataEdicao - a.dataEdicao);
+    const apagados = salvos.filter(c => c.deletedAt).sort((a, b) => b.deletedAt - a.deletedAt);
+
+    const gridRecentes = document.querySelector('.grid-recentes');
+    const listaSidebar = document.querySelector('.lista-salvos');
+    const dashboardMain = document.querySelector('.dashboard-main');
+
+    // Remove lixeira antiga da tela (se houver) para redesenhar
+    const lixeiraExistente = document.getElementById('area-lixeira');
+    if (lixeiraExistente) lixeiraExistente.remove();
+
+    if (listaSidebar) {
+        listaSidebar.innerHTML = '';
+        ativos.forEach(cartao => {
+            listaSidebar.innerHTML += `
+                <li onclick="abrirCartao(${cartao.id})">
+                    📄 ${cartao.config.reclamante} <span class="badge-min">${cartao.progresso}%</span>
+                </li>
+            `;
+        });
+    }
+
+    if (gridRecentes) {
+        gridRecentes.innerHTML = '';
+        const ultimos = ativos.slice(0, 8); 
+        
+        ultimos.forEach(cartao => {
+            let corBadge = cartao.progresso === 100 ? 'progresso-alto' : (cartao.progresso > 30 ? 'progresso-medio' : 'progresso-baixo');
+            let dataStr = new Date(cartao.dataEdicao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+            gridRecentes.innerHTML += `
+                <div class="card-recente" onclick="abrirCartao(${cartao.id})">
+                    <div class="card-recente-header">
+                        <h4>${cartao.config.reclamante}</h4>
+                        <button class="btn-deletar" onclick="event.stopPropagation(); moverParaLixeira(${cartao.id})" title="Mover para Lixeira">🗑️</button>
+                    </div>
+                    <span class="badge-status ${corBadge}" style="display:inline-block; margin-bottom:10px;">${cartao.progresso}% Concluído</span>
+                    <p><strong>Empresa:</strong> ${cartao.config.reclamada || 'Não informada'}</p>
+                    <small class="data-edicao">Última edição: ${dataStr}</small>
+                </div>
+            `;
+        });
+
+        gridRecentes.innerHTML += `
+            <div class="card-recente vazio" onclick="abrirModalNovo()">
+                <span class="icone-vazio">➕</span>
+                <p>Novo Cartão</p>
+                <small>Clique para iniciar</small>
+            </div>
+        `;
+    }
+
+    // 3. DESENHA A LIXEIRA (Se houver itens apagados)
+    if (apagados.length > 0 && dashboardMain) {
+        let lixeiraHtml = `
+            <div id="area-lixeira" class="sessao-lixeira">
+                <h3>🗑️ Lixeira (Retenção LGPD: 30 dias)</h3>
+                <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 20px;">Os cartões aqui serão destruídos automaticamente após 30 dias da data de exclusão.</p>
+                <div class="grid-recentes">
+        `;
+
+        apagados.forEach(cartao => {
+            let diasRestantes = 30 - Math.floor((agora - cartao.deletedAt) / (1000 * 60 * 60 * 24));
+            
+            lixeiraHtml += `
+                <div class="card-recente card-apagado">
+                    <div class="card-recente-header">
+                        <h4 style="text-decoration: line-through; color: #94a3b8;">${cartao.config.reclamante}</h4>
+                        <button class="btn-restaurar" onclick="restaurarCartao(${cartao.id})">♻️ Restaurar</button>
+                    </div>
+                    <p style="color: #ef4444; font-size: 0.8em; font-weight: bold;">Exclusão permanente em ${diasRestantes} dias</p>
+                </div>
+            `;
+        });
+
+        lixeiraHtml += `</div></div>`;
+        dashboardMain.insertAdjacentHTML('beforeend', lixeiraHtml);
+    }
+}
+
+// --- FUNÇÕES DA LIXEIRA ---
+
+function moverParaLixeira(id) {
+    if(!confirm("Tem certeza que deseja apagar este cartão? Ele ficará na lixeira por 30 dias.")) return;
+    
+    let salvos = JSON.parse(localStorage.getItem('cartoesPontoSalvos')) || [];
+    let index = salvos.findIndex(c => c.id === id);
+    if(index > -1) {
+        salvos[index].deletedAt = Date.now(); // Marca com a data e hora da "morte"
+        localStorage.setItem('cartoesPontoSalvos', JSON.stringify(salvos));
+        carregarDashboard(); // Atualiza a tela instantaneamente
+    }
+}
+
+function restaurarCartao(id) {
+    let salvos = JSON.parse(localStorage.getItem('cartoesPontoSalvos')) || [];
+    let index = salvos.findIndex(c => c.id === id);
+    if(index > -1) {
+        delete salvos[index].deletedAt; // Remove a etiqueta de exclusão
+        localStorage.setItem('cartoesPontoSalvos', JSON.stringify(salvos));
+        carregarDashboard(); // Atualiza a tela
+    }
+}
+
+// --- RESTANTE DAS FUNÇÕES ORIGINAIS ---
+
+function abrirCartao(id) {
+    localStorage.setItem('cartaoAtualId', id);
+    window.location.href = "app.html";
+}
+
 function abrirModalNovo() { document.getElementById('modal-novo').classList.remove('escondido'); }
 function fecharModalNovo() { document.getElementById('modal-novo').classList.add('escondido'); }
 
 function toggleFolgaInicial() {
-    const escala = document.getElementById('escala').value;
-    const container = document.getElementById('container-folga-inicial');
-    container.style.display = (escala === "6x2" || escala === "personalizada") ? "block" : "none";
+    const esc = document.getElementById('escala').value;
+    document.getElementById('container-folga-inicial').style.display = (esc === "6x2" || esc === "personalizada") ? "block" : "none";
 }
-
-// Funções para expandir os menus ocultos
 function toggleIntervaloFixo() {
-    const isChecked = document.getElementById('intervaloFixo').checked;
-    document.getElementById('container-intervalo').style.display = isChecked ? "block" : "none";
+    document.getElementById('container-intervalo').style.display = document.getElementById('intervaloFixo').checked ? "block" : "none";
 }
-
 function toggleBatidas() {
-    const isChecked = document.getElementById('checkBatidas').checked;
-    document.getElementById('container-batidas-input').style.display = isChecked ? "block" : "none";
+    document.getElementById('container-batidas-input').style.display = document.getElementById('checkBatidas').checked ? "block" : "none";
 }
 
 function salvarEIniciar() {
-    const reclamanteEl = document.getElementById('reclamante');
-    const reclamadaEl = document.getElementById('reclamada');
-    const dataInEl = document.getElementById('dataInicio');
-    const dataFimEl = document.getElementById('dataFim');
-    const escalaEl = document.getElementById('escala');
-    const folgaInEl = document.getElementById('dataFolgaInicial');
-    const checkBatidas = document.getElementById('checkBatidas');
-    const intervaloFixo = document.getElementById('intervaloFixo');
+    const reclamante = document.getElementById('reclamante').value.trim();
+    const dataIn = document.getElementById('dataInicio').value;
+    const dataFim = document.getElementById('dataFim').value;
+    const escala = document.getElementById('escala').value;
 
-    if (!reclamanteEl || !dataInEl || !dataFimEl) {
-        alert("Erro no formulário: Campos ausentes.");
+    if (!reclamante || !dataIn || !dataFim) {
+        alert("Preencha Reclamante, Data de Início e Fim!");
         return;
     }
 
-    // Define a quantidade de batidas
-    let qtd = 4; // Padrão
-    if (checkBatidas && checkBatidas.checked) {
-        qtd = parseInt(document.getElementById('qtdBatidas').value) || 4;
+    let trabPers = 6, folgaPers = 2;
+    if (escala === "personalizada") {
+        trabPers = parseInt(prompt("Dias de TRABALHO?", "5")) || 5;
+        folgaPers = parseInt(prompt("Dias de FOLGA?", "1")) || 1;
     }
 
     const config = {
-        reclamante: reclamanteEl.value.trim(),
-        reclamada: reclamadaEl ? reclamadaEl.value.trim() : '',
-        dataInicio: dataInEl.value,
-        dataFim: dataFimEl.value,
-        escala: escalaEl.value,
-        dataFolgaInicial: folgaInEl ? folgaInEl.value : '',
+        reclamante: reclamante,
+        reclamada: document.getElementById('reclamada').value.trim(),
+        dataInicio: dataIn,
+        dataFim: dataFim,
+        escala: escala,
+        dataFolgaInicial: document.getElementById('dataFolgaInicial').value,
         padraoE: document.getElementById('padraoE').value,
         padraoS: document.getElementById('padraoS').value,
-        intervaloFixo: intervaloFixo ? intervaloFixo.checked : false,
-        qtdBatidas: qtd, // AQUI VAI A QUANTIDADE ESCOLHIDA
-        trabPers: 6,
-        folgaPers: 2
+        intervaloFixo: document.getElementById('intervaloFixo').checked,
+        qtdBatidas: document.getElementById('checkBatidas').checked ? (parseInt(document.getElementById('qtdBatidas').value) || 4) : 4,
+        trabPers: trabPers,
+        folgaPers: folgaPers
     };
 
-    if (!config.reclamante || !config.dataInicio || !config.dataFim) {
-        alert("Preencha o Nome, Data de Início e Fim!");
-        return;
-    }
+    const novoCartao = {
+        id: Date.now(), 
+        dataEdicao: Date.now(),
+        progresso: 0,
+        config: config,
+        batidas: {} 
+    };
 
-    if (config.escala === "personalizada") {
-        config.trabPers = parseInt(prompt("Dias de TRABALHO?", "5")) || 5;
-        config.folgaPers = parseInt(prompt("Dias de FOLGA?", "1")) || 1;
-    }
-
-    if ((config.escala === "6x2" || config.escala === "personalizada") && !config.dataFolgaInicial) {
-        alert("Selecione a Data da 1ª Folga.");
-        return;
-    }
-
-    localStorage.setItem('cartaoPontoConfig', JSON.stringify(config));
+    let salvos = JSON.parse(localStorage.getItem('cartoesPontoSalvos')) || [];
+    salvos.push(novoCartao);
+    localStorage.setItem('cartoesPontoSalvos', JSON.stringify(salvos));
+    
+    localStorage.setItem('cartaoAtualId', novoCartao.id);
     window.location.href = "app.html";
 }
