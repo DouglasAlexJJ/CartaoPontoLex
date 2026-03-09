@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CartaoPontoLex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="logo">⚖️ CartaoPontoLex</div>
+        <button class="btn-secundario" onclick="window.location.href='index.html'">Sair</button>
+    </header>
+
+    <div class="dashboard-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="perfil-usuario">
+                    <div class="avatar">👨‍⚖️</div>
+                    <div class="info-perfil">
+                        <strong>Dr. Silva</strong>
+                        <small>Plano Premium</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <button class="btn-primario" style="width: 100%; margin-bottom: 20px;" onclick="abrirModalNovo()">➕ Novo Cartão</button>
+                <div class="divisor"></div>
+                <h4 class="sidebar-title">Cartões Salvos (Em breve)</h4>
+            </div>
+        </aside>
+
+        <main class="dashboard-main">
+            <div class="dashboard-header">
+                <h2>Bem-vindo ao seu Painel de Controlo</h2>
+                <p>O que deseja fazer hoje?</p>
+            </div>
+            
+            <div class="acoes-principais">
+                <button class="btn-gigante" onclick="abrirModalNovo()">
+                    <span class="icone-gigante">➕</span>
+                    <strong>Criar Novo Cartão Ponto</strong>
+                    <small>Começar do zero</small>
+                </button>
+                
+                <button class="btn-gigante">
+                    <span class="icone-gigante">📥</span>
+                    <strong>Importar Ficheiro</strong>
+                    <small>Continuar um trabalho anterior (.json)</small>
+                </button>
+            </div>
+
+            <div class="recentes-section">
+                <h3>Continuar a Editar (Últimos 4)</h3>
+                <div class="grid-recentes">
+                    <div class="card-recente">
+                        <div class="card-recente-header">
+                            <h4>Carlos Mendes</h4>
+                            <span class="badge-status progresso-baixo">45% Preenchido</span>
+                        </div>
+                        <p><strong>Reclamada:</strong> Transportes Lda.</p>
+                        <small class="data-edicao">Última edição: Hoje, 14:30</small>
+                    </div>
+
+                    <div class="card-recente">
+                        <div class="card-recente-header">
+                            <h4>João Pereira</h4>
+                            <span class="badge-status progresso-medio">80% Preenchido</span>
+                        </div>
+                        <p><strong>Reclamada:</strong> Indústria ABC</p>
+                        <small class="data-edicao">Última edição: Ontem, 18:15</small>
+                    </div>
+
+                    <div class="card-recente vazio" onclick="abrirModalNovo()">
+                        <span class="icone-vazio">➕</span>
+                        <p>Espaço Livre</p>
+                        <small>Clique para criar novo</small>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-novo" class="modal-overlay escondido">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>➕ Novo Cartão Ponto</h3>
+                <button class="btn-fechar" onclick="fecharModalNovo()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Reclamante / Funcionário <span class="obrigatorio">*</span></label>
+                    <input type="text" id="reclamante" placeholder="Nome completo">
+                </div>
+                <div class="form-group">
+                    <label>Reclamada / Empresa</label>
+                    <input type="text" id="reclamada" placeholder="Nome da empresa">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data de Início <span class="obrigatorio">*</span></label>
+                        <input type="date" id="dataInicio">
+                    </div>
+                    <div class="form-group">
+                        <label>Data de Fim <span class="obrigatorio">*</span></label>
+                        <input type="date" id="dataFim">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Escala Base</label>
+                    <select id="escala" onchange="toggleFolgaInicial()">
+                        <option value="seg-sex">Segunda a Sexta</option>
+                        <option value="seg-sab">Segunda a Sábado</option>
+                        <option value="6x2">Escala 6x2</option>
+                        <option value="personalizada">⚙️ Escala Personalizada...</option>
+                    </select>
+                </div>
+                <div id="container-folga-inicial" class="form-group" style="display:none;">
+                    <label>Data da 1ª Folga (Para ciclos):</label>
+                    <input type="date" id="dataFolgaInicial">
+                </div>
+
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 15px;">
+                    
+                    <label style="font-weight: 600; color: #0f172a; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="checkBatidas" onchange="toggleBatidas()"> 
+                        Definir Quantidade de Batidas (Padrão: 4)
+                    </label>
+                    <div id="container-batidas-input" style="display:none; margin-top: 10px; padding-left: 24px;">
+                        <label style="font-size: 0.85em; margin-bottom: 5px; display: block; color: #475569;">Número de batidas por dia:</label>
+                        <input type="number" id="qtdBatidas" value="4" min="2" style="width: 100px; text-align: center;">
+                    </div>
+
+                    <div class="divisor" style="margin: 15px 0;"></div>
+
+                    <label style="font-weight: 600; color: #0f172a; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="intervaloFixo" onchange="toggleIntervaloFixo()"> 
+                        Intervalo Fixo (Auto-Jump)
+                    </label>
+                    <div id="container-intervalo" style="display:none; margin-top: 10px; padding-left: 24px;">
+                        <label style="font-size: 0.85em; margin-bottom: 5px; display: block; color: #475569;">Horário de Intervalo Padrão:</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" id="padraoE" value="12:00" maxlength="5" style="width: 70px; text-align: center;"> 
+                            <span style="font-size: 0.85em; color: #64748b;">até</span>
+                            <input type="text" id="padraoS" value="13:00" maxlength="5" style="width: 70px; text-align: center;">
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secundario" onclick="fecharModalNovo()">Cancelar</button>
+                <button class="btn-primario" onclick="salvarEIniciar()">Gerar Cartão ➔</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

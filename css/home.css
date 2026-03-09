@@ -1,0 +1,62 @@
+/* ==========================================================================
+   HOME PAGE (TEMA ESCURO ORIGINAL)
+   ========================================================================== */
+.hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 80px 5%;
+    gap: 40px;
+    background: #0f172a; /* Azul Marinho Escuro */
+    color: white;
+}
+
+.hero-texto { flex: 1; }
+.hero-texto h1 { font-size: 3em; margin-bottom: 15px; line-height: 1.1; font-weight: 700; }
+.hero-texto p { font-size: 1.1em; color: #94a3b8; margin-bottom: 30px; line-height: 1.6; }
+
+.btn-cta {
+    background: #10b981; /* Verde Vibrante */
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+    transition: 0.2s;
+}
+.btn-cta:hover { background: #059669; transform: translateY(-2px); }
+
+.hero-amostra { flex: 1; }
+.mockup-janela {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    color: #333;
+}
+.mockup-header { background: #e2e8f0; padding: 10px 15px; font-weight: bold; font-size: 0.9em; color: #475569; }
+.mockup-body { padding: 20px; font-family: monospace; font-size: 0.95em; }
+.linha-fake { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+.linha-fake span { font-weight: bold; color: #0284c7; margin-right: 10px; }
+.folga-fake { background: #fce4ec; color: #c2185b; }
+
+.features {
+    display: flex;
+    gap: 20px;
+    padding: 60px 5%;
+    justify-content: center;
+    background: #f8fafc;
+}
+.feature-card {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    flex: 1;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    text-align: center;
+}
+.feature-card h3 { color: #0f172a; margin-top: 0; }
+.feature-card p { color: #64748b; font-size: 0.95em; line-height: 1.5; }

@@ -3,73 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CalcPontoLex - Painel de Cálculo</title>
-    <link rel="stylesheet" href="style.css">
+    <title>CartaoPontoLex - Gestão de Cartões Ponto à Prova de Falhas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/home.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>CalcPontoLex</h1>
-            <p id="saudacao">Olá, Dr(a). [Nome]</p>
-        </header>
+    <header class="navbar">
+        <div class="logo">⚖️ CartaoPontoLex</div>
+        <button class="btn-login" onclick="window.location.href='dashboard.html'">Entrar / Login</button>
+    </header>
 
-        <section id="setup-calculo">
-            <div class="card">
-                <h3>Novo Cálculo</h3>
-                <input type="text" id="reclamante" placeholder="Nome do Reclamante">
-                <div class="datas-grupo">
-                    <input type="date" id="dataInicio">
-                    <input type="date" id="dataFim">
+    <main class="hero">
+        <div class="hero-texto">
+            <h1>Cálculo de Ponto Pericial à Prova de Falhas</h1>
+            <p>Automatize jornadas complexas, escalas 6x2 e intervalos noturnos em minutos. A ferramenta definitiva para advogados e peritos trabalhistas.</p>
+            <button class="btn-cta" onclick="window.location.href='dashboard.html'">Começar a Calcular Gratuitamente</button>
+        </div>
+        
+        <div class="hero-amostra">
+            <div class="mockup-janela">
+                <div class="mockup-header">Painel de Cálculo Rápido</div>
+                <div class="mockup-body">
+                    <div class="linha-fake"><span>SEG</span> [08:00] [12:00] [13:00] [18:00] ➔ 09:00</div>
+                    <div class="linha-fake"><span>TER</span> [08:00] [12:00] [13:00] [18:00] ➔ 09:00</div>
+                    <div class="linha-fake folga-fake"><span>QUA</span> [ ESCALA 6x2 - FOLGA ]</div>
                 </div>
-                
-                <select id="escala" onchange="toggleFolgaInicial()">
-                    <option value="seg-sex">Segunda a Sexta</option>
-                    <option value="seg-sab">Segunda a Sábado</option>
-                    <option value="6x2">Escala 6x2</option>
-                    <option value="motorista">Motorista (10 batidas)</option>
-                    <option value="personalizada">⚙️ Escala Personalizada (X por Y)...</option>
-                </select>
-                
-                <div id="container-folga-inicial" style="display:none; margin-top: 10px;">
-                    <label>Data da 1ª Folga (Início do ciclo):</label>
-                    <input type="date" id="dataFolgaInicial">
-                </div>
-
-                <div class="almoco-padrao" style="margin-top: 15px;">
-                    <label>Almoço Padrão:</label>
-                    <input type="text" id="padraoE" value="12:00" maxlength="5" style="width: 60px; text-align: center;">
-                    <span>até</span>
-                    <input type="text" id="padraoS" value="13:00" maxlength="5" style="width: 60px; text-align: center;">
-                </div>
-                
-                <div class="opcoes-adicionais" style="margin-top: 15px;">
-                    <label>
-                        <input type="checkbox" id="intervaloFixo" checked> 
-                        Intervalo Fixo (Auto-Jump E1 para S2)
-                    </label>
-                </div>
-                <button onclick="gerarFolha()" style="margin-top: 15px;">Gerar Folha de Ponto</button>
             </div>
-        </section>
+        </div>
+    </main>
 
-        <table id="tabela-ponto" class="hidden">
-            <thead>
-                <tr>
-                    <th style="width: 150px;">Data</th>
-                    <th>Horários de Entrada e Saída</th>
-                    <th style="width: 100px;">Total</th>
-                </tr>
-            </thead>
-            <tbody id="corpo-tabela"></tbody>
-        </table>
-
-        <footer id="rodape-totalizador">
-            <div class="total-card">
-                <span>Total de Horas no Período:</span>
-                <strong id="total-geral-periodo">00:00</strong>
-            </div>
-        </footer>
-    </div>
-    <script src="script.js"></script>
+    <section class="features">
+        <div class="feature-card">
+            <h3>⏱️ Escalas Complexas</h3>
+            <p>Personalize escalas 12x36, 6x2, 5x1 ou crie sua própria rotação com dois cliques.</p>
+        </div>
+        <div class="feature-card">
+            <h3>🚚 Modo Motorista</h3>
+            <p>Até 10 batidas por dia preparadas para a lei do motorista, de forma limpa e organizada.</p>
+        </div>
+        <div class="feature-card">
+            <h3>💾 Salve na Nuvem</h3>
+            <p>Pare o cálculo no meio, feche o navegador e continue depois exatamente de onde parou.</p>
+        </div>
+    </section>
 </body>
 </html>

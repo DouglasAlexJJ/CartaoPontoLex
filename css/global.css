@@ -1,0 +1,94 @@
+/* ==========================================================================
+   CSS GLOBAL - CartaoPontoLex
+   ========================================================================== */
+
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    background: #f8fafc; 
+    color: #1e293b; 
+    line-height: 1.5; 
+}
+
+/* Cabeçalho de Navegação Padrão */
+.navbar { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 15px 5%; 
+    background: white; 
+    border-bottom: 1px solid #e2e8f0; 
+    position: sticky; 
+    top: 0; 
+    z-index: 1000; 
+}
+
+.logo { 
+    font-size: 1.4em; 
+    font-weight: 700; 
+    color: #0f172a; 
+}
+
+/* Estilos Globais de Botões */
+.btn-login { 
+    background: transparent; 
+    border: 2px solid #0284c7; 
+    color: #0284c7; 
+    padding: 8px 16px; 
+    border-radius: 6px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: 0.2s; 
+}
+
+.btn-login:hover { 
+    background: #f0f9ff; 
+}
+
+.btn-primario { 
+    background: #0284c7; 
+    border: none; 
+    color: white; 
+    padding: 10px 20px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-weight: 600; 
+    transition: 0.2s; 
+}
+
+.btn-primario:hover { 
+    background: #0369a1; 
+}
+
+.btn-secundario { 
+    background: white; 
+    border: 1px solid #cbd5e1; 
+    color: #475569; 
+    padding: 10px 20px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-weight: 600; 
+    transition: 0.2s; 
+}
+
+.btn-secundario:hover { 
+    background: #f1f5f9; 
+    color: #0f172a; 
+}
+
+/* A CLASSE MAIS IMPORTANTE PARA O MODAL FUNCIONAR */
+.escondido { 
+    display: none !important; 
+}
+
+/* Divisores de layout */
+.divisor { 
+    height: 1px; 
+    background: #e2e8f0; 
+    margin: 10px 0; 
+}
