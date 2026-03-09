@@ -75,9 +75,18 @@ async function carregarCartaoDaNuvem() {
 
 // 2. FUNÇÕES EXPORTADAS PARA O HTML
 window.voltarEsalvar = async function() {
-    document.querySelector('.btn-voltar').innerText = "Salvando na nuvem...";
-    await salvarProgressoAuto();
-    window.location.href = "dashboard.html";
+    const btn = document.querySelector('.btn-voltar');
+    const textoOriginal = btn.innerHTML;
+    btn.innerText = "Salvando...";
+    
+    try {
+        await salvarProgressoAuto(); // Garante o último save antes de sair
+        window.location.href = "dashboard.html";
+    } catch (e) {
+        console.error("Erro ao salvar:", e);
+        btn.innerHTML = textoOriginal;
+        alert("Erro ao salvar na nuvem. Verifique sua internet.");
+    }
 };
 
 window.toggleMenuDia = function(btn, event) {
@@ -175,27 +184,22 @@ async function salvarProgressoAuto() {
         if (isFolga) {
             diasPreenchidos++;
         } else {
-            let batidasManuais = 0;
-            inputs.forEach((val, idx) => {
-                if (val.length === 5) {
-                    if (configAtual.intervaloFixo && (idx === 1 || idx === 2)) return; 
-                    batidasManuais++;
-                }
-            });
-            if (batidasManuais > 0) diasPreenchidos++;
+            let preenchido = inputs.some(v => v.length === 5);
+            if (preenchido) diasPreenchidos++;
         }
     });
 
     cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
     cartaoAtual.dataEdicao = Date.now();
 
-    // ENVIA A ATUALIZAÇÃO PARA O FIRESTORE
     const docRef = doc(db, "cartoes", cartaoAtual.id);
     await updateDoc(docRef, {
         batidas: cartaoAtual.batidas,
         progresso: cartaoAtual.progresso,
         dataEdicao: cartaoAtual.dataEdicao
     });
+    
+    console.log("Nuvem atualizada!"); // Verifique isso no F12
 }
 
 // 4. LÓGICA DE GERAÇÃO DA FOLHA (Mantida intacta)
