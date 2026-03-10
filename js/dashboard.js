@@ -40,10 +40,16 @@ onAuthStateChanged(auth, async (user) => {
 
             // 2. Verifica se é ADMIN para mostrar menu de convites
             if (dadosUsuarioGlobal.tipoConta === 'admin') {
-                document.getElementById('menu-colaboradores').classList.remove('escondido');
-                document.getElementById('nome-empresa-convite').innerText = dadosUsuarioGlobal.empresa;
-                // Gera o link (depois trataremos a rota de convite)
-                document.getElementById('link-convite-texto').innerText = `${base}/index.html?invite=${usuarioAtual.uid}`;
+                // Mostra o menu de equipe
+                const menuEquipe = document.getElementById('menu-colaboradores');
+                if (menuEquipe) menuEquipe.classList.remove('escondido');
+
+                // GERA O LINK (Usa .value porque agora é um input)
+                const inputLink = document.getElementById('link-convite-texto');
+                if (inputLink) {
+                    const urlBase = window.location.origin;
+                    inputLink.value = `${urlBase}/index.html?invite=${usuarioAtual.uid}`;
+                }
             }
 
             carregarDashboard();
@@ -430,9 +436,12 @@ window.fecharModalColaboradores = function() {
 };
 
 window.copiarLinkConvite = function() {
-    const link = document.getElementById('link-convite-texto').innerText;
-    navigator.clipboard.writeText(link);
-    alert("Link copiado! Envie-o para o seu colaborador.");
+    const inputLink = document.getElementById('link-convite-texto');
+    inputLink.select(); // Seleciona o texto
+    inputLink.setSelectionRange(0, 99999); // Para celulares
+    navigator.clipboard.writeText(inputLink.value);
+    
+    alert("Link de convite copiado com sucesso!");
 };
 
 function atualizarNomeSidebar(perfil) {
