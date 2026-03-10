@@ -284,7 +284,9 @@ window.abrirModalPerfil = function() {
     document.getElementById('modal-perfil').classList.remove('escondido');
 };
 
-window.fecharModalPerfil = function() { document.getElementById('modal-perfil').classList.add('escondido'); };
+window.fecharModalPerfil = function() { 
+    document.getElementById('modal-perfil').classList.add('escondido'); 
+};
 
 window.salvarEdicaoPerfil = async function() {
     const btn = document.querySelector('#modal-perfil .btn-primario');
@@ -308,8 +310,13 @@ window.salvarEdicaoPerfil = async function() {
 
 // --- FUNÇÕES DE CONVITE ---
 
-window.abrirModalColaboradores = function() { document.getElementById('modal-colaboradores').classList.remove('escondido'); };
-window.fecharModalColaboradores = function() { document.getElementById('modal-colaboradores').classList.add('escondido'); };
+window.abrirModalColaboradores = function() { 
+    document.getElementById('modal-colaboradores').classList.remove('escondido'); 
+};
+
+window.fecharModalColaboradores = function() { 
+    document.getElementById('modal-colaboradores').classList.add('escondido'); 
+};
 
 window.copiarLinkConvite = function() {
     const link = document.getElementById('link-convite-texto').innerText;
