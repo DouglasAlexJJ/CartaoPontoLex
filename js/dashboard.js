@@ -30,43 +30,57 @@ onAuthStateChanged(auth, async (user) => {
         usuarioAtual = user;
         const docRef = doc(db, "usuarios", user.uid);
         const docSnap = await getDoc(docRef);
-        const base = window.location.origin;
 
         if (docSnap.exists()) {
             dadosUsuarioGlobal = docSnap.data();
+            
+            // Movemos o log para depois de definir a variável, para não dar erro
+            console.log("Cargo detectado:", dadosUsuarioGlobal.tipoConta); 
+
             atualizarNomeSidebar(dadosUsuarioGlobal);
 
-            if (dadosUsuarioGlobal.tipoConta === 'admin') {
-                // Mostra o menu de equipe
+            // --- CORREÇÃO DA PORTEIRA (ADMIN OU GESTOR) ---
+            if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
+                
+                // 1. Mostra o menu de equipe
                 const menuEquipe = document.getElementById('menu-colaboradores');
-                if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
-                    menuEquipe.classList.remove('escondido');
-                } else {
-                    menuEquipe.classList.add('escondido');
-                }
+                if (menuEquipe) menuEquipe.classList.remove('escondido');
+
+                // 2. Gera o Link de Convite
                 const inputLink = document.getElementById('link-convite-texto');
                 if (inputLink) {
                     const urlBase = window.location.origin;
-                    inputLink.value = `${urlBase}/index.html?invite=${usuarioAtual.uid}`;
+                    
+                    // Lógica inteligente: o link sempre usa o ID do DONO do escritório
+                    const idParaConvite = (dadosUsuarioGlobal.tipoConta === 'admin') 
+                                          ? user.uid 
+                                          : dadosUsuarioGlobal.adminId;
+
+                    inputLink.value = `${urlBase}/index.html?invite=${idParaConvite}`;
                 }
+            } else {
+                // Se for colaborador comum, garante que o menu esteja escondido
+                const menuEquipe = document.getElementById('menu-colaboradores');
+                if (menuEquipe) menuEquipe.classList.add('escondido');
             }
 
             carregarDashboard();
         } else {
-            // VERIFICA SE É CONVITE PARA AJUSTAR O MODAL
+            // Lógica de Onboarding (Novo usuário)
             const inviteId = sessionStorage.getItem('inviteId');
-            const campoEmpresa = document.getElementById('perfil-empresa').closest('.form-group');
+            const formGroupEmpresa = document.getElementById('perfil-empresa')?.closest('.form-group');
             
-            if (inviteId) {
-                // É um colaborador: esconde o campo de empresa
-                if (campoEmpresa) campoEmpresa.style.display = 'none';
-            } else {
-                // É um admin: garante que o campo apareça
-                if (campoEmpresa) campoEmpresa.style.display = 'block';
+            if (inviteId && formGroupEmpresa) {
+                formGroupEmpresa.style.display = 'none';
+            } else if (formGroupEmpresa) {
+                formGroupEmpresa.style.display = 'block';
             }
+            
             document.getElementById('perfil-nome').value = user.displayName || "";
             document.getElementById('modal-onboarding').classList.remove('escondido');
         }
+    } else {
+        window.location.href = "index.html";
     }
 });
 
