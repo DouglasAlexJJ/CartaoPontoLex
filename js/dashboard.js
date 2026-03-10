@@ -34,16 +34,14 @@ onAuthStateChanged(auth, async (user) => {
 
         if (docSnap.exists()) {
             dadosUsuarioGlobal = docSnap.data();
-            
-            // 1. Atualiza Nome na Sidebar
             atualizarNomeSidebar(dadosUsuarioGlobal);
 
-            // 2. Verifica se é ADMIN para mostrar menu de convites
             if (dadosUsuarioGlobal.tipoConta === 'admin') {
                 // Mostra o menu de equipe
                 const menuEquipe = document.getElementById('menu-colaboradores');
-                if (menuEquipe) menuEquipe.classList.remove('escondido');
-
+                if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
+                    if (menuEquipe) menuEquipe.classList.remove('escondido');
+                }
                 // GERA O LINK (Usa .value porque agora é um input)
                 const inputLink = document.getElementById('link-convite-texto');
                 if (inputLink) {
@@ -133,7 +131,8 @@ async function carregarDashboard() {
     if (gridRecentes) {
         gridRecentes.innerHTML = '';
         const ultimos = ativos.slice(0, 8); 
-        
+        const botaoExcluir = (dadosUsuarioGlobal.tipoConta !== 'colaborador')
+
         ultimos.forEach(cartao => {
             let corBadge = cartao.progresso === 100 ? 'progresso-alto' : (cartao.progresso > 30 ? 'progresso-medio' : 'progresso-baixo');
             let dataStr = new Date(cartao.dataEdicao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -142,7 +141,7 @@ async function carregarDashboard() {
                 <div class="card-recente" onclick="abrirCartao('${cartao.id}')">
                     <div class="card-recente-header">
                         <h4>${cartao.config.reclamante}</h4>
-                        <button class="btn-deletar" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')" title="Mover para Lixeira">🗑️</button>
+                        <button class="btn-deletar" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')">🗑️</button>
                     </div>
                     <span class="badge-status ${corBadge}" style="display:inline-block; margin-bottom:10px;">${cartao.progresso}% Concluído</span>
                     <p><strong>Empresa:</strong> ${cartao.config.reclamada || 'Não informada'}</p>
@@ -206,6 +205,10 @@ window.toggleBatidas = function() {
 };
 
 window.moverParaLixeira = async function(id) {
+    if (dadosUsuarioGlobal.tipoConta === 'colaborador') {
+        alert("Acesso negado: Somente Administradores ou Gestores podem excluir cartões.");
+        return;
+    }
     if(!confirm("Tem certeza que deseja apagar?")) return;
     let cartao = salvosNuvem.find(c => c.id === id);
     if(cartao) {
@@ -384,8 +387,7 @@ window.abrirModalColaboradores = function() {
 
 async function carregarMembrosEquipe() {
     const container = document.getElementById('lista-membros-equipe');
-    
-    // Busca todos os usuários que têm o meu UID como adminId
+    const meuAdminId = dadosUsuarioGlobal.tipoConta === 'admin' ? usuarioAtual.uid : dadosUsuarioGlobal.adminId;
     const q = query(collection(db, "usuarios"), where("adminId", "==", usuarioAtual.uid));
     const querySnapshot = await getDocs(q);
     
@@ -397,15 +399,25 @@ async function carregarMembrosEquipe() {
     container.innerHTML = '';
     querySnapshot.forEach((membroDoc) => {
         const membro = membroDoc.data();
+        if (membro.uid === usuarioAtual.uid) return;
+        const ehGestor = membro.tipoConta === 'gestor';
         container.innerHTML += `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; background: #fff;">
                 <div>
-                    <strong style="display: block; font-size: 0.9em; color: #1e293b;">${membro.nome}</strong>
+                    <strong style="display: block; font-size: 0.95em;">${membro.nome} ${ehGestor ? '<span style="color:#2563eb; font-size:0.7em;">(GESTOR)</span>' : ''}</strong>
                     <small style="color: #64748b;">${membro.email}</small>
                 </div>
-                <button onclick="desvincularMembro('${membro.uid}')" style="background: #fee2e2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75em; cursor: pointer; font-weight: bold;">
-                    Desvincular
-                </button>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="alterarCargoMembro('${membro.uid}', '${ehGestor ? 'colaborador' : 'gestor'}')" 
+                            style="background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
+                        ${ehGestor ? '⬇ Rebaixar' : '⬆ Tornar Gestor'}
+                    </button>
+                    
+                    <button onclick="desvincularMembro('${membro.uid}')" 
+                            style="background: #fff1f2; color: #ef4444; border: 1px solid #fecdd3; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
+                        Remover
+                    </button>
+                </div>
             </div>
         `;
     });
@@ -449,3 +461,20 @@ function atualizarNomeSidebar(perfil) {
     const forteNome = document.querySelector('.info-perfil strong');
     if (forteNome) forteNome.innerText = nomeExibicao;
 }
+window.alterarCargoMembro = async function(membroUid, novoCargo) {
+    const acao = novoCargo === 'gestor' ? "promover a Gestor" : "rebaixar a Colaborador";
+    if (!confirm(`Deseja realmente ${acao} este membro?`)) return;
+
+    try {
+        const membroRef = doc(db, "usuarios", membroUid);
+        await updateDoc(membroRef, {
+            tipoConta: novoCargo
+        });
+        
+        alert("Cargo atualizado com sucesso!");
+        carregarMembrosEquipe(); // Recarrega a lista no modal
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao alterar cargo.");
+    }
+};
