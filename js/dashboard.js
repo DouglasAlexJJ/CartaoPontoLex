@@ -30,6 +30,7 @@ onAuthStateChanged(auth, async (user) => {
         usuarioAtual = user;
         const docRef = doc(db, "usuarios", user.uid);
         const docSnap = await getDoc(docRef);
+        const base = window.location.origin;
 
         if (docSnap.exists()) {
             dadosUsuarioGlobal = docSnap.data();
@@ -42,16 +43,26 @@ onAuthStateChanged(auth, async (user) => {
                 document.getElementById('menu-colaboradores').classList.remove('escondido');
                 document.getElementById('nome-empresa-convite').innerText = dadosUsuarioGlobal.empresa;
                 // Gera o link (depois trataremos a rota de convite)
-                document.getElementById('link-convite-texto').innerText = `https://cartaopontolex.vercel.app/index.html?invite=${usuarioAtual.uid}`;
+                document.getElementById('link-convite-texto').innerText = `${base}/index.html?invite=${usuarioAtual.uid}`;
             }
 
             carregarDashboard();
         } else {
+            // VERIFICA SE É CONVITE PARA AJUSTAR O MODAL
+            const inviteId = sessionStorage.getItem('inviteId');
+            const campoEmpresa = document.getElementById('perfil-empresa').closest('.form-group');
+            
+            if (inviteId) {
+                // É um colaborador: esconde o campo de empresa
+                if (campoEmpresa) campoEmpresa.style.display = 'none';
+            } else {
+                // É um admin: garante que o campo apareça
+                if (campoEmpresa) campoEmpresa.style.display = 'block';
+            }
+
             document.getElementById('perfil-nome').value = user.displayName || "";
             document.getElementById('modal-onboarding').classList.remove('escondido');
         }
-    } else {
-        window.location.href = "index.html";
     }
 });
 
@@ -310,10 +321,25 @@ window.salvarPerfilInicial = async function() {
 
 window.abrirModalPerfil = function() {
     if(!dadosUsuarioGlobal) return;
+    
+    // Preenche os campos
     document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
     document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
     document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
-    document.getElementById('edit-perfil-empresa').value = dadosUsuarioGlobal.empresa || "";
+    
+    const campoEmpresa = document.getElementById('edit-perfil-empresa');
+    campoEmpresa.value = dadosUsuarioGlobal.empresa || "";
+
+    // TRAVA DE SEGURANÇA: Colaborador não edita a empresa
+    if (dadosUsuarioGlobal.tipoConta === 'colaborador') {
+        campoEmpresa.disabled = true; // Bloqueia o campo
+        campoEmpresa.style.backgroundColor = "#f1f5f9"; // Deixa cinza
+        campoEmpresa.title = "Somente o Administrador pode alterar o nome da empresa.";
+    } else {
+        campoEmpresa.disabled = false;
+        campoEmpresa.style.backgroundColor = "#ffffff";
+    }
+
     document.getElementById('modal-perfil').classList.remove('escondido');
 };
 
