@@ -57,9 +57,22 @@ onAuthStateChanged(auth, async (user) => {
 
 // 2. BUSCAR DADOS NA NUVEM
 async function carregarDashboard() {
-    if (!usuarioAtual) return;
+    if (!usuarioAtual || !dadosUsuarioGlobal) return;
 
-    const q = query(collection(db, "cartoes"), where("userId", "==", usuarioAtual.uid));
+    let q;
+    if (dadosUsuarioGlobal.tipoConta === 'admin') {
+        // O Admin vê tudo o que ele criou
+        q = query(collection(db, "cartoes"), where("userId", "==", usuarioAtual.uid));
+    } else {
+        // O Colaborador vê os cartões do seu ADMIN (o patrão)
+        // Assim eles compartilham o mesmo escritório!
+        q = query(collection(db, "cartoes"), where("userId", "==", dadosUsuarioGlobal.adminId));
+        
+        // Esconde o menu de convites para o funcionário
+        const menuConvite = document.getElementById('menu-colaboradores');
+        if (menuConvite) menuConvite.classList.add('escondido');
+    }
+
     const querySnapshot = await getDocs(q);
     
     salvosNuvem = [];
@@ -246,32 +259,52 @@ window.salvarPerfilInicial = async function() {
     const nome = document.getElementById('perfil-nome').value.trim();
     const tratamento = document.getElementById('perfil-tratamento').value;
     const oab = document.getElementById('perfil-oab').value.trim();
-    const empresa = document.getElementById('perfil-empresa').value.trim();
-
-    if (!nome || !empresa) {
-        alert("Nome e Empresa são obrigatórios para a conta de Administrador!");
-        return;
-    }
-
-    const dadosPerfil = {
+    
+    // Verifica se existe um convite pendente na memória
+    const inviteId = sessionStorage.getItem('inviteId');
+    
+    let dadosPerfil = {
         uid: usuarioAtual.uid,
         email: usuarioAtual.email,
         nome: nome,
         tratamento: tratamento,
         oab: oab,
-        empresa: empresa,
-        tipoConta: 'admin', // Quem cria a conta é sempre Admin (o pagador)
         dataCriacao: Date.now()
     };
+
+    if (inviteId) {
+        // --- LOGICA DE COLABORADOR (FUNCIONÁRIO) ---
+        console.log("Vinculando colaborador ao admin:", inviteId);
+        
+        // 1. Busca os dados da empresa do patrão
+        const adminDoc = await getDoc(doc(db, "usuarios", inviteId));
+        if (adminDoc.exists()) {
+            const dadosAdmin = adminDoc.data();
+            dadosPerfil.tipoConta = 'colaborador';
+            dadosPerfil.empresa = dadosAdmin.empresa; // Herda o nome da empresa
+            dadosPerfil.adminId = inviteId; // Vínculo eterno com o patrão
+        }
+        sessionStorage.removeItem('inviteId'); // Limpa a memória
+    } else {
+        // --- LOGICA DE ADMINISTRADOR (PATRÃO) ---
+        const empresa = document.getElementById('perfil-empresa').value.trim();
+        if (!empresa) {
+            alert("Nome da Empresa é obrigatório para Administradores!");
+            return;
+        }
+        dadosPerfil.tipoConta = 'admin';
+        dadosPerfil.empresa = empresa;
+    }
+
+    if (!nome) { alert("O nome é obrigatório!"); return; }
 
     try {
         await setDoc(doc(db, "usuarios", usuarioAtual.uid), dadosPerfil);
         document.getElementById('modal-onboarding').classList.add('escondido');
-        atualizarNomeSidebar(dadosPerfil);
-        carregarDashboard();
+        location.reload(); // Recarrega para aplicar as permissões
     } catch (e) {
-        console.error("Erro ao salvar perfil:", e);
-        alert("Erro ao salvar perfil. Tente novamente.");
+        console.error(e);
+        alert("Erro ao criar perfil.");
     }
 };
 

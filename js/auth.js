@@ -1,6 +1,18 @@
 /* ==========================================================================
    SISTEMA DE AUTENTICAÇÃO COMPLETO - FIREBASE (CartaoPontoLex)
    ========================================================================== */
+const urlParams = new URLSearchParams(window.location.search);
+const inviteId = urlParams.get('invite');
+
+if (inviteId) {
+    console.log("Usuário convidado pelo Admin:", inviteId);
+    // Guarda o ID na sessão para usar depois do cadastro
+    sessionStorage.setItem('inviteId', inviteId);
+    
+    // Opcional: Mostrar um aviso visual de boas-vindas
+    const msgBoasVindas = document.getElementById('titulo-login');
+    if (msgBoasVindas) msgBoasVindas.innerText = "📝 Criar Conta de Colaborador";
+}
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { 
