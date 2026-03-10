@@ -40,9 +40,10 @@ onAuthStateChanged(auth, async (user) => {
                 // Mostra o menu de equipe
                 const menuEquipe = document.getElementById('menu-colaboradores');
                 if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
-                    if (menuEquipe) menuEquipe.classList.remove('escondido');
+                    menuEquipe.classList.remove('escondido');
+                } else {
+                    menuEquipe.classList.add('escondido');
                 }
-                // GERA O LINK (Usa .value porque agora é um input)
                 const inputLink = document.getElementById('link-convite-texto');
                 if (inputLink) {
                     const urlBase = window.location.origin;
@@ -63,7 +64,6 @@ onAuthStateChanged(auth, async (user) => {
                 // É um admin: garante que o campo apareça
                 if (campoEmpresa) campoEmpresa.style.display = 'block';
             }
-
             document.getElementById('perfil-nome').value = user.displayName || "";
             document.getElementById('modal-onboarding').classList.remove('escondido');
         }
@@ -463,9 +463,28 @@ window.copiarLinkConvite = function() {
 };
 
 function atualizarNomeSidebar(perfil) {
-    const nomeExibicao = perfil.tratamento ? `${perfil.tratamento} ${perfil.nome}` : perfil.nome;
-    const forteNome = document.querySelector('.info-perfil strong');
-    if (forteNome) forteNome.innerText = nomeExibicao;
+    const forteNome = document.getElementById('sidebar-nome-exibicao');
+    if (!forteNome) return;
+
+    // 1. Define o nome (com tratamento se houver)
+    const nomeBase = perfil.tratamento ? `${perfil.tratamento} ${perfil.nome}` : perfil.nome;
+
+    // 2. Define a etiqueta baseada no tipo de conta
+    let etiquetaHtml = '';
+    if (perfil.tipoConta === 'admin') {
+        etiquetaHtml = `<span class="badge-cargo badge-titular">Titular</span>`;
+    } else if (perfil.tipoConta === 'gestor') {
+        etiquetaHtml = `<span class="badge-cargo badge-gestor">Gestor</span>`;
+    }
+
+    // 3. Aplica ao HTML
+    forteNome.innerHTML = `${nomeBase} ${etiquetaHtml}`;
+    
+    // Aproveita e atualiza o texto do plano se for colaborador
+    const statusPlano = document.getElementById('sidebar-status-conta');
+    if (statusPlano && perfil.tipoConta !== 'admin') {
+        statusPlano.innerText = `Equipa: ${perfil.empresa}`;
+    }
 }
 window.alterarCargoMembro = async function(membroUid, novoCargo) {
     if (dadosUsuarioGlobal.tipoConta !== 'admin') {
