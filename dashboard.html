@@ -142,46 +142,52 @@
         </div>
     </div>
     <div id="modal-onboarding" class="modal-overlay escondido">
-    <div class="modal-card" style="max-width: 450px;">
-        <div class="modal-header">
-            <h3>🎨 Personalize seu Perfil</h3>
+    <div class="modal-card" style="max-width: 480px; border-top: 4px solid #2563eb;">
+        <div class="modal-header" style="text-align: center; display: block; padding: 30px 20px 10px;">
+            <div style="font-size: 2.5em; margin-bottom: 10px;">🚀</div>
+            <h3 style="font-size: 1.5em; color: #0f172a;">Quase lá!</h3>
+            <p style="color: #64748b; font-size: 0.95em; margin-top: 5px;">Personalize sua experiência no CartaoPontoLex</p>
         </div>
-        <div class="modal-body">
-            <p style="font-size: 0.9em; color: #64748b; margin-bottom: 20px;">
-                Seja bem-vindo! Como você gostaria de ser identificado nos documentos e no sistema?
-            </div>
-            
-            <div class="form-group">
-                <label>Tratamento</label>
-                <select id="perfil-tratamento">
-                    <option value="" selected>Padrão (Somente nome)</option>
-                    <option value="Sr.">Sr.</option>
-                    <option value="Sra.">Sra.</option>
-                    <option value="Dr.">Dr.</option>
-                    <option value="Dra.">Dra.</option>
-                </select>
+
+        <div class="modal-body" style="padding: 20px 30px;">
+            <div style="display: flex; gap: 15px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Tratamento</label>
+                    <select id="perfil-tratamento" class="input-premium">
+                        <option value="" selected>Padrão</option>
+                        <option value="Sr.">Sr.</option>
+                        <option value="Sra.">Sra.</option>
+                        <option value="Dr.">Dr.</option>
+                        <option value="Dra.">Dra.</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 2;">
+                    <label>Nome Completo*</label>
+                    <input type="text" id="perfil-nome" class="input-premium" placeholder="Seu nome">
+                </div>
             </div>
 
             <div class="form-group">
-                <label>Nome Completo*</label>
-                <input type="text" id="perfil-nome" placeholder="Ex: João Silva">
+                <label>OAB <span style="font-weight: normal; color: #94a3b8;">(Opcional)</span></label>
+                <input type="text" id="perfil-oab" class="input-premium" placeholder="Ex: 123.456/SP">
             </div>
 
             <div class="form-group">
-                <label>OAB (Opcional)</label>
-                <input type="text" id="perfil-oab" placeholder="Ex: 123.456/SP">
-            </div>
-
-            <div class="form-group">
-                <label>Nome da Empresa/Escritório*</label>
-                <input type="text" id="perfil-empresa" placeholder="Ex: Silva Advogados Associados">
-                <small style="color: #94a3b8; font-size: 0.75em;">Este nome será visto pelos seus colaboradores convidados.</small>
+                <label>Nome do Escritório / Empresa*</label>
+                <input type="text" id="perfil-empresa" class="input-premium" placeholder="Ex: Silva Advogados">
+                <p style="color: #94a3b8; font-size: 0.8em; margin-top: 6px; line-height: 1.4;">
+                    💡 Este nome aparecerá nos convites para seus futuros colaboradores.
+                </p>
             </div>
         </div>
-        <div class="modal-footer">
-            <button onclick="salvarPerfilInicial()" class="btn-primario" style="width: 100%;">Concluir e Acessar Painel ➔</button>
+
+        <div class="modal-footer" style="padding: 20px 30px 30px; background: none; border: none;">
+            <button onclick="salvarPerfilInicial()" class="btn-primario" style="width: 100%; padding: 14px; font-size: 1.1em; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
+                Concluir Configuração ➔
+            </button>
         </div>
     </div>
+</div>
 </div>
     <script type="module" src="js/dashboard.js"></script>
 
