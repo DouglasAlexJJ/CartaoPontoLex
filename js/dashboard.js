@@ -223,7 +223,10 @@ window.salvarEIniciar = async function() {
     const dataIn = document.getElementById('dataInicio').value;
     const dataFim = document.getElementById('dataFim').value;
     const escala = document.getElementById('escala').value;
-
+    const donoDoCartaoId = (dadosUsuarioGlobal.tipoConta === 'colaborador') 
+                           ? dadosUsuarioGlobal.adminId 
+                           : usuarioAtual.uid;
+    
     if (!reclamante || !dataIn || !dataFim) {
         alert("Preencha Reclamante, Data de Início e Fim!");
         return;
@@ -252,20 +255,19 @@ window.salvarEIniciar = async function() {
 
     const novoCartao = {
         id: Date.now().toString(), 
-        userId: usuarioAtual.uid, // <-- O SEGREDO: VINCULA ESTE CARTÃO AO ADVOGADO LOGADO
+        userId: donoDoCartaoId,
+        criadoPor: usuarioAtual.email,
         dataEdicao: Date.now(),
         progresso: 0,
         config: config,
         batidas: {} 
     };
 
-    // ENVIA PARA O COFRE DO GOOGLE
     await setDoc(doc(db, "cartoes", novoCartao.id), novoCartao);
-    
-    // Deixamos apenas o ID na memória local para o 'app.html' saber o que abrir a seguir
     localStorage.setItem('cartaoAtualId', novoCartao.id);
     window.location.href = "app.html";
 };
+
 window.salvarPerfilInicial = async function() {
     const nome = document.getElementById('perfil-nome').value.trim();
     const tratamento = document.getElementById('perfil-tratamento').value;
@@ -371,6 +373,56 @@ window.salvarEdicaoPerfil = async function() {
 
 window.abrirModalColaboradores = function() { 
     document.getElementById('modal-colaboradores').classList.remove('escondido'); 
+    carregarMembrosEquipe();
+};
+
+async function carregarMembrosEquipe() {
+    const container = document.getElementById('lista-membros-equipe');
+    
+    // Busca todos os usuários que têm o meu UID como adminId
+    const q = query(collection(db, "usuarios"), where("adminId", "==", usuarioAtual.uid));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+        container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px;">Nenhum colaborador vinculado ainda.</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+    querySnapshot.forEach((membroDoc) => {
+        const membro = membroDoc.data();
+        container.innerHTML += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9;">
+                <div>
+                    <strong style="display: block; font-size: 0.9em; color: #1e293b;">${membro.nome}</strong>
+                    <small style="color: #64748b;">${membro.email}</small>
+                </div>
+                <button onclick="desvincularMembro('${membro.uid}')" style="background: #fee2e2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75em; cursor: pointer; font-weight: bold;">
+                    Desvincular
+                </button>
+            </div>
+        `;
+    });
+}
+
+window.desvincularMembro = async function(membroUid) {
+    if (!confirm("Tem certeza? O colaborador perderá acesso imediato aos cartões do escritório.")) return;
+
+    try {
+        const membroRef = doc(db, "usuarios", membroUid);
+        // Ao remover o adminId e mudar o tipo de conta, ele perde acesso à query de cartões do Admin
+        await updateDoc(membroRef, {
+            adminId: null,
+            tipoConta: 'pessoal',
+            empresa: "Conta Pessoal (Sem Vínculo)"
+        });
+        
+        alert("Colaborador desvinculado com sucesso!");
+        carregarMembrosEquipe(); // Atualiza a lista
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao desvincular.");
+    }
 };
 
 window.fecharModalColaboradores = function() { 

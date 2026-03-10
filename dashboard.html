@@ -35,7 +35,7 @@
         <ul class="lista-menu">
             <li onclick="location.reload()">🏠 Dashboard</li>
             <li onclick="abrirModalPerfil()">👤 Meu Perfil / Escritório</li>
-            <li id="menu-colaboradores" class="escondido" onclick="abrirModalColaboradores()">👥 Convidar Colaborador</li>
+            <li id="menu-colaboradores" class="escondido" onclick="abrirModalColaboradores()">👥 Gerenciar Equipe</li>
         </ul>
 
         <div class="divisor"></div>
@@ -230,19 +230,24 @@
 </div>
 
 <div id="modal-colaboradores" class="modal-overlay escondido">
-    <div class="modal-card" style="max-width: 450px;">
+    <div class="modal-card" style="max-width: 500px;">
         <div class="modal-header">
-            <h3>👥 Gestão da Equipe</h3>
+            <h3>👥 Gerenciar Equipe</h3>
             <button class="btn-fechar" onclick="fecharModalColaboradores()">×</button>
         </div>
-        <div class="modal-body" style="text-align: center;">
-            <p style="font-size: 0.9em; color: #64748b;">Partilhe o link abaixo com os seus funcionários. Eles farão parte do escritório <strong id="nome-empresa-convite">...</strong></p>
-            
-            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px dashed #cbd5e1;">
-                <code id="link-convite-texto" style="font-size: 0.8em; color: #2563eb; word-break: break-all;">A gerar link...</code>
+        <div class="modal-body">
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 0.85em; font-weight: bold; color: #64748b;">LINK DE CONVITE</label>
+                <div style="display: flex; gap: 8px; margin-top: 5px;">
+                    <input type="text" id="link-convite-texto" class="input-premium" readonly style="font-size: 0.8em;">
+                    <button onclick="copiarLinkConvite()" class="btn-primario" style="padding: 10px;">Copiar</button>
+                </div>
             </div>
-            
-            <button onclick="copiarLinkConvite()" class="btn-secundario" style="width: 100%; margin-top: 10px; justify-content: center;">📋 Copiar Link de Convite</button>
+
+            <label style="font-size: 0.85em; font-weight: bold; color: #64748b;">MEMBROS VINCULADOS</label>
+            <div id="lista-membros-equipe" style="margin-top: 10px; max-height: 250px; overflow-y: auto;">
+                <p style="color: #94a3b8; font-size: 0.9em; text-align: center;">Buscando membros...</p>
+            </div>
         </div>
     </div>
 </div>
