@@ -20,16 +20,7 @@ const auth = getAuth(app);
 // O "Segurança": Fica vigiando quem tenta entrar
 onAuthStateChanged(auth, (user) => {
     if (!user) {
-        // Não tem credencial? Expulsa para a página inicial!
         window.location.replace("index.html");
-    } else {
-        // Usuário autorizado! 
-        // Vamos trocar aquele "Dr. Silva" genérico pelo nome/e-mail real dele
-        const nomePerfil = document.querySelector('.info-perfil strong');
-        if (nomePerfil) {
-            // Por enquanto pega a parte do e-mail antes do @ (ex: dr.joao@gmail -> dr.joao)
-            nomePerfil.innerText = user.email.split('@')[0]; 
-        }
     }
 });
 
