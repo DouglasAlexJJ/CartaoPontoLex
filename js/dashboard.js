@@ -32,30 +32,33 @@ onAuthStateChanged(auth, async (user) => {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            // 1. SALVA OS DADOS PRIMEIRO
             dadosUsuarioGlobal = docSnap.data();
-            console.log("Perfil carregado:", dadosUsuarioGlobal.tipoConta);
+            console.log("Cargo detectado:", dadosUsuarioGlobal.tipoConta); 
 
-            // 2. ATUALIZA A INTERFACE
             atualizarNomeSidebar(dadosUsuarioGlobal);
 
-            // 3. LOGICA DO MENU DE EQUIPE (ADMIN OU GESTOR)
+            // --- AQUI ESTAVA O ERRO: A PORTEIRA AGORA ACEITA OS DOIS ---
             const menuEquipe = document.getElementById('menu-colaboradores');
-            if (menuEquipe) {
-                const temPermissaoDeEquipe = (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor');
+            
+            if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
                 
-                if (temPermissaoDeEquipe) {
-                    menuEquipe.classList.remove('escondido');
-                    
-                    // Gera o link de convite (Sempre usando o ID do Admin)
-                    const inputLink = document.getElementById('link-convite-texto');
-                    if (inputLink) {
-                        const idParaConvite = (dadosUsuarioGlobal.tipoConta === 'admin') ? user.uid : dadosUsuarioGlobal.adminId;
-                        inputLink.value = `${window.location.origin}/index.html?invite=${idParaConvite}`;
-                    }
-                } else {
-                    menuEquipe.classList.add('escondido');
+                // 1. Mostra o menu de equipe
+                if (menuEquipe) menuEquipe.classList.remove('escondido');
+
+                // 2. Gera o Link de Convite
+                const inputLink = document.getElementById('link-convite-texto');
+                if (inputLink) {
+                    const urlBase = window.location.origin;
+                    // O link deve sempre levar o ID do DONO (Admin)
+                    const idParaConvite = (dadosUsuarioGlobal.tipoConta === 'admin') 
+                                          ? user.uid 
+                                          : dadosUsuarioGlobal.adminId;
+
+                    inputLink.value = `${urlBase}/index.html?invite=${idParaConvite}`;
                 }
+            } else {
+                // Se for colaborador comum, garante que o menu suma
+                if (menuEquipe) menuEquipe.classList.add('escondido');
             }
 
             carregarDashboard();
@@ -63,12 +66,7 @@ onAuthStateChanged(auth, async (user) => {
             // Lógica de Onboarding (Novo usuário)
             const inviteId = sessionStorage.getItem('inviteId');
             const formGroupEmpresa = document.getElementById('perfil-empresa')?.closest('.form-group');
-            
-            if (inviteId && formGroupEmpresa) {
-                formGroupEmpresa.style.display = 'none';
-            } else if (formGroupEmpresa) {
-                formGroupEmpresa.style.display = 'block';
-            }
+            if (inviteId && formGroupEmpresa) formGroupEmpresa.style.display = 'none';
             
             document.getElementById('perfil-nome').value = user.displayName || "";
             document.getElementById('modal-onboarding').classList.remove('escondido');
