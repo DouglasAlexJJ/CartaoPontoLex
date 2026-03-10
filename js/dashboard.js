@@ -22,32 +22,36 @@ const db = getFirestore(app);
 
 let usuarioAtual = null;
 let salvosNuvem = [];
+let dadosUsuarioGlobal = null;
 
 // 1. Verifica quem está logado antes de carregar os dados
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         usuarioAtual = user;
-        console.log("Verificando perfil para:", user.email);
-        
-        try {
-            const docRef = doc(db, "usuarios", user.uid);
-            const docSnap = await getDoc(docRef);
+        const docRef = doc(db, "usuarios", user.uid);
+        const docSnap = await getDoc(docRef);
 
-            if (docSnap.exists()) {
-                console.log("Perfil encontrado!");
-                const dadosPerfil = docSnap.data();
-                atualizarNomeSidebar(dadosPerfil);
-                carregarDashboard();
-            } else {
-                console.log("Perfil não existe. Abrindo Onboarding...");
-                // Preenche o nome vindo do Google se existir
-                document.getElementById('perfil-nome').value = user.displayName || "";
-                // Remove a classe 'escondido' para mostrar o modal
-                document.getElementById('modal-onboarding').classList.remove('escondido');
+        if (docSnap.exists()) {
+            dadosUsuarioGlobal = docSnap.data();
+            
+            // 1. Atualiza Nome na Sidebar
+            atualizarNomeSidebar(dadosUsuarioGlobal);
+
+            // 2. Verifica se é ADMIN para mostrar menu de convites
+            if (dadosUsuarioGlobal.tipoConta === 'admin') {
+                document.getElementById('menu-colaboradores').classList.remove('escondido');
+                document.getElementById('nome-empresa-convite').innerText = dadosUsuarioGlobal.empresa;
+                // Gera o link (depois trataremos a rota de convite)
+                document.getElementById('link-convite-texto').innerText = `https://cartaopontolex.vercel.app/index.html?invite=${usuarioAtual.uid}`;
             }
-        } catch (error) {
-            console.error("Erro ao buscar perfil:", error);
+
+            carregarDashboard();
+        } else {
+            document.getElementById('perfil-nome').value = user.displayName || "";
+            document.getElementById('modal-onboarding').classList.remove('escondido');
         }
+    } else {
+        window.location.href = "index.html";
     }
 });
 
@@ -274,5 +278,52 @@ window.salvarPerfilInicial = async function() {
 function atualizarNomeSidebar(perfil) {
     const nomeExibicao = perfil.tratamento ? `${perfil.tratamento} ${perfil.nome}` : perfil.nome;
     const forteNome = document.querySelector('.info-perfil strong');
+    if (forteNome) forteNome.innerText = nomeExibicao;
+}
+window.abrirModalPerfil = function() {
+    if(!dadosUsuarioGlobal) return;
+    document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
+    document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
+    document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
+    document.getElementById('edit-perfil-empresa').value = dadosUsuarioGlobal.empresa || "";
+    document.getElementById('modal-perfil').classList.remove('escondido');
+};
+
+window.fecharModalPerfil = function() { document.getElementById('modal-perfil').classList.add('escondido'); };
+
+window.salvarEdicaoPerfil = async function() {
+    const btn = document.querySelector('#modal-perfil .btn-primario');
+    btn.innerText = "A guardar...";
+
+    const novosDados = {
+        ...dadosUsuarioGlobal,
+        tratamento: document.getElementById('edit-perfil-tratamento').value,
+        nome: document.getElementById('edit-perfil-nome').value.trim(),
+        oab: document.getElementById('edit-perfil-oab').value.trim(),
+        empresa: document.getElementById('edit-perfil-empresa').value.trim()
+    };
+
+    await setDoc(doc(db, "usuarios", usuarioAtual.uid), novosDados);
+    dadosUsuarioGlobal = novosDados;
+    atualizarNomeSidebar(novosDados);
+    fecharModalPerfil();
+    btn.innerText = "Atualizar Dados";
+    alert("Perfil atualizado com sucesso!");
+};
+
+// --- FUNÇÕES DE CONVITE ---
+
+window.abrirModalColaboradores = function() { document.getElementById('modal-colaboradores').classList.remove('escondido'); };
+window.fecharModalColaboradores = function() { document.getElementById('modal-colaboradores').classList.add('escondido'); };
+
+window.copiarLinkConvite = function() {
+    const link = document.getElementById('link-convite-texto').innerText;
+    navigator.clipboard.writeText(link);
+    alert("Link copiado! Envie-o para o seu colaborador.");
+};
+
+function atualizarNomeSidebar(perfil) {
+    const nomeExibicao = perfil.tratamento ? `${perfil.tratamento} ${perfil.nome}` : perfil.nome;
+    const forteNome = document.getElementById('sidebar-nome-exibicao');
     if (forteNome) forteNome.innerText = nomeExibicao;
 }
