@@ -32,36 +32,30 @@ onAuthStateChanged(auth, async (user) => {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
+            // 1. SALVA OS DADOS PRIMEIRO
             dadosUsuarioGlobal = docSnap.data();
-            
-            // Movemos o log para depois de definir a variável, para não dar erro
-            console.log("Cargo detectado:", dadosUsuarioGlobal.tipoConta); 
+            console.log("Perfil carregado:", dadosUsuarioGlobal.tipoConta);
 
+            // 2. ATUALIZA A INTERFACE
             atualizarNomeSidebar(dadosUsuarioGlobal);
 
-            // --- CORREÇÃO DA PORTEIRA (ADMIN OU GESTOR) ---
-            if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
+            // 3. LOGICA DO MENU DE EQUIPE (ADMIN OU GESTOR)
+            const menuEquipe = document.getElementById('menu-colaboradores');
+            if (menuEquipe) {
+                const temPermissaoDeEquipe = (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor');
                 
-                // 1. Mostra o menu de equipe
-                const menuEquipe = document.getElementById('menu-colaboradores');
-                if (menuEquipe) menuEquipe.classList.remove('escondido');
-
-                // 2. Gera o Link de Convite
-                const inputLink = document.getElementById('link-convite-texto');
-                if (inputLink) {
-                    const urlBase = window.location.origin;
+                if (temPermissaoDeEquipe) {
+                    menuEquipe.classList.remove('escondido');
                     
-                    // Lógica inteligente: o link sempre usa o ID do DONO do escritório
-                    const idParaConvite = (dadosUsuarioGlobal.tipoConta === 'admin') 
-                                          ? user.uid 
-                                          : dadosUsuarioGlobal.adminId;
-
-                    inputLink.value = `${urlBase}/index.html?invite=${idParaConvite}`;
+                    // Gera o link de convite (Sempre usando o ID do Admin)
+                    const inputLink = document.getElementById('link-convite-texto');
+                    if (inputLink) {
+                        const idParaConvite = (dadosUsuarioGlobal.tipoConta === 'admin') ? user.uid : dadosUsuarioGlobal.adminId;
+                        inputLink.value = `${window.location.origin}/index.html?invite=${idParaConvite}`;
+                    }
+                } else {
+                    menuEquipe.classList.add('escondido');
                 }
-            } else {
-                // Se for colaborador comum, garante que o menu esteja escondido
-                const menuEquipe = document.getElementById('menu-colaboradores');
-                if (menuEquipe) menuEquipe.classList.add('escondido');
             }
 
             carregarDashboard();

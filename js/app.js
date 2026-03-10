@@ -45,30 +45,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function carregarCartaoDaNuvem(perfilUsuario) {
     const idAtual = localStorage.getItem('cartaoAtualId');
-    if (!idAtual) {
-        window.location.href = "dashboard.html";
-        return;
-    }
+    if (!idAtual) { window.location.href = "dashboard.html"; return; }
 
-    // Busca o documento no Firestore
     const docRef = doc(db, "cartoes", idAtual);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
         cartaoAtual = docSnap.data();
+        
+        // --- NOVA LÓGICA DE PROTEÇÃO INCLUSIVA ---
         const ehDono = cartaoAtual.userId === usuarioLogado.uid;
-        const ehColaboradorDoDono = (perfilUsuario.tipoConta === 'colaborador' && perfilUsuario.adminId === cartaoAtual.userId);
-        // Proteção: Garante que um advogado não abra o cartão de outro
-        if (ehDono || ehColaboradorDoDono) {
-            // ACESSO PERMITIDO!
+        
+        // Verifica se o usuário logado é Colaborador OU Gestor do dono do cartão
+        const ehParteDaEquipe = (
+            (perfilUsuario.tipoConta === 'colaborador' || perfilUsuario.tipoConta === 'gestor') && 
+            perfilUsuario.adminId === cartaoAtual.userId
+        );
+
+        if (ehDono || ehParteDaEquipe) {
             configAtual = cartaoAtual.config;
             if(!cartaoAtual.batidas) cartaoAtual.batidas = {}; 
-            
             document.getElementById('info-reclamante').innerText = configAtual.reclamante;
             gerarFolha(configAtual);
         } else {
-            // ACESSO NEGADO REAL
-            alert("Acesso Negado! Este cartão não pertence ao seu escritório.");
+            alert("Acesso Negado! Este cartão pertence a outro escritório.");
             window.location.href = "dashboard.html";
         }
     } else {
