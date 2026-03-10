@@ -275,11 +275,6 @@ window.salvarPerfilInicial = async function() {
     }
 };
 
-function atualizarNomeSidebar(perfil) {
-    const nomeExibicao = perfil.tratamento ? `${perfil.tratamento} ${perfil.nome}` : perfil.nome;
-    const forteNome = document.querySelector('.info-perfil strong');
-    if (forteNome) forteNome.innerText = nomeExibicao;
-}
 window.abrirModalPerfil = function() {
     if(!dadosUsuarioGlobal) return;
     document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
@@ -324,6 +319,6 @@ window.copiarLinkConvite = function() {
 
 function atualizarNomeSidebar(perfil) {
     const nomeExibicao = perfil.tratamento ? `${perfil.tratamento} ${perfil.nome}` : perfil.nome;
-    const forteNome = document.getElementById('sidebar-nome-exibicao');
+    const forteNome = document.querySelector('.info-perfil strong');
     if (forteNome) forteNome.innerText = nomeExibicao;
 }
