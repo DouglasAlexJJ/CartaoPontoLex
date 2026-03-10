@@ -497,7 +497,7 @@ function atualizarNomeSidebar(perfil) {
     // Aproveita e atualiza o texto do plano se for colaborador
     const statusPlano = document.getElementById('sidebar-status-conta');
     if (statusPlano && perfil.tipoConta !== 'admin') {
-        statusPlano.innerText = `Equipa: ${perfil.empresa}`;
+        statusPlano.innerText = `Equipe: ${perfil.empresa}`;
     }
 }
 window.alterarCargoMembro = async function(membroUid, novoCargo) {
