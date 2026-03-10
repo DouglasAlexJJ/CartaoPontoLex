@@ -401,17 +401,23 @@ async function carregarMembrosEquipe() {
         const membro = membroDoc.data();
         if (membro.uid === usuarioAtual.uid) return;
         const ehGestor = membro.tipoConta === 'gestor';
+        const euSouAdmin = dadosUsuarioGlobal.tipoConta === 'admin';
         container.innerHTML += `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; background: #fff;">
                 <div>
-                    <strong style="display: block; font-size: 0.95em;">${membro.nome} ${ehGestor ? '<span style="color:#2563eb; font-size:0.7em;">(GESTOR)</span>' : ''}</strong>
+                    <strong style="display: block; font-size: 0.95em;">
+                        ${membro.nome} ${ehGestor ? '<span style="color:#2563eb; font-size:0.7em;">(GESTOR)</span>' : ''}
+                    </strong>
                     <small style="color: #64748b;">${membro.email}</small>
                 </div>
                 <div style="display: flex; gap: 5px;">
-                    <button onclick="alterarCargoMembro('${membro.uid}', '${ehGestor ? 'colaborador' : 'gestor'}')" 
-                            style="background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
-                        ${ehGestor ? '⬇ Rebaixar' : '⬆ Tornar Gestor'}
-                    </button>
+                    
+                    ${euSouAdmin ? `
+                        <button onclick="alterarCargoMembro('${membro.uid}', '${ehGestor ? 'colaborador' : 'gestor'}')" 
+                                style="background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
+                            ${ehGestor ? '⬇ Rebaixar' : '⬆ Tornar Gestor'}
+                        </button>
+                    ` : ''}
                     
                     <button onclick="desvincularMembro('${membro.uid}')" 
                             style="background: #fff1f2; color: #ef4444; border: 1px solid #fecdd3; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
@@ -462,17 +468,18 @@ function atualizarNomeSidebar(perfil) {
     if (forteNome) forteNome.innerText = nomeExibicao;
 }
 window.alterarCargoMembro = async function(membroUid, novoCargo) {
+    if (dadosUsuarioGlobal.tipoConta !== 'admin') {
+        alert("Erro: Somente o Administrador (Dono) pode alterar cargos da equipe.");
+        return;
+    }
     const acao = novoCargo === 'gestor' ? "promover a Gestor" : "rebaixar a Colaborador";
     if (!confirm(`Deseja realmente ${acao} este membro?`)) return;
 
     try {
         const membroRef = doc(db, "usuarios", membroUid);
-        await updateDoc(membroRef, {
-            tipoConta: novoCargo
-        });
-        
-        alert("Cargo atualizado com sucesso!");
-        carregarMembrosEquipe(); // Recarrega a lista no modal
+        await updateDoc(membroRef, { tipoConta: novoCargo });
+        alert("Cargo atualizado!");
+        carregarMembrosEquipe();
     } catch (e) {
         console.error(e);
         alert("Erro ao alterar cargo.");
