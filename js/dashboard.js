@@ -27,23 +27,27 @@ let salvosNuvem = [];
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         usuarioAtual = user;
+        console.log("Verificando perfil para:", user.email);
         
-        // 1. Verifica se o usuário já tem um perfil na coleção 'usuarios'
-        const docRef = doc(db, "usuarios", user.uid);
-        const docSnap = await getDoc(docRef);
+        try {
+            const docRef = doc(db, "usuarios", user.uid);
+            const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-            // Perfil já existe, carrega o dashboard normal
-            const dadosPerfil = docSnap.data();
-            atualizarNomeSidebar(dadosPerfil);
-            carregarDashboard();
-        } else {
-            // Perfil NÃO existe, abre o onboarding
-            document.getElementById('perfil-nome').value = user.displayName || "";
-            document.getElementById('modal-onboarding').classList.remove('escondido');
+            if (docSnap.exists()) {
+                console.log("Perfil encontrado!");
+                const dadosPerfil = docSnap.data();
+                atualizarNomeSidebar(dadosPerfil);
+                carregarDashboard();
+            } else {
+                console.log("Perfil não existe. Abrindo Onboarding...");
+                // Preenche o nome vindo do Google se existir
+                document.getElementById('perfil-nome').value = user.displayName || "";
+                // Remove a classe 'escondido' para mostrar o modal
+                document.getElementById('modal-onboarding').classList.remove('escondido');
+            }
+        } catch (error) {
+            console.error("Erro ao buscar perfil:", error);
         }
-    } else {
-        window.location.href = "index.html";
     }
 });
 
