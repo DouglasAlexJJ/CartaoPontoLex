@@ -89,6 +89,7 @@
 .check-group { justify-content: flex-end; padding-bottom: 10px; }
 .toggle-checkbox { display: flex; align-items: center; gap: 8px; font-weight: normal !important; cursor: pointer; }
 .modal-footer { padding: 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; border-radius: 0 0 12px 12px; }
+.escondido { display: none !important; }
 /* ==========================================================================
    BOTÕES E SESSÃO DA LIXEIRA (LGPD)
    ========================================================================== */
