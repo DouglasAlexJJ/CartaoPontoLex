@@ -60,9 +60,7 @@ onAuthStateChanged(auth, async (user) => {
         console.log("🚫 Permissão negada para o cargo:", cargo);
         menuEquipe.classList.add('escondido');
     }
-    } else {
-    console.error("❌ ERRO: O elemento 'menu-colaboradores' não foi encontrado no HTML!");
-}
+    
 
             carregarDashboard();
         } else {
@@ -83,18 +81,26 @@ onAuthStateChanged(auth, async (user) => {
 async function carregarDashboard() {
     if (!usuarioAtual || !dadosUsuarioGlobal) return;
 
+    const cargo = dadosUsuarioGlobal.tipoConta;
+    const ehDonoOuGestor = (cargo === 'admin' || cargo === 'gestor');
+
+    // 1. DEFINIÇÃO DA QUERY (O QUE SERÁ BUSCADO)
     let q;
-    if (dadosUsuarioGlobal.tipoConta === 'admin') {
-        // O Admin vê tudo o que ele criou
+    if (cargo === 'admin') {
         q = query(collection(db, "cartoes"), where("userId", "==", usuarioAtual.uid));
     } else {
-        // O Colaborador vê os cartões do seu ADMIN (o patrão)
-        // Assim eles compartilham o mesmo escritório!
+        // Gestor e Colaborador buscam os cartões do Admin
         q = query(collection(db, "cartoes"), where("userId", "==", dadosUsuarioGlobal.adminId));
-        
-        // Esconde o menu de convites para o funcionário
-        const menuConvite = document.getElementById('menu-colaboradores');
-        if (menuConvite) menuConvite.classList.add('escondido');
+    }
+
+    // 2. CONTROLE DO MENU DE EQUIPE (CORREÇÃO DO ERRO)
+    const menuConvite = document.getElementById('menu-colaboradores');
+    if (menuConvite) {
+        if (ehDonoOuGestor) {
+            menuConvite.classList.remove('escondido');
+        } else {
+            menuConvite.classList.add('escondido');
+        }
     }
 
     const querySnapshot = await getDocs(q);
@@ -140,17 +146,24 @@ async function carregarDashboard() {
     if (gridRecentes) {
         gridRecentes.innerHTML = '';
         const ultimos = ativos.slice(0, 8); 
-        const botaoExcluir = (dadosUsuarioGlobal.tipoConta !== 'colaborador')
+        
+        // Define se o botão de lixeira deve aparecer (Só para Admin e Gestor)
+        const podeExcluir = (cargo === 'admin' || cargo === 'gestor');
 
         ultimos.forEach(cartao => {
             let corBadge = cartao.progresso === 100 ? 'progresso-alto' : (cartao.progresso > 30 ? 'progresso-medio' : 'progresso-baixo');
             let dataStr = new Date(cartao.dataEdicao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
+            // Só gera o HTML do botão se tiver permissão
+            const htmlLixeira = podeExcluir 
+                ? `<button class="btn-deletar" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')">🗑️</button>`
+                : '';
+
             gridRecentes.innerHTML += `
                 <div class="card-recente" onclick="abrirCartao('${cartao.id}')">
                     <div class="card-recente-header">
                         <h4>${cartao.config.reclamante}</h4>
-                        <button class="btn-deletar" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')">🗑️</button>
+                        ${htmlLixeira}
                     </div>
                     <span class="badge-status ${corBadge}" style="display:inline-block; margin-bottom:10px;">${cartao.progresso}% Concluído</span>
                     <p><strong>Empresa:</strong> ${cartao.config.reclamada || 'Não informada'}</p>
@@ -168,7 +181,8 @@ async function carregarDashboard() {
         `;
     }
 
-    if (apagados.length > 0 && dashboardMain) {
+    // Renderização da Lixeira (Só aparece se houver itens e se o usuário tiver permissão para ver)
+    if (apagados.length > 0 && dashboardMain && (cargo === 'admin' || cargo === 'gestor')) {
         let lixeiraHtml = `
             <div id="area-lixeira" class="sessao-lixeira">
                 <h3>🗑️ Lixeira (Retenção LGPD: 30 dias)</h3>
