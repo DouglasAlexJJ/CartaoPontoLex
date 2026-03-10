@@ -36,31 +36,30 @@ onAuthStateChanged(auth, async (user) => {
             console.log("Cargo detectado:", dadosUsuarioGlobal.tipoConta); 
 
             atualizarNomeSidebar(dadosUsuarioGlobal);
-            console.log("Iniciando verificação de menu para o cargo:", dadosUsuarioGlobal.tipoConta);
 
             // --- AQUI ESTAVA O ERRO: A PORTEIRA AGORA ACEITA OS DOIS ---
             const menuEquipe = document.getElementById('menu-colaboradores');
             
-            if (menuEquipe) {
-    const cargo = dadosUsuarioGlobal.tipoConta;
-    
-    // Se for admin OU gestor, removemos a classe que esconde
-    if (cargo === 'admin' || cargo === 'gestor') {
-        console.log("✅ Permissão concedida! Removendo classe 'escondido'...");
-        menuEquipe.classList.remove('escondido');
-        
-        // Garante que o link de convite seja gerado
-        const inputLink = document.getElementById('link-convite-texto');
-        if (inputLink) {
-            const urlBase = window.location.origin;
-            const idParaConvite = (cargo === 'admin') ? usuarioAtual.uid : dadosUsuarioGlobal.adminId;
-            inputLink.value = `${urlBase}/index.html?invite=${idParaConvite}`;
-        }
-    } else {
-        console.log("🚫 Permissão negada para o cargo:", cargo);
-        menuEquipe.classList.add('escondido');
-    }
-    
+            if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
+                
+                // 1. Mostra o menu de equipe
+                if (menuEquipe) menuEquipe.classList.remove('escondido');
+
+                // 2. Gera o Link de Convite
+                const inputLink = document.getElementById('link-convite-texto');
+                if (inputLink) {
+                    const urlBase = window.location.origin;
+                    // O link deve sempre levar o ID do DONO (Admin)
+                    const idParaConvite = (dadosUsuarioGlobal.tipoConta === 'admin') 
+                                          ? user.uid 
+                                          : dadosUsuarioGlobal.adminId;
+
+                    inputLink.value = `${urlBase}/index.html?invite=${idParaConvite}`;
+                }
+            } else {
+                // Se for colaborador comum, garante que o menu suma
+                if (menuEquipe) menuEquipe.classList.add('escondido');
+            }
 
             carregarDashboard();
         } else {
