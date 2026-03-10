@@ -29,15 +29,21 @@ let usuarioLogado = null;
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            usuarioLogado = user;
-            await carregarCartaoDaNuvem();
+        usuarioLogado = user;
+        
+        // 1. Primeiro buscamos o PERFIL de quem está logado para saber se é colaborador
+        const perfilDoc = await getDoc(doc(db, "usuarios", user.uid));
+        const dadosPerfil = perfilDoc.data();
+
+        // 2. Passamos o perfil para a função de carregar o cartão
+        await carregarCartaoDaNuvem(dadosPerfil);
         } else {
             window.location.href = "index.html";
         }
     });
 });
 
-async function carregarCartaoDaNuvem() {
+async function carregarCartaoDaNuvem(perfilUsuario) {
     const idAtual = localStorage.getItem('cartaoAtualId');
     if (!idAtual) {
         window.location.href = "dashboard.html";
@@ -50,25 +56,23 @@ async function carregarCartaoDaNuvem() {
 
     if (docSnap.exists()) {
         cartaoAtual = docSnap.data();
-        
+        const ehDono = cartaoAtual.userId === usuarioLogado.uid;
+        const ehColaboradorDoDono = (perfilUsuario.tipoConta === 'colaborador' && perfilUsuario.adminId === cartaoAtual.userId);
         // Proteção: Garante que um advogado não abra o cartão de outro
-        if (cartaoAtual.userId !== usuarioLogado.uid) {
-            alert("Acesso Negado!");
+        if (ehDono || ehColaboradorDoDono) {
+            // ACESSO PERMITIDO!
+            configAtual = cartaoAtual.config;
+            if(!cartaoAtual.batidas) cartaoAtual.batidas = {}; 
+            
+            document.getElementById('info-reclamante').innerText = configAtual.reclamante;
+            gerarFolha(configAtual);
+        } else {
+            // ACESSO NEGADO REAL
+            alert("Acesso Negado! Este cartão não pertence ao seu escritório.");
             window.location.href = "dashboard.html";
-            return;
         }
-
-        configAtual = cartaoAtual.config;
-        if(!cartaoAtual.batidas) cartaoAtual.batidas = {}; 
-        
-        document.getElementById('info-reclamante').innerText = configAtual.reclamante;
-        const dtIn = new Date(configAtual.dataInicio + "T00:00:00").toLocaleDateString('pt-BR');
-        const dtFim = new Date(configAtual.dataFim + "T00:00:00").toLocaleDateString('pt-BR');
-        document.getElementById('info-periodo').innerText = `${dtIn} a ${dtFim}`;
-
-        gerarFolha(configAtual);
     } else {
-        alert("Cartão não encontrado na nuvem! Redirecionando...");
+        alert("Cartão não encontrado.");
         window.location.href = "dashboard.html";
     }
 }
