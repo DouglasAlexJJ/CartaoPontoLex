@@ -200,25 +200,25 @@
         </div>
 
         <div id="modal-entrar-equipe" class="modal-overlay escondido">
-    <div class="modal-card" style="max-width: 450px;">
-        <div class="modal-header">
-            <h3>🤝 Entrar em uma Equipe</h3>
-            <button class="btn-fechar" onclick="fecharModalEntrarEquipe()">×</button>
-        </div>
-        <div class="modal-body">
-            <p style="font-size: 0.9em; color: #64748b; margin-bottom: 15px; line-height: 1.4;">
-                Se você recebeu um link de convite do administrador do seu escritório, cole-o no campo abaixo para solicitar acesso aos cartões da equipe.
-            </p>
-            <div class="form-group">
-                <label>Link de Convite</label>
-                <input type="text" id="input-link-convite" class="input-premium" placeholder="Ex: https://.../index.html?invite=ABC123XYZ">
+            <div class="modal-card" style="max-width: 450px;">
+                <div class="modal-header">
+                    <h3>🤝 Entrar em uma Equipe</h3>
+                    <button class="btn-fechar" onclick="fecharModalEntrarEquipe()">×</button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size: 0.9em; color: #64748b; margin-bottom: 15px; line-height: 1.4;">
+                        Se você recebeu um link de convite do administrador do seu escritório, cole-o no campo abaixo para solicitar acesso aos cartões da equipe.
+                    </p>
+                    <div class="form-group">
+                        <label>Link de Convite</label>
+                        <input type="text" id="input-link-convite" class="input-premium" placeholder="Ex: https://.../index.html?invite=ABC123XYZ">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="processarConviteManual()" class="btn-primario" style="width: 100%;">Validar Convite</button>
+                </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button onclick="processarConviteManual()" class="btn-primario" style="width: 100%;">Validar Convite</button>
-        </div>
-    </div>
-</div>
 
         <div class="modal-footer" style="padding: 20px 30px 30px; background: none; border: none;">
             <button onclick="salvarPerfilInicial()" class="btn-primario" style="width: 100%; padding: 14px; font-size: 1.1em; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
