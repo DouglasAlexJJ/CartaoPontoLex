@@ -111,11 +111,11 @@ window.toggleMenuDia = function(btn, event) {
 document.addEventListener('click', () => document.querySelectorAll('.menu-dia-content').forEach(m => m.classList.remove('show')));
 
 window.gerenciarBatidas = function(elemento, qtd) {
-    // Agora aceita tanto o botão quanto o input
     const tr = elemento.closest('tr');
     const cont = tr.querySelector('.container-batidas');
     
     if (qtd > 0) {
+        // Lógica de adicionar (mantida igual)
         for(let i=0; i<2; i++) {
             const inp = document.createElement('input');
             inp.className = 'ponto'; 
@@ -125,19 +125,36 @@ window.gerenciarBatidas = function(elemento, qtd) {
             cont.appendChild(inp);
         }
     } else {
-        const ins = cont.querySelectorAll('.ponto');
+        // Lógica de remover (Agora com verificação de segurança)
+        const ins = Array.from(cont.querySelectorAll('.ponto'));
+        
         if (ins.length > 2) { 
-            ins[ins.length-1].remove(); 
-            ins[ins.length-2].remove(); 
+            const ultimo = ins[ins.length - 1];
+            const penultimo = ins[ins.length - 2];
+
+            // Verifica se algum dos dois inputs tem valor preenchido
+            if (ultimo.value.trim() !== '' || penultimo.value.trim() !== '') {
+                if (!confirm("Estas batidas possuem horários preenchidos. Tem certeza que deseja excluí-las?")) {
+                    return; // Se o usuário cancelar, a função para aqui
+                }
+            }
+
+            ultimo.remove(); 
+            penultimo.remove(); 
+
+            // Devolve o cursor de texto para a última caixinha que sobrou
+            const inputsRestantes = cont.querySelectorAll('.ponto');
+            if (inputsRestantes.length > 0) {
+                inputsRestantes[inputsRestantes.length - 1].focus();
+            }
+
         } else {
             alert("Não é possível remover. A linha precisa ter no mínimo 2 batidas.");
             return;
         }
     }
     
-    configurarEventos(); // Reaplica os eventos (incluindo o atalho do +)
-    
-    // Se a função anterior existir, recalcula (use a que você tiver ativa aí)
+    configurarEventos();
     if (typeof calcularLinha === 'function') calcularLinha(tr);
     if (typeof salvarProgressoAuto === 'function') salvarProgressoAuto();
 };
@@ -337,15 +354,21 @@ function configurarEventos() {
         input.onkeydown = (e) => {
             // --- ATALHO: TECLA '+' PARA ADICIONAR BATIDAS ---
             if (e.key === '+') {
-                e.preventDefault(); // Impede que o sinal de + seja digitado na caixa
-                window.gerenciarBatidas(input, 2); // Cria as duas caixinhas
+                e.preventDefault(); 
+                window.gerenciarBatidas(input, 2); 
                 
-                // Pula o cursor automaticamente para a primeira caixinha nova criada
                 setTimeout(() => {
                     const todosInputsDestaLinha = input.closest('tr').querySelectorAll('.ponto');
                     const novoInput = todosInputsDestaLinha[todosInputsDestaLinha.length - 2];
                     if (novoInput) novoInput.focus();
                 }, 10);
+                return;
+            }
+
+            // --- ATALHO: TECLA '-' PARA REMOVER BATIDAS ---
+            if (e.key === '-') {
+                e.preventDefault(); // Impede que o sinal de - seja digitado na caixa
+                window.gerenciarBatidas(input, -2);
                 return;
             }
 
