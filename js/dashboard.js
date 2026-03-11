@@ -33,11 +33,21 @@ onAuthStateChanged(auth, async (user) => {
 
         if (docSnap.exists()) {
             dadosUsuarioGlobal = docSnap.data();
+            const ehPessoal = dadosUsuarioGlobal.tipoConta === 'pessoal';
+            const btnNovoSidebar = document.querySelector('.sidebar-content .btn-primario');
             console.log("Cargo detectado:", dadosUsuarioGlobal.tipoConta); 
 
             atualizarNomeSidebar(dadosUsuarioGlobal);
+            
+            const banner = document.getElementById('banner-assinatura');
+            if (banner) {
+                if (dadosUsuarioGlobal.tipoConta === 'pessoal') {
+                    banner.classList.remove('escondido');
+                } else {
+                    banner.classList.add('escondido');
+                }
+            }
 
-            // --- AQUI ESTAVA O ERRO: A PORTEIRA AGORA ACEITA OS DOIS ---
             const menuEquipe = document.getElementById('menu-colaboradores');
             
             if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
@@ -59,6 +69,12 @@ onAuthStateChanged(auth, async (user) => {
             } else {
                 // Se for colaborador comum, garante que o menu suma
                 if (menuEquipe) menuEquipe.classList.add('escondido');
+            }
+            
+            if (ehPessoal && btnNovoSidebar) {
+                btnNovoSidebar.innerHTML = "💎 Assinar Plano";
+                btnNovoSidebar.style.background = "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)";
+                btnNovoSidebar.onclick = () => alert("Em breve: Escolha seu plano e comece a calcular!");
             }
 
             carregarDashboard();
@@ -145,15 +161,11 @@ async function carregarDashboard() {
     if (gridRecentes) {
         gridRecentes.innerHTML = '';
         const ultimos = ativos.slice(0, 8); 
-        
-        // Define se o botão de lixeira deve aparecer (Só para Admin e Gestor)
         const podeExcluir = (cargo === 'admin' || cargo === 'gestor');
 
         ultimos.forEach(cartao => {
             let corBadge = cartao.progresso === 100 ? 'progresso-alto' : (cartao.progresso > 30 ? 'progresso-medio' : 'progresso-baixo');
-            let dataStr = new Date(cartao.dataEdicao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-
-            // Só gera o HTML do botão se tiver permissão
+            let dataStr = new Date(cartao.dataEdicao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });    
             const htmlLixeira = podeExcluir 
                 ? `<button class="btn-deletar" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')">🗑️</button>`
                 : '';
@@ -178,6 +190,27 @@ async function carregarDashboard() {
                 <small>Clique para iniciar</small>
             </div>
         `;
+
+        if (dadosUsuarioGlobal.tipoConta !== 'pessoal') {
+            gridRecentes.innerHTML += `
+            <div class="card-recente vazio" onclick="abrirModalNovo()">
+                <span class="icone-vazio">➕</span>
+                <p>Novo Cartão</p>
+                <small>Clique para iniciar</small>
+                </div>
+                `;
+        } else {
+        // Mostra um card de "Upgrade" no lugar do novo cartão
+            gridRecentes.innerHTML += `
+            <div class="card-recente vazio" style="border: 2px dashed #e0e7ff; background: #f8faff;" onclick="alert('Página de Planos em breve!')">
+                <span class="icone-vazio">💎</span>
+                <p>Ativar Assinatura</p>
+                <small>Libere a criação de cartões</small>
+                </div>
+                `;
+
+        }
+        
     }
 
     // Renderização da Lixeira (Só aparece se houver itens e se o usuário tiver permissão para ver)
@@ -210,7 +243,13 @@ window.abrirCartao = function(id) {
     window.location.href = "app.html";
 };
 
-window.abrirModalNovo = function() { document.getElementById('modal-novo').classList.remove('escondido'); };
+window.abrirModalNovo = function() {
+    if (dadosUsuarioGlobal.tipoConta === 'pessoal') {
+        alert("Sua conta atual não possui uma assinatura ativa. Assine um plano para criar novos cartões.");
+        return;
+    }
+    document.getElementById('modal-novo').classList.remove('escondido');
+};
 window.fecharModalNovo = function() { document.getElementById('modal-novo').classList.add('escondido'); };
 
 window.toggleFolgaInicial = function() {
