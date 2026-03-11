@@ -37,8 +37,8 @@ td {
    ========================================================================== */
 .celula-inputs { 
     width: 65%; 
-    position: relative; /* Necessário para a engrenagem ficar presa no canto */
-    padding: 10px 45px 10px 10px; /* O '45px' garante que as caixas não passem por cima da engrenagem */
+    position: relative; 
+    padding: 10px; /* Voltou ao normal! */
 }
 
 .container-batidas { 
@@ -73,22 +73,6 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
 .destaque-vermelho .col-dia strong { color: #ef4444 !important; }
 .destaque-vermelho input.ponto { border-color: #fca5a5; }
 
-/* ==========================================================================
-   MENUS E DROPDOWNS
-   ========================================================================== */
-.dropdown-dia { margin-left: 10px; position: relative; display: flex; }
-.btn-config { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 1.1em; padding: 4px; }
-.btn-config:hover { color: #0284c7; }
-.menu-dia-content { display: none; position: absolute; right: 0; top: 110%; background: white !important; min-width: 190px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #e2e8f0; z-index: 9999; padding: 5px 0; }
-.menu-dia-content.show { display: block; }
-.menu-dia-content button { display: block; width: 100%; padding: 10px 15px; border: none; background: white !important; color: #334155 !important; text-align: left; font-size: 0.85em; font-weight: 500; cursor: pointer; }
-.menu-dia-content button:hover { background: #f1f5f9 !important; color: #0284c7 !important; }
-.menu-section { padding: 8px 15px 4px; font-size: 0.7em; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
-.divisor { height: 1px; background: #f1f5f9; margin: 4px 0; }
-
-/* ==========================================================================
-   RODAPÉ E TOTALIZADOR
-   ========================================================================== */
 /* ==========================================================================
    RODAPÉ E DASHBOARD TOTALIZADOR
    ========================================================================== */

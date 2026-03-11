@@ -302,24 +302,13 @@ function gerarFolha(cfg) {
         }
 
         tr.innerHTML = `
-            <td class="col-dia"><strong>${diasSemana[numDia]}</strong><br>${dataFormatada}</td>
-            <td class="celula-inputs">
-                <div class="container-batidas" style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;">${inputsHtml}</div>
-                <div class="dropdown-dia">
-                    <button class="btn-config" onclick="window.toggleMenuDia(this, event)">⚙️</button>
-                    <div class="menu-dia-content">
-                        <div class="menu-section">Batidas deste dia</div>
-                        <button onclick="window.gerenciarBatidas(this, 2)">➕ Adicionar Par Extra</button>
-                        <button onclick="window.gerenciarBatidas(this, -2)">➖ Remover Par</button>
-                        <div class="divisor"></div>
-                        <button onclick="window.definirComoFolga(this)">🏝️ Marcar como Folga</button>
-                        <button onclick="window.definirComoTrabalho(this)">🛠️ Marcar como Trabalho</button>
-                        <div class="divisor"></div>
-                        <button onclick="window.aplicarEscalaPersonalizada(this)">⚙️ Escala a partir daqui</button>
-                    </div>
-                </div>
+            <td class="col-dia">
+                <strong>${diasSemana[numDia]}</strong><br>${dataFormatada}
             </td>
-            <td class="total-dia">00:00</td>
+            <td class="celula-inputs">
+                <div class="container-batidas">${inputsHtml}</div>
+            </td>
+            <td class="total-dia" style="color: #0284c7; font-weight: bold;">00:00</td>
         `;
         corpo.appendChild(tr);
         dataAtual.setDate(dataAtual.getDate() + 1);
