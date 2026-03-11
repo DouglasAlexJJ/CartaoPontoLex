@@ -319,9 +319,14 @@ function gerarFolha(cfg) {
     configurarEventos();
 }
 
+window.linhaAtivaData = null;
+
 function configurarEventos() {
     const inputs = Array.from(document.querySelectorAll('.ponto'));
     inputs.forEach((input, index) => {
+        input.addEventListener('focus', () => {
+            window.linhaAtivaData = input.closest('tr').getAttribute('data-dia');
+        });
         input.onfocus = () => input.select();
         input.onkeypress = (e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); };
         
@@ -376,6 +381,94 @@ function configurarEventos() {
             salvarProgressoAuto(); 
         };
     });
+}
+// ==========================================================================
+// LÓGICA DO MODAL DE AFASTAMENTO
+// ==========================================================================
+
+// Função utilitária para converter "DD/MM/YYYY" em "YYYY-MM-DD" para o input date
+function formatarParaInputDate(dataBR) {
+    if (!dataBR) return '';
+    const [dia, mes, ano] = dataBR.split('/');
+    return `${ano}-${mes}-${dia}`;
+}
+
+window.abrirModalAfastamento = function() {
+    fecharMenuConfig(); // Fecha o dropdown (crie esta função se não tiver: document.getElementById('menu-config-app').classList.add('escondido');)
+    
+    // Auto-preenche a data de início com a linha que estava selecionada
+    if (window.linhaAtivaData) {
+        document.getElementById('afastamento-inicio').value = formatarParaInputDate(window.linhaAtivaData);
+        // Sugere o mesmo dia como data final para facilitar atestados de 1 dia
+        document.getElementById('afastamento-fim').value = formatarParaInputDate(window.linhaAtivaData);
+    } else {
+        document.getElementById('afastamento-inicio').value = '';
+        document.getElementById('afastamento-fim').value = '';
+    }
+    
+    document.getElementById('modal-afastamento').classList.remove('escondido');
+};
+
+window.fecharModalAfastamento = function() {
+    document.getElementById('modal-afastamento').classList.add('escondido');
+};
+
+window.aplicarAfastamento = function() {
+    const motivo = document.getElementById('afastamento-motivo').value;
+    const dtInicioStr = document.getElementById('afastamento-inicio').value;
+    const dtFimStr = document.getElementById('afastamento-fim').value;
+
+    if (!dtInicioStr || !dtFimStr) {
+        alert("Preencha a data inicial e final.");
+        return;
+    }
+
+    const dtInicio = new Date(dtInicioStr + "T00:00:00");
+    const dtFim = new Date(dtFimStr + "T00:00:00");
+
+    if (dtFim < dtInicio) {
+        alert("A data final não pode ser menor que a data inicial.");
+        return;
+    }
+
+    // Percorre todas as linhas da tabela
+    document.querySelectorAll('.linha-ponto').forEach(tr => {
+        const dataDiaStr = tr.getAttribute('data-dia');
+        const [dia, mes, ano] = dataDiaStr.split('/');
+        const dataLinha = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+
+        // Verifica se a linha está dentro do período do afastamento
+        if (dataLinha >= dtInicio && dataLinha <= dtFim) {
+            // Aplica o visual de afastamento
+            tr.classList.add('linha-afastamento');
+            
+            // Limpa os valores para não somar nas horas
+            tr.querySelectorAll('.ponto').forEach(inp => inp.value = '');
+            tr.querySelector('.total-dia').innerText = '00:00';
+            
+            // Verifica se já tem o texto, se não, cria
+            let txtHtml = tr.querySelector('.texto-motivo-afastamento');
+            if (!txtHtml) {
+                const celulaInputs = tr.querySelector('.celula-inputs');
+                const divTexto = document.createElement('div');
+                divTexto.className = 'texto-motivo-afastamento';
+                divTexto.innerText = motivo;
+                celulaInputs.appendChild(divTexto);
+            } else {
+                txtHtml.innerText = motivo; // Atualiza se já existir
+            }
+        }
+    });
+
+    fecharModalAfastamento();
+    atualizarTotalGeral();
+    salvarProgressoAuto(); // Salva na nuvem para não perder
+};
+
+// Utilidade para fechar o menu
+function fecharMenuConfig() {
+    const menu = document.getElementById('menu-config-app');
+    if(menu) menu.classList.add('escondido');
 }
 
 function completarHora(input) {
