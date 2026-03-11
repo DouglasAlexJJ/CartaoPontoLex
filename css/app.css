@@ -4,32 +4,76 @@ body { padding-bottom: 80px; }
 .app-info strong { display: block; color: #0f172a; font-size: 1.1em; }
 .app-info small { color: #64748b; font-size: 0.85em; }
 
-/* IMPORTANTE: overflow: visible para não cortar os menus! */
 .app-container { width: 98%; max-width: 1600px; margin: 20px auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: visible; }
-table { width: 100%; border-collapse: collapse; }
+
+/* ==========================================================================
+   TABELA E COLUNAS (Layout Travado para não vazar)
+   ========================================================================== */
+table { 
+    width: 100%; 
+    table-layout: fixed; /* Trava a largura */
+    border-collapse: collapse; 
+}
+
 th { background: #1e293b; color: white; padding: 10px; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; }
 td { border-bottom: 1px solid #f1f5f9; padding: 4px 8px; height: 36px; vertical-align: middle; text-align: center; }
-.col-dia { font-size: 0.8em; background: #f8fafc; text-align: left; padding-left: 15px; color: #475569; }
+
+.col-dia { 
+    width: 15%; /* Largura fixa */
+    font-size: 0.8em; 
+    background: #f8fafc; 
+    text-align: left; 
+    padding-left: 15px; 
+    color: #475569; 
+}
 .col-dia strong { color: #0f172a; }
 
-.celula-inputs { display: flex; align-items: center; justify-content: center; position: relative; }
+.total-dia { 
+    width: 20%; /* Largura fixa */
+    font-weight: bold; 
+    font-size: 0.9em; 
+    background: #f8fafc; 
+    border-left: 1px solid #e2e8f0; 
+}
+
+/* ==========================================================================
+   ÁREA DE BATIDAS E INPUTS
+   ========================================================================== */
+.celula-inputs { 
+    width: 65%; /* Ocupa o restante do espaço */
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    position: relative; 
+    padding: 10px;
+}
+
 .container-batidas { 
     display: flex; 
-    flex-wrap: wrap; /* Isso evita que os inputs saiam da tela */
-    gap: 4px; 
+    flex-wrap: wrap; /* Faz quebrar a linha se tiver muitas batidas */
+    gap: 6px; 
     justify-content: center; 
+    max-width: 100%;
 }
+
 input.ponto { width: 50px; text-align: center; font-family: monospace; font-size: 0.9em; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; border-radius: 4px; color: #1e293b; }
 input.ponto:nth-child(even) { background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
 input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px rgba(2,132,199,0.15); }
 
+/* ==========================================================================
+   ESTADOS ESPECIAIS (Folgas, Feriados e Alterações)
+   ========================================================================== */
 .folga { background-color: #fdf2f8 !important; }
 .folga-input { opacity: 0.4; pointer-events: none; border-color: transparent !important; color: #c2185b !important; }
 .escala-alterada { border-left: 5px solid #f59e0b !important; }
 
-.total-dia { font-weight: bold; font-size: 0.9em; background: #f8fafc; border-left: 1px solid #e2e8f0; }
+.destaque-vermelho .col-dia { background-color: #fef2f2 !important; border-left: 4px solid #ef4444 !important; }
+.destaque-vermelho .col-dia strong { color: #ef4444 !important; }
+.destaque-vermelho input.ponto { border-color: #fca5a5; }
 
-/* Menu Suspenso Flutuante (Dropdown) */
+/* ==========================================================================
+   MENUS E DROPDOWNS
+   ========================================================================== */
 .dropdown-dia { margin-left: 10px; position: relative; display: flex; }
 .btn-config { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 1.1em; padding: 4px; }
 .btn-config:hover { color: #0284c7; }
@@ -40,22 +84,9 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
 .menu-section { padding: 8px 15px 4px; font-size: 0.7em; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
 .divisor { height: 1px; background: #f1f5f9; margin: 4px 0; }
 
+/* ==========================================================================
+   RODAPÉ E TOTALIZADOR
+   ========================================================================== */
 #rodape-totalizador { position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; color: white; padding: 12px 0; display: flex; justify-content: center; z-index: 2000; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); }
 .total-card { display: flex; gap: 20px; align-items: center; font-size: 1.1em; }
 #total-geral-periodo { color: #10b981; font-size: 1.4em; font-weight: 800; }
-/* ==========================================================================
-   DESTAQUE PARA SÁBADOS, DOMINGOS E FERIADOS (ESCALA LIVRE)
-   ========================================================================== */
-.destaque-vermelho .col-dia {
-    background-color: #fef2f2 !important;
-    border-left: 4px solid #ef4444 !important;
-}
-
-.destaque-vermelho .col-dia strong {
-    color: #ef4444 !important;
-}
-
-/* Opcional: Deixar os inputs do dia com um leve tom avermelhado no fundo */
-.destaque-vermelho input.ponto {
-    border-color: #fca5a5;
-}
