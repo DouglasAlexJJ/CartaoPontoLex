@@ -110,9 +110,10 @@ window.toggleMenuDia = function(btn, event) {
 
 document.addEventListener('click', () => document.querySelectorAll('.menu-dia-content').forEach(m => m.classList.remove('show')));
 
-window.gerenciarBatidas = function(btn, qtd) {
-    const cont = btn.closest('.celula-inputs').querySelector('.container-batidas');
-    const tr = btn.closest('tr');
+window.gerenciarBatidas = function(elemento, qtd) {
+    // Agora aceita tanto o botão quanto o input
+    const tr = elemento.closest('tr');
+    const cont = tr.querySelector('.container-batidas');
     
     if (qtd > 0) {
         for(let i=0; i<2; i++) {
@@ -134,9 +135,11 @@ window.gerenciarBatidas = function(btn, qtd) {
         }
     }
     
-    configurarEventos();
-    calcularLinha(tr);
-    salvarProgressoAuto();
+    configurarEventos(); // Reaplica os eventos (incluindo o atalho do +)
+    
+    // Se a função anterior existir, recalcula (use a que você tiver ativa aí)
+    if (typeof calcularLinha === 'function') calcularLinha(tr);
+    if (typeof salvarProgressoAuto === 'function') salvarProgressoAuto();
 };
 
 window.definirComoFolga = function(btn) {
@@ -332,6 +335,21 @@ function configurarEventos() {
         };
 
         input.onkeydown = (e) => {
+            // --- ATALHO: TECLA '+' PARA ADICIONAR BATIDAS ---
+            if (e.key === '+') {
+                e.preventDefault(); // Impede que o sinal de + seja digitado na caixa
+                window.gerenciarBatidas(input, 2); // Cria as duas caixinhas
+                
+                // Pula o cursor automaticamente para a primeira caixinha nova criada
+                setTimeout(() => {
+                    const todosInputsDestaLinha = input.closest('tr').querySelectorAll('.ponto');
+                    const novoInput = todosInputsDestaLinha[todosInputsDestaLinha.length - 2];
+                    if (novoInput) novoInput.focus();
+                }, 10);
+                return;
+            }
+
+            // --- NAVEGAÇÃO PADRÃO (Tab / Enter) ---
             if (e.key === 'Tab' || e.key === 'Enter') {
                 e.preventDefault();
                 completarHora(input);
