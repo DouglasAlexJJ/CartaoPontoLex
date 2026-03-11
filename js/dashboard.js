@@ -1,5 +1,5 @@
 /* ==========================================================================
-   JAVASCRIPT DO DASHBOARD (REFATORADO E ORGANIZADO)
+   JAVASCRIPT DO DASHBOARD (REFATORADO E ORGANIZADO - ESTILO RESTAURADO)
    ========================================================================== */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
@@ -96,7 +96,7 @@ function configurarInterfacePorPerfil() {
     if (ehPessoal && btnNovoSidebar) {
         btnNovoSidebar.innerHTML = "💎 Assinar Plano";
         btnNovoSidebar.style.background = "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)";
-        btnNovoSidebar.onclick = () => alert("Em breve: Escolha seu plano e comece a calcular!");
+        btnNovoSidebar.onclick = () => alert("Em breve: Escolha seu plano e comeéce a calcular!");
     }
 
     // Verifica convites pendentes
@@ -287,11 +287,15 @@ function renderizarLixeira(apagados, podeGerenciar) {
    ========================================================================== */
 
 window.abrirCartao = function(id) {
-    sessionStorage.setItem('cartaoEditandoId', id);
-    window.location.href = "editor.html";
+    localStorage.setItem('cartaoAtualId', id);
+    window.location.href = "app.html";
 };
 
 window.moverParaLixeira = async function(id) {
+    if (dadosUsuarioGlobal.tipoConta === 'colaborador') {
+        alert("Acesso negado: Somente Administradores ou Gestores podem excluir cartões.");
+        return;
+    }
     if (!confirm("Mover para a lixeira? O arquivo será excluído permanentemente em 30 dias.")) return;
     try {
         await updateDoc(doc(db, "cartoes", id.toString()), { deletedAt: Date.now() });
@@ -315,37 +319,50 @@ window.abrirModalColaboradores = async function() {
 };
 
 async function carregarMembrosEquipe() {
-    const listaMembros = document.getElementById('lista-membros-equipe');
-    if (!listaMembros) return;
+    const container = document.getElementById('lista-membros-equipe');
+    if (!container) return;
 
     try {
-        const q = query(collection(db, "usuarios"), where("adminId", "==", (dadosUsuarioGlobal.tipoConta === 'admin' ? usuarioAtual.uid : dadosUsuarioGlobal.adminId)));
+        const meuAdminId = dadosUsuarioGlobal.tipoConta === 'admin' ? usuarioAtual.uid : dadosUsuarioGlobal.adminId;
+        const q = query(collection(db, "usuarios"), where("adminId", "==", meuAdminId));
         const snap = await getDocs(q);
         
         if (snap.empty) {
-            listaMembros.innerHTML = '<p style="text-align:center; color:#94a3b8;">Nenhum membro vinculado.</p>';
+            container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px;">Nenhum colaborador vinculado ainda.</p>';
             return;
         }
 
-        listaMembros.innerHTML = snap.docs.map(docSnap => {
-            const m = docSnap.data();
-            const ehAdmin = dadosUsuarioGlobal.tipoConta === 'admin';
-            const btnCargo = ehAdmin ? `
-                <button onclick="alterarCargoMembro('${docSnap.id}', '${m.tipoConta === 'gestor' ? 'colaborador' : 'gestor'}')" class="btn-acao-mini">
-                    ${m.tipoConta === 'gestor' ? '⬇️ Rebaixar' : '⬆️ Promover'}
-                </button>` : '';
-            const btnRemover = ehAdmin ? `<button onclick="desvincularMembro('${docSnap.id}')" class="btn-acao-mini btn-perigo">Remover</button>` : '';
+        container.innerHTML = '';
+        snap.forEach((membroDoc) => {
+            const membro = membroDoc.data();
+            if (membro.uid === usuarioAtual.uid) return;
+            
+            const ehGestor = membro.tipoConta === 'gestor';
+            const euSouAdmin = dadosUsuarioGlobal.tipoConta === 'admin';
 
-            return `
-                <div class="membro-item">
-                    <div class="membro-info">
-                        <strong>${m.nome}</strong>
-                        <span>${m.tipoConta.toUpperCase()}</span>
+            container.innerHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; background: #fff;">
+                    <div>
+                        <strong style="display: block; font-size: 0.95em;">
+                            ${membro.nome} ${ehGestor ? '<span style="color:#2563eb; font-size:0.7em;">(GESTOR)</span>' : ''}
+                        </strong>
+                        <small style="color: #64748b;">${membro.email}</small>
                     </div>
-                    <div class="membro-acoes">${btnCargo} ${btnRemover}</div>
+                    <div style="display: flex; gap: 5px;">
+                        ${euSouAdmin ? `
+                            <button onclick="alterarCargoMembro('${membro.uid}', '${ehGestor ? 'colaborador' : 'gestor'}')" 
+                                    style="background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
+                                ${ehGestor ? '⬇ Rebaixar' : '⬆ Tornar Gestor'}
+                            </button>
+                        ` : ''}
+                        <button onclick="desvincularMembro('${membro.uid}')" 
+                                style="background: #fff1f2; color: #ef4444; border: 1px solid #fecdd3; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
+                            Remover
+                        </button>
+                    </div>
                 </div>
             `;
-        }).join('');
+        });
     } catch (e) { console.error(e); }
 }
 
@@ -396,5 +413,38 @@ window.copiarLinkConvite = () => {
 window.fecharModalColaboradores = () => document.getElementById('modal-colaboradores').classList.add('escondido');
 window.abrirModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.remove('escondido');
 window.fecharModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.add('escondido');
-window.abrirModalNovo = () => document.getElementById('modal-novo').classList.remove('escondido');
+window.abrirModalNovo = () => {
+    if (dadosUsuarioGlobal.tipoConta === 'pessoal') {
+        alert("Sua conta atual não possui uma assinatura ativa. Assine um plano para criar novos cartões.");
+        return;
+    }
+    document.getElementById('modal-novo').classList.remove('escondido');
+};
 window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
+window.abrirModalPerfil = function() {
+    if(!dadosUsuarioGlobal) return;
+    document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
+    document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
+    document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
+    const campoEmpresa = document.getElementById('edit-perfil-empresa');
+    campoEmpresa.value = dadosUsuarioGlobal.empresa || "";
+    if (dadosUsuarioGlobal.tipoConta === 'colaborador') {
+        campoEmpresa.disabled = true;
+        campoEmpresa.style.backgroundColor = "#f1f5f9";
+    } else {
+        campoEmpresa.disabled = false;
+        campoEmpresa.style.backgroundColor = "#ffffff";
+    }
+    document.getElementById('modal-perfil').classList.remove('escondido');
+};
+window.fecharModalPerfil = () => document.getElementById('modal-perfil').classList.add('escondido');
+window.toggleFolgaInicial = () => {
+    const esc = document.getElementById('escala').value;
+    document.getElementById('container-folga-inicial').style.display = (esc === "6x2" || esc === "personalizada") ? "block" : "none";
+};
+window.toggleIntervaloFixo = () => {
+    document.getElementById('container-intervalo').style.display = document.getElementById('intervaloFixo').checked ? "block" : "none";
+};
+window.toggleBatidas = () => {
+    document.getElementById('container-batidas-input').style.display = document.getElementById('checkBatidas').checked ? "block" : "none";
+};
