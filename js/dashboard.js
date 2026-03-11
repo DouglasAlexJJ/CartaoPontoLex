@@ -410,7 +410,7 @@ window.abrirModalColaboradores = function() {
 async function carregarMembrosEquipe() {
     const container = document.getElementById('lista-membros-equipe');
     const meuAdminId = dadosUsuarioGlobal.tipoConta === 'admin' ? usuarioAtual.uid : dadosUsuarioGlobal.adminId;
-    const q = query(collection(db, "usuarios"), where("adminId", "==", usuarioAtual.uid));
+    const q = query(collection(db, "usuarios"), where("adminId", "==", meuAdminId));
     const querySnapshot = await getDocs(q);
     
     if (querySnapshot.empty) {
