@@ -388,16 +388,59 @@ function pularLinha(trAtual) {
 
 function calcularLinha(tr) {
     const ins = tr.querySelectorAll('.ponto');
-    let minTotal = 0;
+    const isDomingoOuFeriado = tr.classList.contains('destaque-vermelho'); // Vem do seu gerarFolha
+    const isFolga = tr.classList.contains('folga');
+    
+    let totalDiurno = 0;
+    let totalNoturnoFicto = 0;
+    let totalNoturnoRelogio = 0;
+
+    // 1. Soma todos os turnos do dia
     for (let i = 0; i < ins.length; i += 2) {
-        const e = hhmmParaMin(ins[i]?.value), s = hhmmParaMin(ins[i+1]?.value);
+        const e = hhmmParaMin(ins[i]?.value);
+        const s = hhmmParaMin(ins[i+1]?.value);
+        
         if (e > 0 && s > 0) {
-            let d = s - e;
-            if (d < 0) d += 1440; 
-            minTotal += d;
+            const turno = calcularTurno(e, s);
+            totalDiurno += turno.diurno;
+            totalNoturnoFicto += turno.noturnoFicto;
+            totalNoturnoRelogio += turno.noturnoRelogio;
         }
     }
-    tr.querySelector('.total-dia').innerText = minParaHHMM(minTotal);
+
+    let tempoTotal = totalDiurno + totalNoturnoFicto;
+    let tempoTotalEmHoras = tempoTotal / 60; // Para facilitar os limites
+    
+    // 2. Lógica de Horas Extras (Assumindo limite de 8h diárias por padrão)
+    // O ideal será buscar esse limite da config (ex: cfg.horasDiarias)
+    const LIMITE_DIARIO = 8; 
+    let horasNormais = 0;
+    let extras50 = 0;
+    let extras100 = 0;
+
+    if (isFolga || isDomingoOuFeriado) {
+        // Trabalhou no dia de descanso? É tudo 100%!
+        extras100 = tempoTotalEmHoras;
+    } else {
+        // Dia normal
+        if (tempoTotalEmHoras > LIMITE_DIARIO) {
+            horasNormais = LIMITE_DIARIO;
+            extras50 = tempoTotalEmHoras - LIMITE_DIARIO;
+        } else {
+            horasNormais = tempoTotalEmHoras;
+        }
+    }
+
+    // 3. Atualiza o HTML
+    // Aqui nós preenchemos a coluna Total, mas já temos os dados das Extras!
+    tr.querySelector('.total-dia').innerText = minParaHHMM(Math.round(tempoTotal));
+    
+    // Podemos guardar os dados no TR para depois somar no rodapé geral
+    tr.dataset.normais = horasNormais.toFixed(2);
+    tr.dataset.ext50 = extras50.toFixed(2);
+    tr.dataset.ext100 = extras100.toFixed(2);
+    tr.dataset.adcNoturno = (totalNoturnoFicto / 60).toFixed(2);
+
     atualizarTotalGeral();
 }
 
@@ -424,4 +467,33 @@ function ehFeriadoNacional(data) {
     let corpus = new Date(pascoa); corpus.setDate(pascoa.getDate()+60);
     const formata = dt => String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
     return fixos.includes(formata(data)) || [formata(carnaval), formata(sextaSanta), formata(pascoa), formata(corpus)].includes(formata(data));
+}
+function calcularTurno(entradaMin, saidaMin) {
+    if (saidaMin <= entradaMin) saidaMin += 1440; // Virou a noite
+    
+    let minDiurno = 0;
+    let minNoturno = 0;
+
+    // Varre minuto a minuto (método mais seguro para lidar com madrugadas)
+    for (let m = entradaMin; m < saidaMin; m++) {
+        let minutoDoDia = m % 1440; // Garante que 24h vire 00h
+        
+        // Regra Noturna: Entre 22:00 (1320) e 05:00 (300)
+        if (minutoDoDia >= 1320 || minutoDoDia < 300) {
+            minNoturno++;
+        } else {
+            minDiurno++;
+        }
+    }
+
+    // Aplica a Redução da Hora Noturna (Hora Ficta)
+    // 1 minuto relógio = 1.142857 minutos trabalhistas
+    let minNoturnoFicto = minNoturno * (60 / 52.5);
+
+    return {
+        diurno: minDiurno,
+        noturnoRelogio: minNoturno,
+        noturnoFicto: minNoturnoFicto,
+        totalFicto: minDiurno + minNoturnoFicto
+    };
 }
