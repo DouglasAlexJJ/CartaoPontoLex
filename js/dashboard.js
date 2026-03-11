@@ -34,12 +34,12 @@ onAuthStateChanged(auth, async (user) => {
         if (docSnap.exists()) {
             dadosUsuarioGlobal = docSnap.data();
             const ehPessoal = dadosUsuarioGlobal.tipoConta === 'pessoal';
-            const btnNovoSidebar = document.querySelector('.sidebar-content .btn-primario');
-            console.log("Cargo detectado:", dadosUsuarioGlobal.tipoConta); 
-
-            atualizarNomeSidebar(dadosUsuarioGlobal);
-            
             const banner = document.getElementById('banner-assinatura');
+            const btnNovoSidebar = document.querySelector('.sidebar-content .btn-primario');
+            const menuEquipe = document.getElementById('menu-colaboradores');
+            console.log("Cargo detectado:", dadosUsuarioGlobal.tipoConta); 
+            atualizarNomeSidebar(dadosUsuarioGlobal);
+
             if (banner) {
                 if (dadosUsuarioGlobal.tipoConta === 'pessoal') {
                     banner.classList.remove('escondido');
@@ -48,7 +48,16 @@ onAuthStateChanged(auth, async (user) => {
                 }
             }
 
-            const menuEquipe = document.getElementById('menu-colaboradores');
+            if (ehPessoal) {
+                const invitePendente = sessionStorage.getItem('inviteId');
+                if (invitePendente) {
+                    // Abre o modal e preenche o link sozinho
+                    document.getElementById('input-link-convite').value = invitePendente;
+                    window.abrirModalEntrarEquipe();
+                    // Limpa para não ficar abrindo toda hora que ele der F5
+                    sessionStorage.removeItem('inviteId'); 
+                }
+            }
             
             if (dadosUsuarioGlobal.tipoConta === 'admin' || dadosUsuarioGlobal.tipoConta === 'gestor') {
                 
@@ -563,5 +572,68 @@ window.alterarCargoMembro = async function(membroUid, novoCargo) {
     } catch (e) {
         console.error(e);
         alert("Erro ao alterar cargo.");
+    }
+};
+window.abrirModalEntrarEquipe = function() {
+    document.getElementById('modal-entrar-equipe').classList.remove('escondido');
+};
+
+window.fecharModalEntrarEquipe = function() {
+    document.getElementById('modal-entrar-equipe').classList.add('escondido');
+};
+
+window.processarConviteManual = async function() {
+    const inputVal = document.getElementById('input-link-convite').value.trim();
+    if(!inputVal) {
+        alert("Por favor, cole o link de convite.");
+        return;
+    }
+
+    // Extrai o ID do patrão do link (Mesmo que o usuário cole a URL inteira)
+    let idAdminConvite = inputVal;
+    if(inputVal.includes('invite=')) {
+        idAdminConvite = inputVal.split('invite=')[1].split('&')[0];
+    }
+
+    const btn = document.querySelector('#modal-entrar-equipe .btn-primario');
+    const textoOriginal = btn.innerText;
+    btn.innerText = "Buscando escritório...";
+    btn.disabled = true;
+
+    try {
+        // Busca os dados do Admin no banco de dados
+        const adminDoc = await getDoc(doc(db, "usuarios", idAdminConvite));
+        
+        if(adminDoc.exists()) {
+            const dadosAdmin = adminDoc.data();
+            
+            // Pede confirmação
+            if(!confirm(`Deseja vincular sua conta ao escritório: ${dadosAdmin.empresa}?`)) {
+                btn.innerText = textoOriginal;
+                btn.disabled = false;
+                return;
+            }
+
+            // Atualiza a conta do usuário para colaborador
+            await updateDoc(doc(db, "usuarios", usuarioAtual.uid), {
+                tipoConta: 'colaborador',
+                adminId: idAdminConvite,
+                empresa: dadosAdmin.empresa
+            });
+
+            alert(`Sucesso! Agora você faz parte da equipe ${dadosAdmin.empresa}.`);
+            sessionStorage.removeItem('inviteId'); // Limpa a memória
+            location.reload(); // Recarrega para aplicar as mudanças
+            
+        } else {
+            alert("Convite inválido ou administrador não encontrado.");
+            btn.innerText = textoOriginal;
+            btn.disabled = false;
+        }
+    } catch(e) {
+        console.error(e);
+        alert("Erro ao validar o convite.");
+        btn.innerText = textoOriginal;
+        btn.disabled = false;
     }
 };

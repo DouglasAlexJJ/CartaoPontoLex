@@ -64,16 +64,19 @@
                 </button>
             </div>
 
-            <div id="banner-assinatura" class="escondido" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="font-size: 1.5em;">📢</span>
-                    <div>
-                        <h4 style="color: #1e40af; margin: 0; font-size: 0.95em;">Sua conta está limitada</h4>
-                        <p style="color: #60a5fa; margin: 0; font-size: 0.85em;">Assine um plano para criar cartões e gerenciar sua equipe.</p>
-                    </div>
-                </div>
-                <button class="btn-primario" style="padding: 8px 16px; font-size: 0.8em;">Ver Planos</button>
-            </div>
+            <div id="banner-assinatura" class="escondido" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <span style="font-size: 1.5em;">📢</span>
+        <div>
+            <h4 style="color: #1e40af; margin: 0; font-size: 0.95em;">Sua conta está limitada</h4>
+            <p style="color: #60a5fa; margin: 0; font-size: 0.85em;">Assine um plano para criar cartões ou vincule-se a um escritório.</p>
+        </div>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn-secundario" style="padding: 8px 16px; font-size: 0.8em; background: #fff; border: 1px solid #93c5fd; color: #1e40af;" onclick="abrirModalEntrarEquipe()">🤝 Tenho um Convite</button>
+        <button class="btn-primario" style="padding: 8px 16px; font-size: 0.8em;" onclick="alert('Página de Planos em breve!')">💎 Ver Planos</button>
+    </div>
+</div>
 
             <div class="recentes-section">
                 <h3>Continuar a Editar</h3>
@@ -195,6 +198,27 @@
                 </p>
             </div>
         </div>
+
+        <div id="modal-entrar-equipe" class="modal-overlay escondido">
+    <div class="modal-card" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3>🤝 Entrar em uma Equipe</h3>
+            <button class="btn-fechar" onclick="fecharModalEntrarEquipe()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.9em; color: #64748b; margin-bottom: 15px; line-height: 1.4;">
+                Se você recebeu um link de convite do administrador do seu escritório, cole-o no campo abaixo para solicitar acesso aos cartões da equipe.
+            </p>
+            <div class="form-group">
+                <label>Link de Convite</label>
+                <input type="text" id="input-link-convite" class="input-premium" placeholder="Ex: https://.../index.html?invite=ABC123XYZ">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="processarConviteManual()" class="btn-primario" style="width: 100%;">Validar Convite</button>
+        </div>
+    </div>
+</div>
 
         <div class="modal-footer" style="padding: 20px 30px 30px; background: none; border: none;">
             <button onclick="salvarPerfilInicial()" class="btn-primario" style="width: 100%; padding: 14px; font-size: 1.1em; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
