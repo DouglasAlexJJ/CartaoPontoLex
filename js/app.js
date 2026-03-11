@@ -593,3 +593,58 @@ function decimalParaHHMM(decimal) {
     const minutos = Math.round((decimal - horas) * 60);
     return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
 }
+// ==========================================================================
+// FUNÇÕES DO MENU DE CONFIGURAÇÃO E AFASTAMENTOS
+// ==========================================================================
+
+window.toggleMenuConfig = function(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('menu-config-app');
+    menu.classList.toggle('escondido');
+};
+
+// Fecha o menu se clicar fora
+document.addEventListener('click', () => {
+    const menu = document.getElementById('menu-config-app');
+    if (menu && !menu.classList.contains('escondido')) {
+        menu.classList.add('escondido');
+    }
+});
+
+// AFASTAMENTOS
+window.abrirModalAfastamento = function(tipo) {
+    document.getElementById('titulo-modal-afastamento').innerText = `Lançar ${tipo}`;
+    document.getElementById('afastamento-tipo').value = tipo;
+    
+    // Limpa os campos
+    document.getElementById('afastamento-inicio').value = '';
+    document.getElementById('afastamento-fim').value = '';
+    
+    document.getElementById('modal-afastamento').classList.remove('escondido');
+};
+
+window.fecharModalAfastamento = function() {
+    document.getElementById('modal-afastamento').classList.add('escondido');
+};
+
+window.aplicarAfastamento = function() {
+    alert("Função de pintar a tabela e bloquear os dias será feita na próxima etapa!");
+    fecharModalAfastamento();
+};
+
+// AJUSTE DE DATAS
+window.abrirModalAjusteDatas = function() {
+    if(!configAtual) return;
+    document.getElementById('ajuste-data-inicio').value = configAtual.dataInicio;
+    document.getElementById('ajuste-data-fim').value = configAtual.dataFim;
+    document.getElementById('modal-ajuste-datas').classList.remove('escondido');
+};
+
+window.fecharModalAjusteDatas = function() {
+    document.getElementById('modal-ajuste-datas').classList.add('escondido');
+};
+
+window.aplicarAjusteDatas = function() {
+    alert("Função de recriar a tabela com as novas datas será feita na próxima etapa!");
+    fecharModalAjusteDatas();
+};

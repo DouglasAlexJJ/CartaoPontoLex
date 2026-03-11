@@ -33,6 +33,36 @@ td {
 .total-dia { width: 20%; font-weight: bold; font-size: 0.9em; background: #f8fafc; border-left: 1px solid #e2e8f0; }
 
 /* ==========================================================================
+   MENU SUSPENSO DO CABEÇALHO (CONFIGURAÇÕES)
+   ========================================================================== */
+.dropdown-content { 
+    display: none; 
+    position: absolute; 
+    right: 0; 
+    top: 120%; 
+    background: white; 
+    min-width: 240px; 
+    border-radius: 8px; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+    border: 1px solid #e2e8f0; 
+    z-index: 9999; 
+    padding: 8px 0; 
+}
+.dropdown-content:not(.escondido) { display: block; }
+.dropdown-content button { 
+    display: block; 
+    width: 100%; 
+    padding: 10px 15px; 
+    border: none; 
+    background: white; 
+    color: #334155; 
+    text-align: left; 
+    font-size: 0.9em; 
+    cursor: pointer; 
+}
+.dropdown-content button:hover { background: #f1f5f9; color: #2563eb; }
+
+/* ==========================================================================
    ÁREA DE BATIDAS E INPUTS
    ========================================================================== */
 .celula-inputs { 
