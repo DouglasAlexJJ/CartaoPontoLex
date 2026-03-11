@@ -96,7 +96,7 @@ function configurarInterfacePorPerfil() {
     if (ehPessoal && btnNovoSidebar) {
         btnNovoSidebar.innerHTML = "💎 Assinar Plano";
         btnNovoSidebar.style.background = "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)";
-        btnNovoSidebar.onclick = () => alert("Em breve: Escolha seu plano e comeéce a calcular!");
+        btnNovoSidebar.onclick = () => alert("Em breve: Escolha seu plano e comece a calcular!");
     }
 
     // Verifica convites pendentes
@@ -447,4 +447,146 @@ window.toggleIntervaloFixo = () => {
 };
 window.toggleBatidas = () => {
     document.getElementById('container-batidas-input').style.display = document.getElementById('checkBatidas').checked ? "block" : "none";
+};
+
+/* ==========================================================================
+   5. LÓGICA DE ONBOARDING E CRIAÇÃO DE PERFIL
+   ========================================================================== */
+
+window.salvarPerfilInicial = async function() {
+    const nome = document.getElementById('perfil-nome').value.trim();
+    const tratamento = document.getElementById('perfil-tratamento').value;
+    const oab = document.getElementById('perfil-oab').value.trim();
+    
+    if (!nome) { 
+        alert('O nome é obrigatório!'); 
+        return; 
+    }
+
+    const btn = document.querySelector('#modal-onboarding .btn-primario');
+    btn.disabled = true;
+    btn.innerText = "Salvando...";
+
+    try {
+        const inviteId = sessionStorage.getItem('inviteId');
+        let dadosPerfil = {
+            uid: usuarioAtual.uid,
+            email: usuarioAtual.email,
+            nome: nome,
+            tratamento: tratamento,
+            oab: oab,
+            dataCriacao: Date.now()
+        };
+
+        if (inviteId) {
+            const adminDoc = await getDoc(doc(db, "usuarios", inviteId));
+            if (adminDoc.exists()) {
+                const dadosAdmin = adminDoc.data();
+                dadosPerfil.tipoConta = 'colaborador';
+                dadosPerfil.empresa = dadosAdmin.empresa;
+                dadosPerfil.adminId = inviteId;
+            }
+            sessionStorage.removeItem('inviteId');
+        } else {
+            const empresa = document.getElementById('perfil-empresa').value.trim();
+            if (!empresa) {
+                alert("Nome da Empresa é obrigatório para Administradores!");
+                btn.disabled = false;
+                btn.innerText = "Concluir Configuração ➔";
+                return;
+            }
+            dadosPerfil.tipoConta = 'admin';
+            dadosPerfil.empresa = empresa;
+        }
+
+        await setDoc(doc(db, "usuarios", usuarioAtual.uid), dadosPerfil);
+        document.getElementById('modal-onboarding').classList.add('escondido');
+        location.reload();
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao criar perfil.");
+        btn.disabled = false;
+        btn.innerText = "Concluir Configuração ➔";
+    }
+};
+
+window.salvarEdicaoPerfil = async function() {
+    const btn = document.querySelector('#modal-perfil .btn-primario');
+    btn.innerText = "Salvando...";
+
+    const novosDados = {
+        ...dadosUsuarioGlobal,
+        tratamento: document.getElementById('edit-perfil-tratamento').value,
+        nome: document.getElementById('edit-perfil-nome').value.trim(),
+        oab: document.getElementById('edit-perfil-oab').value.trim(),
+        empresa: document.getElementById('edit-perfil-empresa').value.trim()
+    };
+
+    try {
+        await setDoc(doc(db, "usuarios", usuarioAtual.uid), novosDados);
+        dadosUsuarioGlobal = novosDados;
+        atualizarNomeSidebar(novosDados);
+        window.fecharModalPerfil();
+        alert("Perfil atualizado!");
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao atualizar.");
+    }
+    btn.innerText = "Atualizar Dados";
+};
+
+window.salvarEIniciar = async function() {
+    const reclamante = document.getElementById('reclamante').value.trim();
+    const dataIn = document.getElementById('dataInicio').value;
+    const dataFim = document.getElementById('dataFim').value;
+    const escala = document.getElementById('escala').value;
+    
+    if (!reclamante || !dataIn || !dataFim) {
+        alert("Preencha Reclamante, Data de Início e Fim!");
+        return;
+    }
+
+    const donoDoCartaoId = (dadosUsuarioGlobal.tipoConta === 'colaborador') 
+                           ? dadosUsuarioGlobal.adminId 
+                           : usuarioAtual.uid;
+
+    let trabPers = 6, folgaPers = 2;
+    if (escala === "personalizada") {
+        trabPers = parseInt(prompt("Dias de TRABALHO?", "5")) || 5;
+        folgaPers = parseInt(prompt("Dias de FOLGA?", "1")) || 1;
+    }
+
+    const config = {
+        reclamante: reclamante,
+        reclamada: document.getElementById('reclamada').value.trim(),
+        dataInicio: dataIn,
+        dataFim: dataFim,
+        escala: escala,
+        dataFolgaInicial: document.getElementById('dataFolgaInicial').value,
+        padraoE: document.getElementById('padraoE').value,
+        padraoS: document.getElementById('padraoS').value,
+        intervaloFixo: document.getElementById('intervaloFixo').checked,
+        qtdBatidas: document.getElementById('checkBatidas').checked ? (parseInt(document.getElementById('qtdBatidas').value) || 4) : 4,
+        trabPers: trabPers,
+        folgaPers: folgaPers
+    };
+
+    const novoCartao = {
+        id: Date.now().toString(), 
+        userId: donoDoCartaoId,
+        criadoPor: usuarioAtual.email,
+        dataEdicao: Date.now(),
+        progresso: 0,
+        config: config,
+        batidas: {} 
+    };
+
+    try {
+        await setDoc(doc(db, "cartoes", novoCartao.id), novoCartao);
+        localStorage.setItem('cartaoAtualId', novoCartao.id);
+        window.location.href = "app.html";
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao criar cartão.");
+    }
 };
