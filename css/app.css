@@ -33,35 +33,77 @@ td {
 .total-dia { width: 20%; font-weight: bold; font-size: 0.9em; background: #f8fafc; border-left: 1px solid #e2e8f0; }
 
 /* ==========================================================================
-   MENU SUSPENSO DO CABEÇALHO (CONFIGURAÇÕES)
+   MENU SUSPENSO DO CABEÇALHO (CONFIGURAÇÕES PREMIUM)
    ========================================================================== */
 .dropdown-content { 
     display: none; 
     position: absolute; 
     right: 0; 
-    top: 120%; 
-    background: white; 
-    min-width: 240px; 
-    border-radius: 8px; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-    border: 1px solid #e2e8f0; 
+    top: 130%; 
+    background: #ffffff; 
+    min-width: 260px; /* Um pouco mais largo para acomodar os textos e ícones */
+    border-radius: 10px; 
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+    border: 2px solid #1e293b; /* Borda Azul Marinho Padrão do Sistema */
     z-index: 9999; 
     padding: 8px 0; 
+    overflow: hidden;
 }
-.dropdown-content:not(.escondido) { display: block; }
-.dropdown-content button { 
+
+.dropdown-content:not(.escondido) { 
     display: block; 
+    animation: abrirMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animação suave de entrada */
+@keyframes abrirMenu {
+    from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Estilização dos Títulos "Lançar Afastamentos" e "Estrutura" */
+.menu-section { 
+    padding: 8px 15px; 
+    font-size: 0.75em; 
+    font-weight: 800; 
+    color: #1e40af; /* Texto Azul Forte */
+    background-color: #eff6ff; /* Fundo Azul Super Claro */
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+    border-left: 4px solid #2563eb; /* Detalhe em fita na lateral esquerda */
+    margin: 5px 0;
+}
+
+/* Estilização dos Botões (Férias, Atestados, etc) */
+.dropdown-content button { 
+    display: flex; 
+    align-items: center;
+    gap: 12px; /* Espaço perfeito entre o emoji/ícone e o texto */
     width: 100%; 
-    padding: 10px 15px; 
+    padding: 12px 20px; 
     border: none; 
     background: white; 
     color: #334155; 
     text-align: left; 
     font-size: 0.9em; 
+    font-weight: 500;
     cursor: pointer; 
+    transition: all 0.2s ease; 
 }
-.dropdown-content button:hover { background: #f1f5f9; color: #2563eb; }
 
+/* Efeito Premium ao passar o mouse: o texto dá um leve pulo pra frente */
+.dropdown-content button:hover { 
+    background: #f8fafc; 
+    color: #2563eb; 
+    padding-left: 25px; 
+}
+
+/* Linha divisória mais sutil */
+.dropdown-content .divisor { 
+    height: 1px; 
+    background: #e2e8f0; 
+    margin: 4px 15px; 
+}
 /* ==========================================================================
    ÁREA DE BATIDAS E INPUTS
    ========================================================================== */
