@@ -310,6 +310,7 @@ function gerarFolha(cfg) {
             </td>
             <td class="total-dia" style="color: #0284c7; font-weight: bold;">00:00</td>
         `;
+
         corpo.appendChild(tr);
         dataAtual.setDate(dataAtual.getDate() + 1);
     }
@@ -398,22 +399,49 @@ function completarHora(input) {
 function pularCampoInteligente(input, index, direcao) {
     const linha = input.closest('tr');
     const inputsDaLinha = Array.from(linha.querySelectorAll('.ponto'));
+    
+    // Regra do Intervalo Fixo (Só aplica em dias normais)
     if (direcao === 1 && !linha.classList.contains('folga') && configAtual.intervaloFixo && input === inputsDaLinha[0] && inputsDaLinha.length >= 4) {
         inputsDaLinha[3].focus();
-    } else {
-        const todos = Array.from(document.querySelectorAll('.ponto'));
-        let prox = index + direcao;
-        while (todos[prox] && todos[prox].closest('tr').classList.contains('folga')) prox += direcao;
-        if (todos[prox]) todos[prox].focus();
+        return;
     }
+    
+    const todos = Array.from(document.querySelectorAll('.ponto'));
+    let prox = index + direcao;
+    
+    while (todos[prox]) {
+        let trProx = todos[prox].closest('tr');
+        
+        // 1. O PORTO SEGURO: Se a próxima caixinha for na MESMA linha que estou agora, 
+        // ele PARA de procurar e vai para ela (me deixa terminar de editar a folga).
+        if (trProx === linha) {
+            break;
+        }
+        
+        // 2. Se a próxima caixinha for em OUTRO dia, ele verifica se o novo dia é folga.
+        // Se for folga, ele pula esse dia inteiro.
+        if (trProx.classList.contains('folga')) {
+            prox += direcao;
+        } else {
+            // Se o novo dia for dia de trabalho, ele para e entra.
+            break;
+        }
+    }
+    
+    if (todos[prox]) todos[prox].focus();
 }
 
-
 function pularLinha(trAtual) {
-    const prox = trAtual.nextElementSibling;
+    let prox = trAtual.nextElementSibling;
+    
+    // Ao apertar Enter, ele procura o próximo dia de trabalho, pulando as folgas
+    while (prox && prox.classList.contains('folga')) {
+        prox = prox.nextElementSibling;
+    }
+    
     if (prox) {
-        if (prox.classList.contains('folga')) pularLinha(prox);
-        else prox.querySelector('.ponto').focus();
+        const primeiroInput = prox.querySelector('.ponto');
+        if (primeiroInput) primeiroInput.focus();
     }
 }
 
