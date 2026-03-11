@@ -5,16 +5,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-// Suas Chaves
-const firebaseConfig = {
-  apiKey: "AIzaSyAYKwESZLQelQlyh5pWX0oE0eVOMI5Z3fY",
-  authDomain: "cartaopontolex.firebaseapp.com",
-  projectId: "cartaopontolex",
-  storageBucket: "cartaopontolex.firebasestorage.app",
-  messagingSenderId: "261448645689",
-  appId: "1:261448645689:web:a6e7aebb12ef87c15b61e8"
-};
+import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
