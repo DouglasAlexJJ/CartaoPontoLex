@@ -16,33 +16,33 @@
 
     <div class="dashboard-layout">
         <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <div class="perfil-usuario">
-            <div class="avatar">⚖️</div>
-            <div class="info-perfil">
-                <strong id="sidebar-nome-exibicao">Carregando...</strong>
-                <small id="sidebar-status-conta">Plano Premium</small>
-                <button onclick="fazerLogout()" class="btn-logout">Sair</button>
+            <div class="sidebar-header">
+                <div class="perfil-usuario">
+                    <div class="avatar">⚖️</div>
+                    <div class="info-perfil">
+                        <strong id="sidebar-nome-exibicao">Carregando...</strong>
+                        <small id="sidebar-status-conta">Plano Premium</small>
+                        <button onclick="fazerLogout()" class="btn-logout">Sair</button>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <div class="sidebar-content">
-        <button class="btn-primario" style="width: 100%; margin-bottom: 20px;" onclick="abrirModalNovo()">➕ Novo Cartão</button>
-        
-        <div class="divisor"></div>
-        <h4 class="sidebar-title">Menu</h4>
-        <ul class="lista-menu">
-            <li onclick="location.reload()">🏠 Dashboard</li>
-            <li onclick="abrirModalPerfil()">👤 Meu Perfil</li>
-            <li id="menu-colaboradores" class="escondido" onclick="abrirModalColaboradores()">👥 Gerenciar Equipe</li>
-        </ul>
+            <div class="sidebar-content">
+                <button class="btn-primario" style="width: 100%; margin-bottom: 20px;" onclick="abrirModalNovo()">➕ Novo Cartão</button>
+                
+                <div class="divisor"></div>
+                <h4 class="sidebar-title">Menu</h4>
+                <ul class="lista-menu">
+                    <li onclick="location.reload()">🏠 Dashboard</li>
+                    <li onclick="abrirModalPerfil()">👤 Meu Perfil</li>
+                    <li id="menu-colaboradores" class="escondido" onclick="abrirModalColaboradores()">👥 Gerenciar Equipe</li>
+                </ul>
 
-        <div class="divisor"></div>
-        <h4 class="sidebar-title">Meus Cartões</h4>
-        <ul class="lista-salvos"></ul>
-    </div>
-</aside>
+                <div class="divisor"></div>
+                <h4 class="sidebar-title">Meus Cartões</h4>
+                <ul class="lista-salvos"></ul>
+            </div>
+        </aside>
 
         <main class="dashboard-main">
             <div class="dashboard-header">
@@ -65,26 +65,28 @@
             </div>
 
             <div id="banner-assinatura" class="escondido" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <span style="font-size: 1.5em;">📢</span>
-        <div>
-            <h4 style="color: #1e40af; margin: 0; font-size: 0.95em;">Sua conta está limitada</h4>
-            <p style="color: #60a5fa; margin: 0; font-size: 0.85em;">Assine um plano para criar cartões ou vincule-se a um escritório.</p>
-        </div>
-    </div>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn-secundario" style="padding: 8px 16px; font-size: 0.8em; background: #fff; border: 1px solid #93c5fd; color: #1e40af;" onclick="abrirModalEntrarEquipe()">🤝 Tenho um Convite</button>
-        <button class="btn-primario" style="padding: 8px 16px; font-size: 0.8em;" onclick="alert('Página de Planos em breve!')">💎 Ver Planos</button>
-    </div>
-</div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-size: 1.5em;">📢</span>
+                    <div>
+                        <h4 style="color: #1e40af; margin: 0; font-size: 0.95em;">Sua conta está limitada</h4>
+                        <p style="color: #60a5fa; margin: 0; font-size: 0.85em;">Assine um plano para criar cartões ou vincule-se a um escritório.</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-secundario" style="padding: 8px 16px; font-size: 0.8em; background: #fff; border: 1px solid #93c5fd; color: #1e40af;" onclick="abrirModalEntrarEquipe()">🤝 Tenho um Convite</button>
+                    <button class="btn-primario" style="padding: 8px 16px; font-size: 0.8em;" onclick="alert('Página de Planos em breve!')">💎 Ver Planos</button>
+                </div>
+            </div>
 
             <div class="recentes-section">
                 <h3>Continuar a Editar</h3>
                 <div class="grid-recentes">
-                    </div>
+                </div>
             </div>
         </main>
+    </div>
 
+    <!-- Modais -->
     <div id="modal-novo" class="modal-overlay escondido">
         <div class="modal-card">
             <div class="modal-header">
@@ -126,7 +128,6 @@
                 </div>
 
                 <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 15px;">
-                    
                     <label style="font-weight: 600; color: #0f172a; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" id="checkBatidas" onchange="toggleBatidas()"> 
                         Definir Quantidade de Batidas (Padrão: 4)
@@ -150,7 +151,6 @@
                             <input type="text" id="padraoS" value="13:00" maxlength="5" style="width: 70px; text-align: center;">
                         </div>
                     </div>
-                    
                 </div>
             </div>
             <div class="modal-footer">
@@ -159,134 +159,135 @@
             </div>
         </div>
     </div>
-    <div id="modal-onboarding" class="modal-overlay escondido">
-    <div class="modal-card" style="max-width: 480px; border-top: 4px solid #2563eb;">
-        <div class="modal-header" style="text-align: center; display: block; padding: 30px 20px 10px;">
-            <div style="font-size: 2.5em; margin-bottom: 10px;">🚀</div>
-            <h3 style="font-size: 1.5em; color: #0f172a;">Quase lá!</h3>
-            <p style="color: #64748b; font-size: 0.95em; margin-top: 5px;">Personalize sua experiência no CartaoPontoLex</p>
-        </div>
 
-        <div class="modal-body" style="padding: 20px 30px;">
-            <div style="display: flex; gap: 15px;">
-                <div class="form-group" style="flex: 1;">
+    <div id="modal-onboarding" class="modal-overlay escondido">
+        <div class="modal-card" style="max-width: 480px; border-top: 4px solid #2563eb;">
+            <div class="modal-header" style="text-align: center; display: block; padding: 30px 20px 10px;">
+                <div style="font-size: 2.5em; margin-bottom: 10px;">🚀</div>
+                <h3 style="font-size: 1.5em; color: #0f172a;">Quase lá!</h3>
+                <p style="color: #64748b; font-size: 0.95em; margin-top: 5px;">Personalize sua experiência no CartaoPontoLex</p>
+            </div>
+
+            <div class="modal-body" style="padding: 20px 30px;">
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Tratamento</label>
+                        <select id="perfil-tratamento" class="input-premium">
+                            <option value="" selected>Padrão</option>
+                            <option value="Sr.">Sr.</option>
+                            <option value="Sra.">Sra.</option>
+                            <option value="Dr.">Dr.</option>
+                            <option value="Dra.">Dra.</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 2;">
+                        <label>Nome Completo*</label>
+                        <input type="text" id="perfil-nome" class="input-premium" placeholder="Seu nome">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>OAB <span style="font-weight: normal; color: #94a3b8;">(Opcional)</span></label>
+                    <input type="text" id="perfil-oab" class="input-premium" placeholder="Ex: 123.456/SP">
+                </div>
+
+                <div class="form-group">
+                    <label>Nome do Escritório / Empresa*</label>
+                    <input type="text" id="perfil-empresa" class="input-premium" placeholder="Ex: Silva Advogados">
+                    <p style="color: #94a3b8; font-size: 0.8em; margin-top: 6px; line-height: 1.4;">
+                        💡 Este nome aparecerá nos convites para seus futuros colaboradores.
+                    </p>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 20px 30px 30px; background: none; border: none;">
+                <button onclick="salvarPerfilInicial()" class="btn-primario" style="width: 100%; padding: 14px; font-size: 1.1em; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
+                    Concluir Configuração ➔
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-entrar-equipe" class="modal-overlay escondido">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>🤝 Entrar em uma Equipe</h3>
+                <button class="btn-fechar" onclick="fecharModalEntrarEquipe()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9em; color: #64748b; margin-bottom: 15px; line-height: 1.4;">
+                    Se você recebeu um link de convite do administrador do seu escritório, cole-o no campo abaixo para solicitar acesso aos cartões da equipe.
+                </p>
+                <div class="form-group">
+                    <label>Link de Convite</label>
+                    <input type="text" id="input-link-convite" class="input-premium" placeholder="Ex: https://.../index.html?invite=ABC123XYZ">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="processarConviteManual()" class="btn-primario" style="width: 100%;">Validar Convite</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-perfil" class="modal-overlay escondido">
+        <div class="modal-card" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3>⚙️ Configurações do Perfil</h3>
+                <button class="btn-fechar" onclick="fecharModalPerfil()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
                     <label>Tratamento</label>
-                    <select id="perfil-tratamento" class="input-premium">
-                        <option value="" selected>Padrão</option>
+                    <select id="edit-perfil-tratamento" class="input-premium">
+                        <option value="">Padrão</option>
                         <option value="Sr.">Sr.</option>
                         <option value="Sra.">Sra.</option>
                         <option value="Dr.">Dr.</option>
                         <option value="Dra.">Dra.</option>
                     </select>
                 </div>
-                <div class="form-group" style="flex: 2;">
-                    <label>Nome Completo*</label>
-                    <input type="text" id="perfil-nome" class="input-premium" placeholder="Seu nome">
+                <div class="form-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="edit-perfil-nome" class="input-premium">
+                </div>
+                <div class="form-group">
+                    <label>OAB</label>
+                    <input type="text" id="edit-perfil-oab" class="input-premium">
+                </div>
+                <div class="form-group">
+                    <label>Nome do Escritório (Empresa)</label>
+                    <input type="text" id="edit-perfil-empresa" class="input-premium">
                 </div>
             </div>
-
-            <div class="form-group">
-                <label>OAB <span style="font-weight: normal; color: #94a3b8;">(Opcional)</span></label>
-                <input type="text" id="perfil-oab" class="input-premium" placeholder="Ex: 123.456/SP">
-            </div>
-
-            <div class="form-group">
-                <label>Nome do Escritório / Empresa*</label>
-                <input type="text" id="perfil-empresa" class="input-premium" placeholder="Ex: Silva Advogados">
-                <p style="color: #94a3b8; font-size: 0.8em; margin-top: 6px; line-height: 1.4;">
-                    💡 Este nome aparecerá nos convites para seus futuros colaboradores.
-                </p>
+            <div class="modal-footer">
+                <button onclick="salvarEdicaoPerfil()" class="btn-primario" style="width: 100%;">Atualizar Dados</button>
             </div>
         </div>
+    </div>
 
-        <div id="modal-entrar-equipe" class="modal-overlay escondido">
-            <div class="modal-card" style="max-width: 450px;">
-                <div class="modal-header">
-                    <h3>🤝 Entrar em uma Equipe</h3>
-                    <button class="btn-fechar" onclick="fecharModalEntrarEquipe()">×</button>
-                </div>
-                <div class="modal-body">
-                    <p style="font-size: 0.9em; color: #64748b; margin-bottom: 15px; line-height: 1.4;">
-                        Se você recebeu um link de convite do administrador do seu escritório, cole-o no campo abaixo para solicitar acesso aos cartões da equipe.
-                    </p>
-                    <div class="form-group">
-                        <label>Link de Convite</label>
-                        <input type="text" id="input-link-convite" class="input-premium" placeholder="Ex: https://.../index.html?invite=ABC123XYZ">
+    <div id="modal-colaboradores" class="modal-overlay escondido">
+        <div class="modal-card" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>👥 Gerenciar Equipe</h3>
+                <button class="btn-fechar" onclick="fecharModalColaboradores()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 0.85em; font-weight: bold; color: #64748b;">LINK DE CONVITE</label>
+                    <div style="display: flex; gap: 8px; margin-top: 5px;">
+                        <input type="text" id="link-convite-texto" class="input-premium" readonly style="font-size: 0.8em; width: 100%;">
+                        <button onclick="copiarLinkConvite()" class="btn-primario" style="padding: 10px;">Copiar</button>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button onclick="processarConviteManual()" class="btn-primario" style="width: 100%;">Validar Convite</button>
+
+                <label style="font-size: 0.85em; font-weight: bold; color: #64748b;">MEMBROS VINCULADOS</label>
+                <div id="lista-membros-equipe" style="margin-top: 10px; max-height: 250px; overflow-y: auto;">
+                    <p style="color: #94a3b8; font-size: 0.9em; text-align: center;">Buscando membros...</p>
                 </div>
             </div>
         </div>
-
-        <div class="modal-footer" style="padding: 20px 30px 30px; background: none; border: none;">
-            <button onclick="salvarPerfilInicial()" class="btn-primario" style="width: 100%; padding: 14px; font-size: 1.1em; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
-                Concluir Configuração ➔
-            </button>
-        </div>
     </div>
-</div>
-</div>
-<div id="modal-perfil" class="modal-overlay escondido">
-    <div class="modal-card" style="max-width: 450px;">
-        <div class="modal-header">
-            <h3>⚙️ Configurações do Perfil</h3>
-            <button class="btn-fechar" onclick="fecharModalPerfil()">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>Tratamento</label>
-                <select id="edit-perfil-tratamento" class="input-premium">
-                    <option value="">Padrão</option>
-                    <option value="Sr.">Sr.</option>
-                    <option value="Sra.">Sra.</option>
-                    <option value="Dr.">Dr.</option>
-                    <option value="Dra.">Dra.</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Nome Completo</label>
-                <input type="text" id="edit-perfil-nome" class="input-premium">
-            </div>
-            <div class="form-group">
-                <label>OAB</label>
-                <input type="text" id="edit-perfil-oab" class="input-premium">
-            </div>
-            <div class="form-group">
-                <label>Nome do Escritório (Empresa)</label>
-                <input type="text" id="edit-perfil-empresa" class="input-premium">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button onclick="salvarEdicaoPerfil()" class="btn-primario" style="width: 100%;">Atualizar Dados</button>
-        </div>
-    </div>
-</div>
 
-<div id="modal-colaboradores" class="modal-overlay escondido">
-    <div class="modal-card" style="max-width: 500px;">
-        <div class="modal-header">
-            <h3>👥 Gerenciar Equipe</h3>
-            <button class="btn-fechar" onclick="fecharModalColaboradores()">×</button>
-        </div>
-        <div class="modal-body">
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 0.85em; font-weight: bold; color: #64748b;">LINK DE CONVITE</label>
-                <div style="display: flex; gap: 8px; margin-top: 5px;">
-                    <input type="text" id="link-convite-texto" class="input-premium" readonly style="font-size: 0.8em; width: 100%;">
-                    <button onclick="copiarLinkConvite()" class="btn-primario" style="padding: 10px;">Copiar</button>
-                </div>
-            </div>
-
-            <label style="font-size: 0.85em; font-weight: bold; color: #64748b;">MEMBROS VINCULADOS</label>
-            <div id="lista-membros-equipe" style="margin-top: 10px; max-height: 250px; overflow-y: auto;">
-                <p style="color: #94a3b8; font-size: 0.9em; text-align: center;">Buscando membros...</p>
-            </div>
-        </div>
-    </div>
-</div>
     <script type="module" src="js/dashboard.js"></script>
-
 </body>
 </html>
