@@ -7,58 +7,60 @@ body { padding-bottom: 80px; }
 .app-container { width: 98%; max-width: 1600px; margin: 20px auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: visible; }
 
 /* ==========================================================================
-   TABELA E COLUNAS (Layout Travado para não vazar)
+   TABELA E COLUNAS (Layout Dinâmico e Elástico)
    ========================================================================== */
 table { 
     width: 100%; 
-    table-layout: fixed; /* Trava a largura */
+    table-layout: fixed; 
     border-collapse: collapse; 
 }
 
 th { background: #1e293b; color: white; padding: 10px; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; }
-td { border-bottom: 1px solid #f1f5f9; padding: 4px 8px; height: 36px; vertical-align: middle; text-align: center; }
 
-.col-dia { 
-    width: 15%; /* Largura fixa */
-    font-size: 0.8em; 
-    background: #f8fafc; 
-    text-align: left; 
-    padding-left: 15px; 
-    color: #475569; 
+/* O SEGREDO ESTÁ AQUI: height: auto permite que a linha cresça para baixo! */
+td { 
+    border-bottom: 1px solid #f1f5f9; 
+    padding: 10px 8px; /* Mais espaço em cima e embaixo */
+    height: auto; 
+    min-height: 55px; 
+    vertical-align: middle; 
+    text-align: center; 
 }
+
+.col-dia { width: 15%; font-size: 0.8em; background: #f8fafc; text-align: left; padding-left: 15px; color: #475569; }
 .col-dia strong { color: #0f172a; }
 
-.total-dia { 
-    width: 20%; /* Largura fixa */
-    font-weight: bold; 
-    font-size: 0.9em; 
-    background: #f8fafc; 
-    border-left: 1px solid #e2e8f0; 
-}
+.total-dia { width: 20%; font-weight: bold; font-size: 0.9em; background: #f8fafc; border-left: 1px solid #e2e8f0; }
 
 /* ==========================================================================
    ÁREA DE BATIDAS E INPUTS
    ========================================================================== */
 .celula-inputs { 
-    width: 65%; /* Ocupa o restante do espaço */
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    position: relative; 
-    padding: 10px;
+    width: 65%; 
+    position: relative; /* Necessário para a engrenagem ficar presa no canto */
+    padding: 10px 45px 10px 10px; /* O '45px' garante que as caixas não passem por cima da engrenagem */
 }
 
 .container-batidas { 
     display: flex; 
-    flex-wrap: wrap; /* Faz quebrar a linha se tiver muitas batidas */
-    gap: 6px; 
-    justify-content: center; 
-    max-width: 100%;
+    flex-wrap: wrap; /* Faz quebrar a linha */
+    gap: 8px; /* Espaço entre as caixinhas */
+    justify-content: center; /* Mantém no meio e afasta pros lados */
+    align-items: center;
+    width: 100%;
 }
 
 input.ponto { width: 50px; text-align: center; font-family: monospace; font-size: 0.9em; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; border-radius: 4px; color: #1e293b; }
 input.ponto:nth-child(even) { background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
 input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px rgba(2,132,199,0.15); }
+
+/* Ajuste da Engrenagem para ficar sempre no canto direito, independente da altura da linha */
+.dropdown-dia { 
+    position: absolute; 
+    right: 15px; 
+    top: 50%; 
+    transform: translateY(-50%); 
+}
 
 /* ==========================================================================
    ESTADOS ESPECIAIS (Folgas, Feriados e Alterações)
@@ -87,6 +89,59 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
 /* ==========================================================================
    RODAPÉ E TOTALIZADOR
    ========================================================================== */
-#rodape-totalizador { position: fixed; bottom: 0; left: 0; width: 100%; background: #1e293b; color: white; padding: 12px 0; display: flex; justify-content: center; z-index: 2000; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); }
-.total-card { display: flex; gap: 20px; align-items: center; font-size: 1.1em; }
-#total-geral-periodo { color: #10b981; font-size: 1.4em; font-weight: 800; }
+/* ==========================================================================
+   RODAPÉ E DASHBOARD TOTALIZADOR
+   ========================================================================== */
+#rodape-totalizador { 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    width: 100%; 
+    background: #1e293b; 
+    color: white; 
+    padding: 15px 0; 
+    display: flex; 
+    justify-content: center; 
+    z-index: 2000; 
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.15); 
+}
+
+.resumo-painel { 
+    display: flex; 
+    gap: 20px; 
+    align-items: center; 
+    justify-content: space-around; 
+    width: 95%; 
+    max-width: 1200px; 
+}
+
+.resumo-item { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    border-right: 1px solid #334155; 
+    padding-right: 40px; 
+    width: 20%;
+}
+
+.resumo-item:last-child { 
+    border-right: none; 
+    padding-right: 0; 
+}
+
+.resumo-item span { 
+    font-size: 0.7em; 
+    text-transform: uppercase; 
+    color: #94a3b8; 
+    letter-spacing: 0.5px; 
+    margin-bottom: 5px; 
+}
+
+.resumo-item strong { 
+    font-size: 1.4em; 
+    font-weight: 800; 
+    font-family: monospace; /* Fonte monoespaçada fica linda em números */
+}
+
+#total-geral-periodo { color: #10b981; font-size: 1.6em; }

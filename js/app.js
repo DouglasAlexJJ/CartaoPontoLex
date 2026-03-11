@@ -419,6 +419,7 @@ function pularCampoInteligente(input, index, direcao) {
     }
 }
 
+
 function pularLinha(trAtual) {
     const prox = trAtual.nextElementSibling;
     if (prox) {
@@ -494,9 +495,39 @@ function hhmmParaMin(t) {
 function minParaHHMM(t) { return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; }
 
 function atualizarTotalGeral() {
-    let tot = 0;
-    document.querySelectorAll('.total-dia').forEach(td => tot += hhmmParaMin(td.innerText));
-    document.getElementById('total-geral-periodo').innerText = minParaHHMM(tot);
+    let totGeral = 0;
+    let totNormais = 0;
+    let totExt50 = 0;
+    let totExt100 = 0;
+    let totNoturno = 0;
+
+    document.querySelectorAll('.linha-ponto').forEach(tr => {
+        // 1. Soma do tempo total visual (o que aparece na coluna Total da tabela)
+        const tempoVisual = tr.querySelector('.total-dia').innerText;
+        totGeral += hhmmParaMin(tempoVisual);
+        
+        // 2. Soma das rubricas jurídicas (que estão escondidas no dataset da linha)
+        totNormais += parseFloat(tr.dataset.normais || 0);
+        totExt50 += parseFloat(tr.dataset.ext50 || 0);
+        totExt100 += parseFloat(tr.dataset.ext100 || 0);
+        totNoturno += parseFloat(tr.dataset.adcNoturno || 0);
+    });
+
+    // Atualiza o painel na tela
+    document.getElementById('total-geral-periodo').innerText = minParaHHMM(totGeral);
+    
+    // Converte os decimais de volta para relógio e atualiza os visores coloridos
+    const elNormais = document.getElementById('total-normais');
+    if(elNormais) elNormais.innerText = decimalParaHHMM(totNormais);
+    
+    const elExt50 = document.getElementById('total-ext50');
+    if(elExt50) elExt50.innerText = decimalParaHHMM(totExt50);
+    
+    const elExt100 = document.getElementById('total-ext100');
+    if(elExt100) elExt100.innerText = decimalParaHHMM(totExt100);
+    
+    const elNoturno = document.getElementById('total-noturno');
+    if(elNoturno) elNoturno.innerText = decimalParaHHMM(totNoturno);
 }
 
 function ehFeriadoNacional(data) {
@@ -537,4 +568,11 @@ function calcularTurno(entradaMin, saidaMin) {
         noturnoFicto: minNoturnoFicto,
         totalFicto: minDiurno + minNoturnoFicto
     };
+}
+
+function decimalParaHHMM(decimal) {
+    if (!decimal || isNaN(decimal)) return "00:00";
+    const horas = Math.floor(decimal);
+    const minutos = Math.round((decimal - horas) * 60);
+    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
 }
