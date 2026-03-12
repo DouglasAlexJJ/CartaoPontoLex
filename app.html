@@ -43,17 +43,15 @@
     <main class="app-container">
         <table id="tabela-ponto">
             <thead>
-    <tr>
-        <th style="width: 140px;">Data</th>
-        <th>
-            Horários de Entrada e Saída
-            <span style="display: inline-block; margin-left: 15px; font-size: 0.75em; font-weight: normal; color: #94a3b8; text-transform: none; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;">
-                💡 Atalho: <strong>+</strong> ou <strong>-</strong>
-            </span>
-        </th>
-        <th style="width: 90px;">Total</th>
-    </tr>
-</thead>
+                <tr>
+                    <th style="width: 140px;">Data</th>
+                        <th>Horários de Entrada e Saída</th>
+                            <span style="display: inline-block; margin-left: 15px; font-size: 0.8em; font-weight: normal; color: #94a3b8; text-transform: none; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;">
+                                💡 Atalho: Pressione <strong>+</strong> ou <strong>-</strong> no teclado para adicionar ou remover batidas!
+                            </span>
+                            <th style="width: 90px;">Total</th>
+                </tr>
+            </thead>
             <tbody id="corpo-tabela"></tbody>
         </table>
     </main>
@@ -91,22 +89,29 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Motivo</label>
+                    <label>Motivo do Afastamento</label>
                     <select id="afastamento-motivo" class="input-premium">
                         <option value="Férias">🏖️ Férias</option>
                         <option value="Atestado Médico">🩺 Atestado Médico</option>
                         <option value="Licença">📜 Licença</option>
                         <option value="Acidente de Trabalho">🚑 Acidente de Trabalho</option>
                         <option value="Falta Injustificada">❌ Falta Injustificada</option>
+                        <option value="Outros">📌 Outros</option>
                     </select>
                 </div>
                 <div style="display: flex; gap: 15px; margin-top: 15px;">
-                    <div class="form-group" style="flex: 1;"><label>Início</label><input type="date" id="afastamento-inicio" class="input-premium"></div>
-                    <div class="form-group" style="flex: 1;"><label>Fim</label><input type="date" id="afastamento-fim" class="input-premium"></div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Data Inicial</label>
+                        <input type="date" id="afastamento-inicio" class="input-premium">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Data Final</label>
+                        <input type="date" id="afastamento-fim" class="input-premium">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button onclick="aplicarAfastamento()" class="btn-primario" style="width: 100%;">Aplicar</button>
+                <button onclick="aplicarAfastamento()" class="btn-primario" style="width: 100%;">Aplicar Afastamento</button>
             </div>
         </div>
     </div>
@@ -114,15 +119,24 @@
     <div id="modal-ajuste-datas" class="modal-overlay escondido">
         <div class="modal-card" style="max-width: 400px;">
             <div class="modal-header">
-                <h3>📅 Período do Cartão</h3>
+                <h3>📅 Ajustar Período do Cartão</h3>
                 <button class="btn-fechar" onclick="fecharModalAjusteDatas()">×</button>
             </div>
             <div class="modal-body">
-                <div class="form-group"><label>Nova Data Inicial</label><input type="date" id="ajuste-data-inicio" class="input-premium"></div>
-                <div class="form-group"><label>Nova Data Final</label><input type="date" id="ajuste-data-fim" class="input-premium"></div>
+                <p style="font-size: 0.85em; color: #ef4444; margin-bottom: 15px;">
+                    Atenção: Se você diminuir o período, as batidas fora do novo limite serão apagadas!
+                </p>
+                <div class="form-group">
+                    <label>Nova Data Inicial</label>
+                    <input type="date" id="ajuste-data-inicio" class="input-premium">
+                </div>
+                <div class="form-group">
+                    <label>Nova Data Final</label>
+                    <input type="date" id="ajuste-data-fim" class="input-premium">
+                </div>
             </div>
             <div class="modal-footer">
-                <button onclick="aplicarAjusteDatas()" class="btn-primario" style="width: 100%; background: #1e293b;">Salvar</button>
+                <button onclick="aplicarAjusteDatas()" class="btn-primario" style="width: 100%; background: #1e293b;">Salvar Novo Período</button>
             </div>
         </div>
     </div>
