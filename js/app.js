@@ -45,11 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function carregarCartaoDaNuvem(perfilUsuario) {
     const idAtual = localStorage.getItem('cartaoAtualId');
-    if (!idAtual) { 
-        alert('Nenhum cartão selecionado. Retornando ao painel.');
-        window.location.href = "dashboard.html"; 
-        return; 
-    }
+    if (!idAtual) { window.location.href = "dashboard.html"; return; }
 
     const docRef = doc(db, "cartoes", idAtual);
     const docSnap = await getDoc(docRef);
@@ -70,7 +66,6 @@ async function carregarCartaoDaNuvem(perfilUsuario) {
             configAtual = cartaoAtual.config;
             if(!cartaoAtual.batidas) cartaoAtual.batidas = {}; 
             document.getElementById('info-reclamante').innerText = configAtual.reclamante;
-            document.getElementById('info-periodo').innerText = `${configAtual.dataInicio} a ${configAtual.dataFim}`;
             gerarFolha(configAtual);
         } else {
             alert("Acesso Negado! Este cartão pertence a outro escritório.");
