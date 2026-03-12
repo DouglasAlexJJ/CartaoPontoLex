@@ -47,6 +47,7 @@ const linkTrocar = document.getElementById('link-trocar-modo');
 const titulo = document.getElementById('titulo-login');
 const msgErro = document.getElementById('msg-erro');
 const btnGoogle = document.getElementById('btn-login-google');
+const btnFacebook = document.getElementById('btn-login-facebook');
 
 // --- LOGIN COM GOOGLE ---
 btnGoogle.addEventListener('click', () => {
