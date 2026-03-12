@@ -704,28 +704,14 @@ document.addEventListener('click', () => {
     }
 });
 
-// ==========================================================================
-// LÓGICA DO MODAL DE AFASTAMENTO
-// ==========================================================================
-
-// Função utilitária para converter "DD/MM/YYYY" em "YYYY-MM-DD"
-function formatarParaInputDate(dataBR) {
-    if (!dataBR) return '';
-    const [dia, mes, ano] = dataBR.split('/');
-    return `${ano}-${mes}-${dia}`;
-}
-
-window.abrirModalAfastamento = function() {
-    fecharMenuConfig(); 
+// AFASTAMENTOS
+window.abrirModalAfastamento = function(tipo) {
+    document.getElementById('titulo-modal-afastamento').innerText = `Lançar ${tipo}`;
+    document.getElementById('afastamento-tipo').value = tipo;
     
-    // Auto-preenche a data com a linha que estava selecionada
-    if (window.linhaAtivaData) {
-        document.getElementById('afastamento-inicio').value = formatarParaInputDate(window.linhaAtivaData);
-        document.getElementById('afastamento-fim').value = formatarParaInputDate(window.linhaAtivaData);
-    } else {
-        document.getElementById('afastamento-inicio').value = '';
-        document.getElementById('afastamento-fim').value = '';
-    }
+    // Limpa os campos
+    document.getElementById('afastamento-inicio').value = '';
+    document.getElementById('afastamento-fim').value = '';
     
     document.getElementById('modal-afastamento').classList.remove('escondido');
 };
@@ -735,58 +721,9 @@ window.fecharModalAfastamento = function() {
 };
 
 window.aplicarAfastamento = function() {
-    const motivo = document.getElementById('afastamento-motivo').value;
-    const dtInicioStr = document.getElementById('afastamento-inicio').value;
-    const dtFimStr = document.getElementById('afastamento-fim').value;
-
-    if (!dtInicioStr || !dtFimStr) {
-        alert("Preencha a data inicial e final.");
-        return;
-    }
-
-    const dtInicio = new Date(dtInicioStr + "T00:00:00");
-    const dtFim = new Date(dtFimStr + "T00:00:00");
-
-    if (dtFim < dtInicio) {
-        alert("A data final não pode ser menor que a data inicial.");
-        return;
-    }
-
-    // Pinta a tabela e zera as horas dos dias selecionados
-    document.querySelectorAll('.linha-ponto').forEach(tr => {
-        const dataDiaStr = tr.getAttribute('data-dia');
-        const [dia, mes, ano] = dataDiaStr.split('/');
-        const dataLinha = new Date(`${ano}-${mes}-${dia}T00:00:00`);
-
-        if (dataLinha >= dtInicio && dataLinha <= dtFim) {
-            tr.classList.add('linha-afastamento');
-            
-            tr.querySelectorAll('.ponto').forEach(inp => inp.value = '');
-            tr.querySelector('.total-dia').innerText = '00:00';
-            
-            let txtHtml = tr.querySelector('.texto-motivo-afastamento');
-            if (!txtHtml) {
-                const celulaInputs = tr.querySelector('.celula-inputs');
-                const divTexto = document.createElement('div');
-                divTexto.className = 'texto-motivo-afastamento';
-                divTexto.innerText = motivo;
-                celulaInputs.appendChild(divTexto);
-            } else {
-                txtHtml.innerText = motivo; 
-            }
-        }
-    });
-
+    alert("Função de pintar a tabela e bloquear os dias será feita na próxima etapa!");
     fecharModalAfastamento();
-    atualizarTotalGeral();
-    salvarProgressoAuto(); 
 };
-
-// Utilidade para fechar o menu
-function fecharMenuConfig() {
-    const menu = document.getElementById('menu-config-app');
-    if(menu) menu.classList.add('escondido');
-}
 
 // AJUSTE DE DATAS
 window.abrirModalAjusteDatas = function() {
@@ -801,6 +738,6 @@ window.fecharModalAjusteDatas = function() {
 };
 
 window.aplicarAjusteDatas = function() {
-    alert("Em breve: Ajuste de período!");
+    alert("Função de recriar a tabela com as novas datas será feita na próxima etapa!");
     fecharModalAjusteDatas();
 };
