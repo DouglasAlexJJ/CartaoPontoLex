@@ -201,34 +201,3 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
 }
 
 #total-geral-periodo { color: #10b981; font-size: 1.6em; }
-/* ==========================================================================
-   ESTILO DE LINHAS COM AFASTAMENTO
-   ========================================================================== */
-.linha-afastamento {
-    background-color: #fef2f2 !important; /* Fundo vermelhinho claro */
-}
-
-.linha-afastamento .col-dia {
-    border-left: 4px solid #ef4444 !important; /* Fita vermelha na lateral */
-}
-
-/* Esconde as caixinhas de hora */
-.linha-afastamento .container-batidas {
-    display: none !important;
-}
-
-/* O texto que aparece no lugar das caixas */
-.texto-motivo-afastamento {
-    color: #ef4444;
-    font-weight: 800;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    font-size: 1.1em;
-    width: 100%;
-    text-align: center;
-}
-
-/* A coluna de total fica zerada e vermelha */
-.linha-afastamento .total-dia {
-    color: #ef4444 !important;
-}
