@@ -5,16 +5,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-// Suas Chaves
-const firebaseConfig = {
-  apiKey: "AIzaSyAYKwESZLQelQlyh5pWX0oE0eVOMI5Z3fY",
-  authDomain: "cartaopontolex.firebaseapp.com",
-  projectId: "cartaopontolex",
-  storageBucket: "cartaopontolex.firebasestorage.app",
-  messagingSenderId: "261448645689",
-  appId: "1:261448645689:web:a6e7aebb12ef87c15b61e8"
-};
+import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -45,11 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function carregarCartaoDaNuvem(perfilUsuario) {
     const idAtual = localStorage.getItem('cartaoAtualId');
-    if (!idAtual) { 
-        alert('Nenhum cartão selecionado. Retornando ao painel.');
-        window.location.href = "dashboard.html"; 
-        return; 
-    }
+    if (!idAtual) { window.location.href = "dashboard.html"; return; }
 
     const docRef = doc(db, "cartoes", idAtual);
     const docSnap = await getDoc(docRef);
@@ -70,7 +57,6 @@ async function carregarCartaoDaNuvem(perfilUsuario) {
             configAtual = cartaoAtual.config;
             if(!cartaoAtual.batidas) cartaoAtual.batidas = {}; 
             document.getElementById('info-reclamante').innerText = configAtual.reclamante;
-            document.getElementById('info-periodo').innerText = `${configAtual.dataInicio} a ${configAtual.dataFim}`;
             gerarFolha(configAtual);
         } else {
             alert("Acesso Negado! Este cartão pertence a outro escritório.");
@@ -115,11 +101,12 @@ window.toggleMenuDia = function(btn, event) {
 
 document.addEventListener('click', () => document.querySelectorAll('.menu-dia-content').forEach(m => m.classList.remove('show')));
 
-window.gerenciarBatidas = function(btn, qtd) {
-    const cont = btn.closest('.celula-inputs').querySelector('.container-batidas');
-    const tr = btn.closest('tr');
+window.gerenciarBatidas = function(elemento, qtd) {
+    const tr = elemento.closest('tr');
+    const cont = tr.querySelector('.container-batidas');
     
     if (qtd > 0) {
+        // Lógica de adicionar (mantida igual)
         for(let i=0; i<2; i++) {
             const inp = document.createElement('input');
             inp.className = 'ponto'; 
@@ -129,10 +116,29 @@ window.gerenciarBatidas = function(btn, qtd) {
             cont.appendChild(inp);
         }
     } else {
-        const ins = cont.querySelectorAll('.ponto');
+        // Lógica de remover (Agora com verificação de segurança)
+        const ins = Array.from(cont.querySelectorAll('.ponto'));
+        
         if (ins.length > 2) { 
-            ins[ins.length-1].remove(); 
-            ins[ins.length-2].remove(); 
+            const ultimo = ins[ins.length - 1];
+            const penultimo = ins[ins.length - 2];
+
+            // Verifica se algum dos dois inputs tem valor preenchido
+            if (ultimo.value.trim() !== '' || penultimo.value.trim() !== '') {
+                if (!confirm("Estas batidas possuem horários preenchidos. Tem certeza que deseja excluí-las?")) {
+                    return; // Se o usuário cancelar, a função para aqui
+                }
+            }
+
+            ultimo.remove(); 
+            penultimo.remove(); 
+
+            // Devolve o cursor de texto para a última caixinha que sobrou
+            const inputsRestantes = cont.querySelectorAll('.ponto');
+            if (inputsRestantes.length > 0) {
+                inputsRestantes[inputsRestantes.length - 1].focus();
+            }
+
         } else {
             alert("Não é possível remover. A linha precisa ter no mínimo 2 batidas.");
             return;
@@ -140,8 +146,8 @@ window.gerenciarBatidas = function(btn, qtd) {
     }
     
     configurarEventos();
-    calcularLinha(tr);
-    salvarProgressoAuto();
+    if (typeof calcularLinha === 'function') calcularLinha(tr);
+    if (typeof salvarProgressoAuto === 'function') salvarProgressoAuto();
 };
 
 window.definirComoFolga = function(btn) {
@@ -287,25 +293,15 @@ function gerarFolha(cfg) {
         }
 
         tr.innerHTML = `
-            <td class="col-dia"><strong>${diasSemana[numDia]}</strong><br>${dataFormatada}</td>
-            <td class="celula-inputs">
-                <div class="container-batidas" style="display:flex; flex-wrap:wrap; gap:4px; justify-content:center;">${inputsHtml}</div>
-                <div class="dropdown-dia">
-                    <button class="btn-config" onclick="window.toggleMenuDia(this, event)">⚙️</button>
-                    <div class="menu-dia-content">
-                        <div class="menu-section">Batidas deste dia</div>
-                        <button onclick="window.gerenciarBatidas(this, 2)">➕ Adicionar Par Extra</button>
-                        <button onclick="window.gerenciarBatidas(this, -2)">➖ Remover Par</button>
-                        <div class="divisor"></div>
-                        <button onclick="window.definirComoFolga(this)">🏝️ Marcar como Folga</button>
-                        <button onclick="window.definirComoTrabalho(this)">🛠️ Marcar como Trabalho</button>
-                        <div class="divisor"></div>
-                        <button onclick="window.aplicarEscalaPersonalizada(this)">⚙️ Escala a partir daqui</button>
-                    </div>
-                </div>
+            <td class="col-dia">
+                <strong>${diasSemana[numDia]}</strong><br>${dataFormatada}
             </td>
-            <td class="total-dia">00:00</td>
+            <td class="celula-inputs">
+                <div class="container-batidas">${inputsHtml}</div>
+            </td>
+            <td class="total-dia" style="color: #0284c7; font-weight: bold;">00:00</td>
         `;
+
         corpo.appendChild(tr);
         dataAtual.setDate(dataAtual.getDate() + 1);
     }
@@ -314,9 +310,14 @@ function gerarFolha(cfg) {
     configurarEventos();
 }
 
+window.linhaAtivaData = null;
+
 function configurarEventos() {
     const inputs = Array.from(document.querySelectorAll('.ponto'));
     inputs.forEach((input, index) => {
+        input.addEventListener('focus', () => {
+            window.linhaAtivaData = input.closest('tr').getAttribute('data-dia');
+        });
         input.onfocus = () => input.select();
         input.onkeypress = (e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); };
         
@@ -337,6 +338,27 @@ function configurarEventos() {
         };
 
         input.onkeydown = (e) => {
+            // --- ATALHO: TECLA '+' PARA ADICIONAR BATIDAS ---
+            if (e.key === '+') {
+                e.preventDefault(); 
+                window.gerenciarBatidas(input, 2); 
+                
+                setTimeout(() => {
+                    const todosInputsDestaLinha = input.closest('tr').querySelectorAll('.ponto');
+                    const novoInput = todosInputsDestaLinha[todosInputsDestaLinha.length - 2];
+                    if (novoInput) novoInput.focus();
+                }, 10);
+                return;
+            }
+
+            // --- ATALHO: TECLA '-' PARA REMOVER BATIDAS ---
+            if (e.key === '-') {
+                e.preventDefault(); // Impede que o sinal de - seja digitado na caixa
+                window.gerenciarBatidas(input, -2);
+                return;
+            }
+
+            // --- NAVEGAÇÃO PADRÃO (Tab / Enter) ---
             if (e.key === 'Tab' || e.key === 'Enter') {
                 e.preventDefault();
                 completarHora(input);
@@ -350,6 +372,94 @@ function configurarEventos() {
             salvarProgressoAuto(); 
         };
     });
+}
+// ==========================================================================
+// LÓGICA DO MODAL DE AFASTAMENTO
+// ==========================================================================
+
+// Função utilitária para converter "DD/MM/YYYY" em "YYYY-MM-DD" para o input date
+function formatarParaInputDate(dataBR) {
+    if (!dataBR) return '';
+    const [dia, mes, ano] = dataBR.split('/');
+    return `${ano}-${mes}-${dia}`;
+}
+
+window.abrirModalAfastamento = function() {
+    fecharMenuConfig(); // Fecha o dropdown (crie esta função se não tiver: document.getElementById('menu-config-app').classList.add('escondido');)
+    
+    // Auto-preenche a data de início com a linha que estava selecionada
+    if (window.linhaAtivaData) {
+        document.getElementById('afastamento-inicio').value = formatarParaInputDate(window.linhaAtivaData);
+        // Sugere o mesmo dia como data final para facilitar atestados de 1 dia
+        document.getElementById('afastamento-fim').value = formatarParaInputDate(window.linhaAtivaData);
+    } else {
+        document.getElementById('afastamento-inicio').value = '';
+        document.getElementById('afastamento-fim').value = '';
+    }
+    
+    document.getElementById('modal-afastamento').classList.remove('escondido');
+};
+
+window.fecharModalAfastamento = function() {
+    document.getElementById('modal-afastamento').classList.add('escondido');
+};
+
+window.aplicarAfastamento = function() {
+    const motivo = document.getElementById('afastamento-motivo').value;
+    const dtInicioStr = document.getElementById('afastamento-inicio').value;
+    const dtFimStr = document.getElementById('afastamento-fim').value;
+
+    if (!dtInicioStr || !dtFimStr) {
+        alert("Preencha a data inicial e final.");
+        return;
+    }
+
+    const dtInicio = new Date(dtInicioStr + "T00:00:00");
+    const dtFim = new Date(dtFimStr + "T00:00:00");
+
+    if (dtFim < dtInicio) {
+        alert("A data final não pode ser menor que a data inicial.");
+        return;
+    }
+
+    // Percorre todas as linhas da tabela
+    document.querySelectorAll('.linha-ponto').forEach(tr => {
+        const dataDiaStr = tr.getAttribute('data-dia');
+        const [dia, mes, ano] = dataDiaStr.split('/');
+        const dataLinha = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+
+        // Verifica se a linha está dentro do período do afastamento
+        if (dataLinha >= dtInicio && dataLinha <= dtFim) {
+            // Aplica o visual de afastamento
+            tr.classList.add('linha-afastamento');
+            
+            // Limpa os valores para não somar nas horas
+            tr.querySelectorAll('.ponto').forEach(inp => inp.value = '');
+            tr.querySelector('.total-dia').innerText = '00:00';
+            
+            // Verifica se já tem o texto, se não, cria
+            let txtHtml = tr.querySelector('.texto-motivo-afastamento');
+            if (!txtHtml) {
+                const celulaInputs = tr.querySelector('.celula-inputs');
+                const divTexto = document.createElement('div');
+                divTexto.className = 'texto-motivo-afastamento';
+                divTexto.innerText = motivo;
+                celulaInputs.appendChild(divTexto);
+            } else {
+                txtHtml.innerText = motivo; // Atualiza se já existir
+            }
+        }
+    });
+
+    fecharModalAfastamento();
+    atualizarTotalGeral();
+    salvarProgressoAuto(); // Salva na nuvem para não perder
+};
+
+// Utilidade para fechar o menu
+function fecharMenuConfig() {
+    const menu = document.getElementById('menu-config-app');
+    if(menu) menu.classList.add('escondido');
 }
 
 function completarHora(input) {
@@ -373,36 +483,107 @@ function completarHora(input) {
 function pularCampoInteligente(input, index, direcao) {
     const linha = input.closest('tr');
     const inputsDaLinha = Array.from(linha.querySelectorAll('.ponto'));
+    
+    // Regra do Intervalo Fixo (Só aplica em dias normais)
     if (direcao === 1 && !linha.classList.contains('folga') && configAtual.intervaloFixo && input === inputsDaLinha[0] && inputsDaLinha.length >= 4) {
         inputsDaLinha[3].focus();
-    } else {
-        const todos = Array.from(document.querySelectorAll('.ponto'));
-        let prox = index + direcao;
-        while (todos[prox] && todos[prox].closest('tr').classList.contains('folga')) prox += direcao;
-        if (todos[prox]) todos[prox].focus();
+        return;
     }
+    
+    const todos = Array.from(document.querySelectorAll('.ponto'));
+    let prox = index + direcao;
+    
+    while (todos[prox]) {
+        let trProx = todos[prox].closest('tr');
+        
+        // 1. O PORTO SEGURO: Se a próxima caixinha for na MESMA linha que estou agora, 
+        // ele PARA de procurar e vai para ela (me deixa terminar de editar a folga).
+        if (trProx === linha) {
+            break;
+        }
+        
+        // 2. Se a próxima caixinha for em OUTRO dia, ele verifica se o novo dia é folga.
+        // Se for folga, ele pula esse dia inteiro.
+        if (trProx.classList.contains('folga')) {
+            prox += direcao;
+        } else {
+            // Se o novo dia for dia de trabalho, ele para e entra.
+            break;
+        }
+    }
+    
+    if (todos[prox]) todos[prox].focus();
 }
 
 function pularLinha(trAtual) {
-    const prox = trAtual.nextElementSibling;
+    let prox = trAtual.nextElementSibling;
+    
+    // Ao apertar Enter, ele procura o próximo dia de trabalho, pulando as folgas
+    while (prox && prox.classList.contains('folga')) {
+        prox = prox.nextElementSibling;
+    }
+    
     if (prox) {
-        if (prox.classList.contains('folga')) pularLinha(prox);
-        else prox.querySelector('.ponto').focus();
+        const primeiroInput = prox.querySelector('.ponto');
+        if (primeiroInput) primeiroInput.focus();
     }
 }
 
 function calcularLinha(tr) {
     const ins = tr.querySelectorAll('.ponto');
-    let minTotal = 0;
+    const isDomingoOuFeriado = tr.classList.contains('destaque-vermelho'); // Vem do seu gerarFolha
+    const isFolga = tr.classList.contains('folga');
+    
+    let totalDiurno = 0;
+    let totalNoturnoFicto = 0;
+    let totalNoturnoRelogio = 0;
+
+    // 1. Soma todos os turnos do dia
     for (let i = 0; i < ins.length; i += 2) {
-        const e = hhmmParaMin(ins[i]?.value), s = hhmmParaMin(ins[i+1]?.value);
+        const e = hhmmParaMin(ins[i]?.value);
+        const s = hhmmParaMin(ins[i+1]?.value);
+        
         if (e > 0 && s > 0) {
-            let d = s - e;
-            if (d < 0) d += 1440; 
-            minTotal += d;
+            const turno = calcularTurno(e, s);
+            totalDiurno += turno.diurno;
+            totalNoturnoFicto += turno.noturnoFicto;
+            totalNoturnoRelogio += turno.noturnoRelogio;
         }
     }
-    tr.querySelector('.total-dia').innerText = minParaHHMM(minTotal);
+
+    let tempoTotal = totalDiurno + totalNoturnoFicto;
+    let tempoTotalEmHoras = tempoTotal / 60; // Para facilitar os limites
+    
+    // 2. Lógica de Horas Extras (Assumindo limite de 8h diárias por padrão)
+    // O ideal será buscar esse limite da config (ex: cfg.horasDiarias)
+    const LIMITE_DIARIO = 8; 
+    let horasNormais = 0;
+    let extras50 = 0;
+    let extras100 = 0;
+
+    if (isFolga || isDomingoOuFeriado) {
+        // Trabalhou no dia de descanso? É tudo 100%!
+        extras100 = tempoTotalEmHoras;
+    } else {
+        // Dia normal
+        if (tempoTotalEmHoras > LIMITE_DIARIO) {
+            horasNormais = LIMITE_DIARIO;
+            extras50 = tempoTotalEmHoras - LIMITE_DIARIO;
+        } else {
+            horasNormais = tempoTotalEmHoras;
+        }
+    }
+
+    // 3. Atualiza o HTML
+    // Aqui nós preenchemos a coluna Total, mas já temos os dados das Extras!
+    tr.querySelector('.total-dia').innerText = minParaHHMM(Math.round(tempoTotal));
+    
+    // Podemos guardar os dados no TR para depois somar no rodapé geral
+    tr.dataset.normais = horasNormais.toFixed(2);
+    tr.dataset.ext50 = extras50.toFixed(2);
+    tr.dataset.ext100 = extras100.toFixed(2);
+    tr.dataset.adcNoturno = (totalNoturnoFicto / 60).toFixed(2);
+
     atualizarTotalGeral();
 }
 
@@ -415,9 +596,39 @@ function hhmmParaMin(t) {
 function minParaHHMM(t) { return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; }
 
 function atualizarTotalGeral() {
-    let tot = 0;
-    document.querySelectorAll('.total-dia').forEach(td => tot += hhmmParaMin(td.innerText));
-    document.getElementById('total-geral-periodo').innerText = minParaHHMM(tot);
+    let totGeral = 0;
+    let totNormais = 0;
+    let totExt50 = 0;
+    let totExt100 = 0;
+    let totNoturno = 0;
+
+    document.querySelectorAll('.linha-ponto').forEach(tr => {
+        // 1. Soma do tempo total visual (o que aparece na coluna Total da tabela)
+        const tempoVisual = tr.querySelector('.total-dia').innerText;
+        totGeral += hhmmParaMin(tempoVisual);
+        
+        // 2. Soma das rubricas jurídicas (que estão escondidas no dataset da linha)
+        totNormais += parseFloat(tr.dataset.normais || 0);
+        totExt50 += parseFloat(tr.dataset.ext50 || 0);
+        totExt100 += parseFloat(tr.dataset.ext100 || 0);
+        totNoturno += parseFloat(tr.dataset.adcNoturno || 0);
+    });
+
+    // Atualiza o painel na tela
+    document.getElementById('total-geral-periodo').innerText = minParaHHMM(totGeral);
+    
+    // Converte os decimais de volta para relógio e atualiza os visores coloridos
+    const elNormais = document.getElementById('total-normais');
+    if(elNormais) elNormais.innerText = decimalParaHHMM(totNormais);
+    
+    const elExt50 = document.getElementById('total-ext50');
+    if(elExt50) elExt50.innerText = decimalParaHHMM(totExt50);
+    
+    const elExt100 = document.getElementById('total-ext100');
+    if(elExt100) elExt100.innerText = decimalParaHHMM(totExt100);
+    
+    const elNoturno = document.getElementById('total-noturno');
+    if(elNoturno) elNoturno.innerText = decimalParaHHMM(totNoturno);
 }
 
 function ehFeriadoNacional(data) {
@@ -430,3 +641,157 @@ function ehFeriadoNacional(data) {
     const formata = dt => String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
     return fixos.includes(formata(data)) || [formata(carnaval), formata(sextaSanta), formata(pascoa), formata(corpus)].includes(formata(data));
 }
+function calcularTurno(entradaMin, saidaMin) {
+    if (saidaMin <= entradaMin) saidaMin += 1440; // Virou a noite
+    
+    let minDiurno = 0;
+    let minNoturno = 0;
+
+    // Varre minuto a minuto (método mais seguro para lidar com madrugadas)
+    for (let m = entradaMin; m < saidaMin; m++) {
+        let minutoDoDia = m % 1440; // Garante que 24h vire 00h
+        
+        // Regra Noturna: Entre 22:00 (1320) e 05:00 (300)
+        if (minutoDoDia >= 1320 || minutoDoDia < 300) {
+            minNoturno++;
+        } else {
+            minDiurno++;
+        }
+    }
+
+    // Aplica a Redução da Hora Noturna (Hora Ficta)
+    // 1 minuto relógio = 1.142857 minutos trabalhistas
+    let minNoturnoFicto = minNoturno * (60 / 52.5);
+
+    return {
+        diurno: minDiurno,
+        noturnoRelogio: minNoturno,
+        noturnoFicto: minNoturnoFicto,
+        totalFicto: minDiurno + minNoturnoFicto
+    };
+}
+
+function decimalParaHHMM(decimal) {
+    if (!decimal || isNaN(decimal)) return "00:00";
+    const horas = Math.floor(decimal);
+    const minutos = Math.round((decimal - horas) * 60);
+    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+}
+// ==========================================================================
+// FUNÇÕES DO MENU DE CONFIGURAÇÃO E AFASTAMENTOS
+// ==========================================================================
+
+window.toggleMenuConfig = function(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('menu-config-app');
+    menu.classList.toggle('escondido');
+};
+
+// Fecha o menu se clicar fora
+document.addEventListener('click', () => {
+    const menu = document.getElementById('menu-config-app');
+    if (menu && !menu.classList.contains('escondido')) {
+        menu.classList.add('escondido');
+    }
+});
+
+// ==========================================================================
+// LÓGICA DO MODAL DE AFASTAMENTO
+// ==========================================================================
+
+// Função utilitária para converter "DD/MM/YYYY" em "YYYY-MM-DD"
+function formatarParaInputDate(dataBR) {
+    if (!dataBR) return '';
+    const [dia, mes, ano] = dataBR.split('/');
+    return `${ano}-${mes}-${dia}`;
+}
+
+window.abrirModalAfastamento = function() {
+    fecharMenuConfig(); 
+    
+    // Auto-preenche a data com a linha que estava selecionada
+    if (window.linhaAtivaData) {
+        document.getElementById('afastamento-inicio').value = formatarParaInputDate(window.linhaAtivaData);
+        document.getElementById('afastamento-fim').value = formatarParaInputDate(window.linhaAtivaData);
+    } else {
+        document.getElementById('afastamento-inicio').value = '';
+        document.getElementById('afastamento-fim').value = '';
+    }
+    
+    document.getElementById('modal-afastamento').classList.remove('escondido');
+};
+
+window.fecharModalAfastamento = function() {
+    document.getElementById('modal-afastamento').classList.add('escondido');
+};
+
+window.aplicarAfastamento = function() {
+    const motivo = document.getElementById('afastamento-motivo').value;
+    const dtInicioStr = document.getElementById('afastamento-inicio').value;
+    const dtFimStr = document.getElementById('afastamento-fim').value;
+
+    if (!dtInicioStr || !dtFimStr) {
+        alert("Preencha a data inicial e final.");
+        return;
+    }
+
+    const dtInicio = new Date(dtInicioStr + "T00:00:00");
+    const dtFim = new Date(dtFimStr + "T00:00:00");
+
+    if (dtFim < dtInicio) {
+        alert("A data final não pode ser menor que a data inicial.");
+        return;
+    }
+
+    // Pinta a tabela e zera as horas dos dias selecionados
+    document.querySelectorAll('.linha-ponto').forEach(tr => {
+        const dataDiaStr = tr.getAttribute('data-dia');
+        const [dia, mes, ano] = dataDiaStr.split('/');
+        const dataLinha = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+
+        if (dataLinha >= dtInicio && dataLinha <= dtFim) {
+            tr.classList.add('linha-afastamento');
+            
+            tr.querySelectorAll('.ponto').forEach(inp => inp.value = '');
+            tr.querySelector('.total-dia').innerText = '00:00';
+            
+            let txtHtml = tr.querySelector('.texto-motivo-afastamento');
+            if (!txtHtml) {
+                const celulaInputs = tr.querySelector('.celula-inputs');
+                const divTexto = document.createElement('div');
+                divTexto.className = 'texto-motivo-afastamento';
+                divTexto.innerText = motivo;
+                celulaInputs.appendChild(divTexto);
+            } else {
+                txtHtml.innerText = motivo; 
+            }
+        }
+    });
+
+    fecharModalAfastamento();
+    atualizarTotalGeral();
+    salvarProgressoAuto(); 
+};
+
+// Utilidade para fechar o menu
+function fecharMenuConfig() {
+    const menu = document.getElementById('menu-config-app');
+    if(menu) menu.classList.add('escondido');
+}
+
+// AJUSTE DE DATAS
+window.abrirModalAjusteDatas = function() {
+    if(!configAtual) return;
+    document.getElementById('ajuste-data-inicio').value = configAtual.dataInicio;
+    document.getElementById('ajuste-data-fim').value = configAtual.dataFim;
+    document.getElementById('modal-ajuste-datas').classList.remove('escondido');
+};
+
+window.fecharModalAjusteDatas = function() {
+    document.getElementById('modal-ajuste-datas').classList.add('escondido');
+};
+
+window.aplicarAjusteDatas = function() {
+    alert("Em breve: Ajuste de período!");
+    fecharModalAjusteDatas();
+};
