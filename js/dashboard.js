@@ -4,10 +4,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { 
-    getFirestore, collection, query, where, getDocs, doc, 
-    setDoc, deleteDoc, getDoc, updateDoc 
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, where, getDocs, doc, setDoc, deleteDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // Configurações do Firebase
 const firebaseConfig = {
@@ -23,6 +20,40 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const selectUF = document.getElementById('novo-cartao-uf');
+const selectCidade = document.getElementById('novo-cartao-cidade');
+
+selectUF.addEventListener('change', async () => {
+    const uf = selectUF.value;
+    
+    // Limpa e desabilita se não tiver UF
+    if (!uf) {
+        selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
+        selectCidade.disabled = true;
+        return;
+    }
+
+    try {
+        selectCidade.innerHTML = '<option>Carregando...</option>';
+        selectCidade.disabled = false;
+
+        // Chamada à Brasil API para buscar cidades do estado
+        const response = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${uf}?providers=dados-abertos-br,gov,wikipedia`);
+        const cidades = await response.json();
+
+        // Popula o select de cidades
+        selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
+        cidades.forEach(cidade => {
+            const option = document.createElement('option');
+            option.value = cidade.nome;
+            option.textContent = cidade.nome;
+            selectCidade.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Erro ao carregar cidades:", error);
+        selectCidade.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+});
 
 // Estado Global
 let usuarioAtual = null;
@@ -579,6 +610,9 @@ window.salvarEIniciar = async function() {
         progresso: 0,
         config: config,
         batidas: {} 
+        cidade: cidadeSelecionada,
+        uf: ufSelecionada,
+        criadoEm: new Date()
     };
 
     try {
