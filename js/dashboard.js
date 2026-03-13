@@ -575,6 +575,8 @@ window.salvarEIniciar = async function() {
         dataEdicao: Date.now(),
         progresso: 0,
         config: config,
+        cidade: cidadeSelecionada,
+        uf: ufSelecionada,
         batidas: {} 
     };
 
