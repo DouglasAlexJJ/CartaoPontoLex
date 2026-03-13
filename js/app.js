@@ -325,11 +325,22 @@ function configurarEventos() {
     const inputs = Array.from(document.querySelectorAll('.ponto'));
     inputs.forEach((input, index) => {
         input.onfocus = () => input.select();
-        input.onkeypress = (e) => { if (!/[0-9]/.test(e.key)) e.preventDefault(); };
+        
+        // ATUALIZADO: Agora permite digitar '*' além de números
+        input.onkeypress = (e) => { 
+            if (!/[0-9*]/.test(e.key)) e.preventDefault(); 
+        };
         
         input.oninput = (e) => {
             if (e.inputType === 'deleteContentBackward') return;
             let val = input.value.replace(':', '');
+            
+            // Se o usuário digitou *, removemos do valor para não quebrar a hora
+            if (val.includes('*')) {
+                input.value = input.value.replace('*', '');
+                return;
+            }
+
             if (val.length >= 2) {
                 let h = val.substring(0, 2);
                 if (parseInt(h) > 23) h = "23";
@@ -344,6 +355,36 @@ function configurarEventos() {
         };
 
         input.onkeydown = (e) => {
+            const tr = input.closest('tr');
+
+            // --- ATALHO: TECLA '*' PARA DEFINIR COMO FERIADO ---
+            if (e.key === '*' || e.key === 'Asterisk') {
+                e.preventDefault();
+                alternarFeriadoManual(tr);
+                const dataDia = tr.getAttribute('data-dia');
+                
+                // Inicializa objeto no banco se não existir
+                if (!cartaoAtual.batidas[dataDia]) {
+                    cartaoAtual.batidas[dataDia] = { horas: [], isFolga: false };
+                }
+
+                // Alterna o estado de feriado
+                const ehFeriado = !cartaoAtual.batidas[dataDia].isFeriado;
+                cartaoAtual.batidas[dataDia].isFeriado = ehFeriado;
+
+                // Feedback Visual na Linha
+                if (ehFeriado) {
+                    tr.classList.add('destaque-vermelho'); // Sua classe existente
+                    tr.style.backgroundColor = "#fff5f5"; // Fundo levemente avermelhado
+                } else {
+                    tr.classList.remove('destaque-vermelho');
+                    tr.style.backgroundColor = "";
+                }
+
+                salvarProgressoAuto(); // Salva a marcação no Firebase
+                return;
+            }
+
             // --- ATALHO: TECLA '+' PARA ADICIONAR BATIDAS ---
             if (e.key === '+') {
                 e.preventDefault(); 
@@ -359,7 +400,7 @@ function configurarEventos() {
 
             // --- ATALHO: TECLA '-' PARA REMOVER BATIDAS ---
             if (e.key === '-') {
-                e.preventDefault(); // Impede que o sinal de - seja digitado na caixa
+                e.preventDefault(); 
                 window.gerenciarBatidas(input, -2);
                 return;
             }
@@ -662,4 +703,27 @@ async function carregarFeriados(ano, uf) {
     } catch (e) {
         console.error("Erro ao buscar feriados:", e);
     }
+}
+
+function alternarFeriadoManual(tr) {
+    const dataDia = tr.getAttribute('data-dia');
+    
+    if (!cartaoAtual.batidas[dataDia]) {
+        cartaoAtual.batidas[dataDia] = { horas: [], isFolga: false };
+    }
+
+    const ehFeriado = !cartaoAtual.batidas[dataDia].isFeriado;
+    cartaoAtual.batidas[dataDia].isFeriado = ehFeriado;
+
+    // Estilização
+    if (ehFeriado) {
+        tr.classList.add('destaque-vermelho');
+        tr.style.backgroundColor = "#fff5f5";
+    } else {
+        tr.classList.remove('destaque-vermelho');
+        tr.style.backgroundColor = "";
+    }
+
+    salvarProgressoAuto(); 
+    // calcularLinha(tr); // Descomente quando criarmos a regra dos 100%
 }
