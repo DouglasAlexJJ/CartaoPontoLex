@@ -1,7 +1,7 @@
 /* ==========================================================================
    SISTEMA DE AUTENTICAÇÃO COMPLETO - FIREBASE (CartaoPontoLex)
    ========================================================================== */
-import { auth, db } from './firebase-config.js';
+import { auth, db } from '.js\firebase-config.js';
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
