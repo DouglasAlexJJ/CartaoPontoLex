@@ -41,17 +41,23 @@
 }
 
 .info-perfil {
-    overflow: hidden; /* Corta o nome com "..." se for gigante */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: visible; /* Garante que o texto expandido apareça */
 }
 
 .info-perfil strong { 
     display: block; 
     color: #0f172a; 
-    font-size: 1.1em; /* Aumentado de 0.9em para 1.1em */
+    font-size: 1.1em; 
     font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Alterações para permitir duas linhas */
+    white-space: normal;      /* Permite a quebra de linha natural */
+    word-wrap: break-word;    /* Força a quebra de palavras muito longas se necessário */
+    line-height: 1.2;         /* Ajusta o espaçamento entre as linhas para não ficarem coladas */
+    max-width: 180px;         /* Limita a largura para forçar o texto a descer */
+    margin-bottom: 4px;       /* Pequeno espaço antes do "Plano Premium" */
 }
 
 .info-perfil small { 
