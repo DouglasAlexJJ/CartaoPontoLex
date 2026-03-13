@@ -1,23 +1,10 @@
-/* ==========================================================================
-   JAVASCRIPT DO DASHBOARD (REFATORADO E ORGANIZADO - ESTILO RESTAURADO)
-   ========================================================================== */
+import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { 
+    getFirestore, collection, query, where, getDocs, doc, 
+    setDoc, deleteDoc, getDoc, updateDoc, addDoc 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, where, getDocs, doc, setDoc, deleteDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-// Configurações do Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyAYKwESZLQelQlyh5pWX0oE0eVOMI5Z3fY",
-    authDomain: "cartaopontolex.firebaseapp.com",
-    projectId: "cartaopontolex",
-    storageBucket: "cartaopontolex.firebasestorage.app",
-    messagingSenderId: "261448645689",
-    appId: "1:261448645689:web:a6e7aebb12ef87c15b61e8"
-};
-
-// Inicialização
-const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
@@ -538,14 +525,18 @@ window.salvarEIniciar = async function() {
     const dataFim = document.getElementById('dataFim').value;
     const escala = document.getElementById('escala').value;
     
+    // CAPTURANDO CIDADE E UF DOS SELECTS QUE CRIAMOS
+    const ufSelecionada = document.getElementById('novo-cartao-uf').value;
+    const cidadeSelecionada = document.getElementById('novo-cartao-cidade').value;
+    
     if (!reclamante || !dataIn || !dataFim) {
         alert("Preencha Reclamante, Data de Início e Fim!");
         return;
     }
 
     const donoDoCartaoId = (dadosUsuarioGlobal.tipoConta === 'colaborador') 
-                           ? dadosUsuarioGlobal.adminId 
-                           : usuarioAtual.uid;
+                            ? dadosUsuarioGlobal.adminId 
+                            : usuarioAtual.uid;
 
     let trabPers = 6, folgaPers = 2;
     if (escala === "personalizada") {
@@ -565,7 +556,10 @@ window.salvarEIniciar = async function() {
         intervaloFixo: document.getElementById('intervaloFixo').checked,
         qtdBatidas: document.getElementById('checkBatidas').checked ? (parseInt(document.getElementById('qtdBatidas').value) || 4) : 4,
         trabPers: trabPers,
-        folgaPers: folgaPers
+        folgaPers: folgaPers,
+        // É bom salvar a UF e Cidade dentro da config também para facilitar o acesso
+        uf: ufSelecionada,
+        cidade: cidadeSelecionada
     };
 
     const novoCartao = {
@@ -575,18 +569,20 @@ window.salvarEIniciar = async function() {
         dataEdicao: Date.now(),
         progresso: 0,
         config: config,
+        // Mantendo na raiz do objeto conforme seu código anterior
         cidade: cidadeSelecionada,
         uf: ufSelecionada,
         batidas: {} 
     };
 
     try {
+        // O 'db' agora virá do seu centralizador firebase-config.js
         await setDoc(doc(db, "cartoes", novoCartao.id), novoCartao);
         localStorage.setItem('cartaoAtualId', novoCartao.id);
         window.location.href = "app.html";
     } catch (e) {
-        console.error(e);
-        alert("Erro ao criar cartão.");
+        console.error("Erro ao salvar no Firestore:", e);
+        alert("Erro ao criar cartão. Verifique se os campos de UF e Cidade existem.");
     }
 };
 function configurarBuscaCidades() {
