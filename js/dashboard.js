@@ -589,35 +589,41 @@ window.salvarEIniciar = async function() {
         alert("Erro ao criar cartão.");
     }
 };
-// Substitua o seu bloco selectUF.addEventListener por este:
-selectUF.addEventListener('change', async () => {
-    const uf = selectUF.value;
-    
-    if (!uf) {
-        selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
-        selectCidade.disabled = true;
-        return;
-    }
+const inicializarFiltroCidades = () => {
+    const selectUF = document.getElementById('novo-cartao-uf');
+    const selectCidade = document.getElementById('novo-cartao-cidade');
 
-    try {
-        selectCidade.innerHTML = '<option>Carregando...</option>';
-        selectCidade.disabled = false;
+    // Só executa se os elementos existirem na tela
+    if (selectUF && selectCidade) {
+        selectUF.addEventListener('change', async () => {
+            const uf = selectUF.value;
+            
+            if (!uf) {
+                selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
+                selectCidade.disabled = true;
+                return;
+            }
 
-        const response = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${uf}`);
-        const cidades = await response.json();
+            try {
+                selectCidade.innerHTML = '<option>Carregando...</option>';
+                selectCidade.disabled = false;
 
-        selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
-        
-        // CORREÇÃO AQUI: Syntax limpa do forEach
-        cidades.forEach(cidade => {
-            const option = document.createElement('option');
-            option.value = cidade.nome;
-            option.textContent = cidade.nome;
-            selectCidade.appendChild(option);
+                const response = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${uf}`);
+                if (!response.ok) throw new Error('Erro na API');
+                
+                const cidades = await response.json();
+
+                selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
+                cidades.forEach(cidade => {
+                    const option = document.createElement('option');
+                    option.value = cidade.nome;
+                    option.textContent = cidade.nome;
+                    selectCidade.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Erro ao carregar cidades:", error);
+                selectCidade.innerHTML = '<option value="">Erro ao carregar</option>';
+            }
         });
-
-    } catch (error) {
-        console.error("Erro ao carregar cidades:", error);
-        selectCidade.innerHTML = '<option value="">Erro ao carregar</option>';
     }
-}); // Fechamento do addEventListener
+};
