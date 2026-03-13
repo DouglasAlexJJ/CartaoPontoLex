@@ -10,6 +10,7 @@ const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 let configAtual = {};
 let cartaoAtual = null;
 let usuarioLogado = null;
+let listaFeriadosGlobais = [];
 
 // 1. Inicia buscando da Nuvem
 document.addEventListener('DOMContentLoaded', () => {
@@ -221,9 +222,15 @@ async function salvarProgressoAuto() {
 }
 
 // 4. LÓGICA DE GERAÇÃO DA FOLHA (Mantida intacta)
-function gerarFolha(cfg) {
+async function gerarFolha(cfg) {
     const corpo = document.getElementById('corpo-tabela');
     if (!corpo) return; 
+    corpo.innerHTML = '<div style="padding:20px; text-align:center;">Carregando folha e feriados...</div>'; 
+
+    // Carrega os feriados do ano do início do cartão antes de gerar
+    const anoInicio = new Date(cfg.dataInicio + "T00:00:00").getFullYear();
+    await carregarFeriados(anoInicio, cfg.uf);
+    
     corpo.innerHTML = ''; 
 
     let dataAtual = new Date(cfg.dataInicio + "T00:00:00");
@@ -232,9 +239,16 @@ function gerarFolha(cfg) {
     while (dataAtual <= dataFim) {
         const numDia = dataAtual.getDay();
         const dataFormatada = dataAtual.toLocaleDateString('pt-BR');
+        
+        // Formato para comparar com a API (YYYY-MM-DD)
+        const dataISO = dataAtual.toISOString().split('T')[0];
+        
         let ehFolga = false;
-        let destaqueFDSouFeriado = (numDia === 0 || numDia === 6 || ehFeriadoNacional(dataAtual));
+        // MARCAÇÃO DE FERIADO: Verifica se a data está na lista da API Brasil
+        const ehFeriado = listaFeriadosGlobais.includes(dataISO);
+        let destaqueFDSouFeriado = (numDia === 0 || numDia === 6 || ehFeriado);
 
+        // Lógica de Escalas
         if (cfg.escala === "livre") {
             ehFolga = false; 
         } else if (cfg.escala === "seg-sex") {
@@ -262,8 +276,11 @@ function gerarFolha(cfg) {
             ehFolga = batidasSalvasNoBanco.isFolga;
         }
 
-        if (cfg.escala === "livre" && destaqueFDSouFeriado) {
-            tr.className = `linha-ponto destaque-vermelho ${ehFolga ? 'folga' : ''}`;
+        // APLICAÇÃO VISUAL
+        // Se for feriado ou domingo, adicionamos uma classe de destaque (que você pode estilizar no CSS)
+        if (ehFeriado || numDia === 0) {
+            tr.className = `linha-ponto destaque-feriado ${ehFolga ? 'folga' : ''}`;
+            if(ehFeriado) tr.style.backgroundColor = "#fff5f5"; // Leve tom vermelho para feriado
         } else {
             tr.className = `linha-ponto ${ehFolga ? 'folga' : ''}`;
         }
@@ -275,7 +292,6 @@ function gerarFolha(cfg) {
         }
         
         let inputsHtml = "";
-        
         for (let i = 0; i < qtdDaLinha; i++) {
             let val = "";
             if (batidasSalvasNoBanco && batidasSalvasNoBanco.horas[i] !== undefined) {
@@ -289,7 +305,7 @@ function gerarFolha(cfg) {
 
         tr.innerHTML = `
             <td class="col-dia">
-                <strong>${diasSemana[numDia]}</strong><br>${dataFormatada}
+                <strong>${diasSemana[numDia]}</strong>${ehFeriado ? ' 🚩' : ''}<br>${dataFormatada}
             </td>
             <td class="celula-inputs">
                 <div class="container-batidas">${inputsHtml}</div>
@@ -634,3 +650,16 @@ window.aplicarAjusteDatas = function() {
     alert("Função de recriar a tabela com as novas datas será feita na próxima etapa!");
     fecharModalAjusteDatas();
 };
+async function carregarFeriados(ano, uf) {
+    try {
+        // Busca Feriados Nacionais
+        const resp = await fetch(`https://brasilapi.com.br/api/feriados/v1/${ano}`);
+        if (resp.ok) {
+            const dados = await resp.json();
+            listaFeriadosGlobais = dados.map(f => f.date);
+            console.log("Feriados Nacionais carregados:", listaFeriadosGlobais);
+        }
+    } catch (e) {
+        console.error("Erro ao buscar feriados:", e);
+    }
+}

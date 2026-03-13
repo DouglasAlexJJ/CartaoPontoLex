@@ -201,3 +201,6 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
 }
 
 #total-geral-periodo { color: #10b981; font-size: 1.6em; }
+.destaque-feriado {
+    border-left: 5px solid #ef4444 !important; /* Borda vermelha para feriados */
+}
