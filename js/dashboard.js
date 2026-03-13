@@ -589,41 +589,45 @@ window.salvarEIniciar = async function() {
         alert("Erro ao criar cartão.");
     }
 };
-const inicializarFiltroCidades = () => {
+function configurarBuscaCidades() {
     const selectUF = document.getElementById('novo-cartao-uf');
     const selectCidade = document.getElementById('novo-cartao-cidade');
 
-    // Só executa se os elementos existirem na tela
-    if (selectUF && selectCidade) {
-        selectUF.addEventListener('change', async () => {
-            const uf = selectUF.value;
+    // Se o elemento não existir (ex: modal fechado), o código para aqui sem dar erro
+    if (!selectUF || !selectCidade) return;
+
+    selectUF.addEventListener('change', async () => {
+        const uf = selectUF.value;
+        
+        if (!uf) {
+            selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
+            selectCidade.disabled = true;
+            return;
+        }
+
+        try {
+            selectCidade.innerHTML = '<option>Carregando cidades...</option>';
+            selectCidade.disabled = false;
+
+            // Faz a chamada para a Brasil API
+            const response = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${uf}`);
+            const cidades = await response.json();
+
+            // Limpa o select e adiciona as cidades vindas da API
+            selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
+            cidades.forEach(cidade => {
+                const option = document.createElement('option');
+                option.value = cidade.nome;
+                option.textContent = cidade.nome;
+                selectCidade.appendChild(option);
+            });
             
-            if (!uf) {
-                selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
-                selectCidade.disabled = true;
-                return;
-            }
+        } catch (error) {
+            console.error("Erro ao buscar cidades:", error);
+            selectCidade.innerHTML = '<option value="">Erro ao carregar cidades</option>';
+        }
+    });
+}
 
-            try {
-                selectCidade.innerHTML = '<option>Carregando...</option>';
-                selectCidade.disabled = false;
-
-                const response = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${uf}`);
-                if (!response.ok) throw new Error('Erro na API');
-                
-                const cidades = await response.json();
-
-                selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
-                cidades.forEach(cidade => {
-                    const option = document.createElement('option');
-                    option.value = cidade.nome;
-                    option.textContent = cidade.nome;
-                    selectCidade.appendChild(option);
-                });
-            } catch (error) {
-                console.error("Erro ao carregar cidades:", error);
-                selectCidade.innerHTML = '<option value="">Erro ao carregar</option>';
-            }
-        });
-    }
-};
+// Chame a função para ela começar a observar os campos
+configurarBuscaCidades();
