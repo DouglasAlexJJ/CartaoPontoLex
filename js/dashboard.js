@@ -576,9 +576,6 @@ window.salvarEIniciar = async function() {
         progresso: 0,
         config: config,
         batidas: {} 
-        cidade: cidadeSelecionada,
-        uf: ufSelecionada,
-        criadoEm: new Date()
     };
 
     try {
@@ -590,31 +587,3 @@ window.salvarEIniciar = async function() {
         alert("Erro ao criar cartão.");
     }
 };
-
-document.addEventListener('DOMContentLoaded', () => {
-    const selectUF = document.getElementById('novo-cartao-uf');
-    const selectCidade = document.getElementById('novo-cartao-cidade');
-
-    if (selectUF && selectCidade) {
-        selectUF.addEventListener('change', async () => {
-            const uf = selectUF.value;
-            if (!uf) return;
-
-            try {
-                const response = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${uf}`);
-                const cidades = await response.json();
-                
-                selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
-                cidades.forEach(cidade => {
-                    const option = document.createElement('option');
-                    option.value = cidade.nome;
-                    option.textContent = cidade.nome;
-                    selectCidade.appendChild(option);
-                });
-                selectCidade.disabled = false;
-            } catch (error) {
-                console.error("Erro na API:", error);
-            }
-        });
-    }
-});
