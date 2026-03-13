@@ -1,12 +1,9 @@
-import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { auth, db } from './firebase-config.js'; 
 import { 
-    getFirestore, collection, query, where, getDocs, doc, 
+    collection, query, where, getDocs, doc, 
     setDoc, deleteDoc, getDoc, updateDoc, addDoc 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-const auth = getAuth(app);
-const db = getFirestore(app);
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // Estado Global
 let usuarioAtual = null;

@@ -2,11 +2,8 @@
    SEGURANÇA E PROTEÇÃO DE ROTAS - FIREBASE (CartaoPontoLex)
    ========================================================================== */
 
-import { auth } from './firebase-config.js';
+import { auth } from './firebase-config.js'; // Apenas importe
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 
 // O "Segurança": Fica vigiando quem tenta entrar
 onAuthStateChanged(auth, (user) => {
