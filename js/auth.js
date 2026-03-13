@@ -1,68 +1,111 @@
-import { auth, db } from './firebase-config.js'; 
+/* ==========================================================================
+   SISTEMA DE AUTENTICAÇÃO COMPLETO - FIREBASE (CartaoPontoLex)
+   ========================================================================== */
+import { auth } from './firebase-config.js'; // Importa a conexão já pronta
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
-    signInWithPopup,
-    GoogleAuthProvider 
+    signInWithPopup, 
+    GoogleAuthProvider,
+    FacebookAuthProvider
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
+const urlParams = new URLSearchParams(window.location.search);
+const inviteId = urlParams.get('invite');
+
+if (inviteId) {
+    console.log("Usuário convidado pelo Admin:", inviteId);
+    sessionStorage.setItem('inviteId', inviteId);
+    const msgBoasVindas = document.getElementById('titulo-login');
+    if (msgBoasVindas) msgBoasVindas.innerText = "📝 Criar Conta de Colaborador";
+}
+
+// Configuração dos Provedores Sociais
 const googleProvider = new GoogleAuthProvider();
+const facebookProvider = new FacebookAuthProvider();
 
-// IDs CORRIGIDOS CONFORME SEU INDEX.HTML
-const form = document.getElementById('login-form');
-const btnAcao = document.getElementById('btn-acao-login'); 
-const btnAlternar = document.getElementById('link-trocar-modo'); 
-const tituloLogin = document.getElementById('titulo-login');
+let modoLogin = true; 
+const btnAcao = document.getElementById('btn-acao-login');
+const linkTrocar = document.getElementById('link-trocar-modo');
+const titulo = document.getElementById('titulo-login');
+const msgErro = document.getElementById('msg-erro');
+const btnGoogle = document.getElementById('btn-login-google');
+const btnFacebook = document.getElementById('btn-login-facebook');
 
-let modoLogin = true;
+// --- LOGIN COM GOOGLE ---
+if (btnGoogle) {
+    btnGoogle.addEventListener('click', () => {
+        msgErro.style.display = 'none';
+        signInWithPopup(auth, googleProvider)
+            .then((result) => {
+                window.location.href = "dashboard.html";
+            }).catch((error) => tratarErro(error));
+    });
+}
 
-// Alternar entre Login e Cadastro
-if (btnAlternar) {
-    btnAlternar.addEventListener('click', (e) => {
+// --- LOGIN/CADASTRO COM E-MAIL ---
+if (linkTrocar) {
+    linkTrocar.addEventListener('click', (e) => {
         e.preventDefault();
         modoLogin = !modoLogin;
-        tituloLogin.innerText = modoLogin ? "Bem-vindo de Volta!" : "Criar sua Conta";
-        btnAcao.innerText = modoLogin ? "Entrar com E-mail ➔" : "Cadastrar e Acessar ➔";
-        btnAlternar.innerText = modoLogin ? "Não tem conta? Crie uma agora!" : "Já tem conta? Faça Login";
+        msgErro.style.display = 'none';
+        
+        if (modoLogin) {
+            titulo.innerText = "🔐 Entrar no Sistema";
+            btnAcao.innerText = "Entrar com E-mail ➔";
+            linkTrocar.innerText = "Não tem conta? Crie uma agora!";
+        } else {
+            titulo.innerText = "📝 Criar Nova Conta";
+            btnAcao.innerText = "Cadastrar e Acessar ➔";
+            linkTrocar.innerText = "Já tem uma conta? Faça Login.";
+        }
     });
 }
 
-// Login com E-mail
-if (form) {
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+if (btnAcao) {
+    btnAcao.addEventListener('click', () => {
         const email = document.getElementById('email-login').value;
         const senha = document.getElementById('senha-login').value;
+        
+        if (!email || !senha) {
+            mostrarErro("Preencha e-mail e senha!");
+            return;
+        }
 
-        try {
-            btnAcao.innerText = "Aguarde...";
-            btnAcao.disabled = true;
+        btnAcao.innerText = "Aguarde...";
+        btnAcao.disabled = true;
 
-            if (modoLogin) {
-                await signInWithEmailAndPassword(auth, email, senha);
-            } else {
-                await createUserWithEmailAndPassword(auth, email, senha);
-            }
-            window.location.href = "dashboard.html";
-        } catch (error) {
-            console.error("Erro:", error);
-            alert("Falha na autenticação: " + error.message);
-            btnAcao.disabled = false;
-            btnAcao.innerText = modoLogin ? "Entrar com E-mail ➔" : "Cadastrar e Acessar ➔";
+        if (modoLogin) {
+            signInWithEmailAndPassword(auth, email, senha)
+                .then(() => window.location.href = "dashboard.html")
+                .catch((error) => tratarErro(error));
+        } else {
+            createUserWithEmailAndPassword(auth, email, senha)
+                .then(() => window.location.href = "dashboard.html")
+                .catch((error) => tratarErro(error));
         }
     });
 }
 
-// Login com Google
-const btnGoogle = document.getElementById('btn-google');
-if (btnGoogle) {
-    btnGoogle.addEventListener('click', async () => {
-        try {
-            await signInWithPopup(auth, googleProvider);
-            window.location.href = "dashboard.html";
-        } catch (error) {
-            console.error("Erro Google:", error);
-            alert("Erro ao logar com Google.");
-        }
-    });
+function tratarErro(error) {
+    btnAcao.disabled = false;
+    btnAcao.innerText = modoLogin ? "Entrar com E-mail ➔" : "Cadastrar e Acessar ➔";
+    
+    let mensagem = "Ocorreu um erro na autenticação.";
+    if (error.code === 'auth/invalid-email') mensagem = "E-mail inválido.";
+    if (error.code === 'auth/invalid-credential') mensagem = "E-mail ou senha incorretos.";
+    if (error.code === 'auth/email-already-in-use') mensagem = "Este e-mail já está cadastrado.";
+    if (error.code === 'auth/weak-password') mensagem = "A senha deve ter pelo menos 6 caracteres.";
+    if (error.code === 'auth/popup-closed-by-user') mensagem = "A janela de login foi fechada.";
+    
+    mostrarErro(mensagem);
+}
+
+function mostrarErro(texto) {
+    if (msgErro) {
+        msgErro.innerText = texto;
+        msgErro.style.display = 'block';
+    } else {
+        alert(texto);
+    }
 }
