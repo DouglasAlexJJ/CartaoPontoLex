@@ -3,15 +3,72 @@
    ========================================================================== */
 .dashboard-layout { display: flex; height: calc(100vh - 70px); overflow: hidden; }
 
-/* SIDEBAR */
-.sidebar { width: 260px; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; }
-.sidebar-header { padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
-.perfil-usuario { display: flex; align-items: center; gap: 10px; }
-.avatar { font-size: 1.5em; background: #e0f2fe; padding: 5px; border-radius: 50%; }
-.info-perfil strong { display: block; color: #0f172a; font-size: 0.9em; }
-.info-perfil small { color: #64748b; font-size: 0.75em; }
+/* SIDEBAR - ATUALIZADA */
+.sidebar { 
+    width: 300px; /* Aumentado de 260px para 300px */
+    background: white; 
+    border-right: 1px solid #e2e8f0; 
+    display: flex; 
+    flex-direction: column; 
+    transition: width 0.3s ease; /* Transição suave se mudar de tamanho */
+}
+
+.sidebar-header { 
+    padding: 25px 20px; /* Aumentei um pouco o respiro vertical */
+    border-bottom: 1px solid #f1f5f9; 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+}
+
+.perfil-usuario { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    max-width: 100%; /* Garante que não estoure a sidebar */
+}
+
+.avatar { 
+    font-size: 1.8em; /* Aumentado para acompanhar o novo tamanho */
+    background: #e0f2fe; 
+    padding: 8px; 
+    border-radius: 50%; 
+    min-width: 50px; /* Garante que o círculo não amasse */
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.info-perfil {
+    overflow: hidden; /* Corta o nome com "..." se for gigante */
+}
+
+.info-perfil strong { 
+    display: block; 
+    color: #0f172a; 
+    font-size: 1.1em; /* Aumentado de 0.9em para 1.1em */
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-perfil small { 
+    color: #64748b; 
+    font-size: 0.85em; /* Aumentado de 0.75em para 0.85em */
+}
+
 .sidebar-content { padding: 20px; }
-.sidebar-title { font-size: 0.75em; text-transform: uppercase; color: #94a3b8; margin-bottom: 10px; }
+
+.sidebar-title { 
+    font-size: 0.8em; 
+    font-weight: 600;
+    text-transform: uppercase; 
+    color: #94a3b8; 
+    margin-bottom: 15px;
+    letter-spacing: 0.05em;
+}
 
 /* ÁREA PRINCIPAL */
 .dashboard-main { flex: 1; padding: 40px; overflow-y: auto; background: #f8fafc; }
