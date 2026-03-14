@@ -237,6 +237,7 @@ function renderizarLixeira(apagados, podeGerenciar) {
     const lixeiraExistente = document.getElementById('area-lixeira');
     if (lixeiraExistente) lixeiraExistente.remove();
 
+    // Só mostra se houver itens apagados e o usuário puder gerenciar
     if (apagados.length > 0 && podeGerenciar && dashboardMain) {
         const agora = Date.now();
         let lixeiraHtml = `
@@ -246,14 +247,19 @@ function renderizarLixeira(apagados, podeGerenciar) {
         `;
 
         apagados.forEach(cartao => {
-            const diasRestantes = 30 - Math.floor((agora - cartao.deletedAt) / (1000 * 60 * 60 * 24));
+            const dataExclusao = cartao.deletedAt || agora;
+            const diasRestantes = 30 - Math.floor((agora - dataExclusao) / (1000 * 60 * 60 * 24));
+            
             lixeiraHtml += `
-                <div class="card-recente card-apagado">
+                <div class="card-recente card-apagado" data-id="${cartao.id}">
                     <div class="card-recente-header">
                         <h4 style="text-decoration: line-through; color: #94a3b8;">${cartao.config.reclamante}</h4>
-                        <button class="btn-restaurar" onclick="restaurarCartao('${cartao.id}')">♻️ Restaurar</button>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn-restaurar" onclick="restaurarCartao('${cartao.id}')">♻️ Restaurar</button>
+                            <button class="btn-excluir-definitivo" onclick="excluirCartaoDefinitivo('${cartao.id}')" title="Excluir Permanentemente">🗑️</button>
+                        </div>
                     </div>
-                    <p style="color: #ef4444; font-size: 0.8em; font-weight: bold;">Exclui em ${diasRestantes} dias</p>
+                    <p style="color: #ef4444; font-size: 0.8em; font-weight: bold; margin-top: 5px;">Exclui em ${diasRestantes} dias</p>
                 </div>
             `;
         });
@@ -262,6 +268,31 @@ function renderizarLixeira(apagados, podeGerenciar) {
         dashboardMain.insertAdjacentHTML('beforeend', lixeiraHtml);
     }
 }
+window.excluirCartaoDefinitivo = async (id) => {
+    const confirmacao = confirm("❗ PERIGO: Esta ação é irreversível. O cartão e todas as batidas serão apagados do banco de dados para sempre. Deseja continuar?");
+    
+    if (confirmacao) {
+        try {
+            const docRef = doc(db, "cartoes", id);
+            await deleteDoc(docRef);
+            
+            console.log("Cartão excluído definitivamente.");
+            
+            // Feedback visual: remove o card com animação
+            const el = document.querySelector(`[data-id="${id}"]`);
+            if(el) {
+                el.style.transform = "scale(0.8)";
+                el.style.opacity = "0";
+                setTimeout(() => carregarDashboard(), 300);
+            } else {
+                carregarDashboard();
+            }
+        } catch (error) {
+            console.error("Erro ao excluir definitivo:", error);
+            alert("Erro ao excluir o cartão. Verifique suas permissões.");
+        }
+    }
+};
 
 /* ==========================================================================
    4. AÇÕES DO USUÁRIO (WINDOW SCOPE)

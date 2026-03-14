@@ -194,6 +194,46 @@
     border-color: #2563eb;
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
+/* BOTÕES DA LIXEIRA */
+.btn-restaurar {
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-restaurar:hover {
+    background: #22c55e;
+    color: white;
+}
+
+.btn-excluir-definitivo {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #ef4444;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75em;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-excluir-definitivo:hover {
+    background: #ef4444;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.card-apagado {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1 !important;
+    position: relative;
+}
 
 /* Ajuste específico para o Select (Dropdown) */
 select.input-premium {
