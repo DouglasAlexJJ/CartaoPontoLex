@@ -203,7 +203,77 @@ window.aplicarEscalaPersonalizada = function(btn) {
     salvarProgressoAuto();
 };
 
-// 3. LÓGICA DE GERAÇÃO DA FOLHA (Mantida intacta)
+let timerSalvar;
+
+// Torna a função visível para os inputs da tabela
+window.salvarComAtraso = function() {
+    clearTimeout(timerSalvar);
+    
+    // Feedback visual discreto no console (ou adicione um elemento status no seu HTML)
+    console.log("⏳ Aguardando pausa na digitação para salvar...");
+
+    timerSalvar = setTimeout(async () => {
+        try {
+            await salvarProgressoAuto(); // Usa sua função existente que salva no Firestore
+            console.log("✅ Dados sincronizados com o Firebase!");
+        } catch (e) {
+            console.error("❌ Falha no salvamento automático:", e);
+        }
+    }, 2000); // Salva após 2 segundos de inatividade
+};
+
+// Garante que a função de salvar por clique também funcione
+async function salvarProgressoAuto() {
+    if (!cartaoAtual || !usuarioLogado) return;
+
+    const idAtual = localStorage.getItem('cartaoAtualId');
+    if (!idAtual) return;
+
+    let linhas = document.querySelectorAll('.linha-ponto');
+    let diasPreenchidos = 0;
+    
+    // Criamos um objeto temporário para não resetar o cartaoAtual.batidas bruscamente
+    const novasBatidas = {}; 
+    
+    linhas.forEach(tr => {
+        const dataDia = tr.getAttribute('data-dia');
+        const isFolga = tr.classList.contains('folga');
+        const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
+        
+        novasBatidas[dataDia] = {
+            isFolga: isFolga,
+            horas: inputs
+        };
+
+        // Lógica de contagem para o progresso
+        if (isFolga) {
+            diasPreenchidos++;
+        } else {
+            // Verifica se pelo menos um campo de hora foi preenchido (ex: "08:00")
+            let preenchido = inputs.some(v => v && v.length === 5);
+            if (preenchido) diasPreenchidos++;
+        }
+    });
+
+    // Atualiza o objeto local
+    cartaoAtual.batidas = novasBatidas;
+    cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
+    cartaoAtual.dataEdicao = Date.now();
+
+    try {
+        const docRef = doc(db, "cartoes", idAtual);
+        await updateDoc(docRef, {
+            batidas: cartaoAtual.batidas,
+            progresso: cartaoAtual.progresso,
+            dataEdicao: cartaoAtual.dataEdicao
+        });
+        console.log(`✅ Nuvem atualizada! Progresso: ${cartaoAtual.progresso}%`);
+    } catch (e) {
+        console.error("❌ Erro ao salvar na nuvem:", e);
+    }
+}
+
+// 4. LÓGICA DE GERAÇÃO DA FOLHA (Mantida intacta)
 async function gerarFolha(cfg) {
     const corpo = document.getElementById('corpo-tabela');
     if (!corpo) return; 
@@ -774,72 +844,3 @@ async function salvarProgressoAuto() {
         console.error("❌ Erro ao salvar na nuvem:", e);
     }
 }
-
-let timerSalvar;
-
-// Garante que a função de salvar por clique também funcione
-async function salvarProgressoAuto() {
-    if (!cartaoAtual || !usuarioLogado) return;
-
-    const idAtual = localStorage.getItem('cartaoAtualId');
-    if (!idAtual) return;
-
-    let linhas = document.querySelectorAll('.linha-ponto');
-    let diasPreenchidos = 0;
-    
-    // Criamos um objeto temporário para não resetar o cartaoAtual.batidas bruscamente
-    const novasBatidas = {}; 
-    
-    linhas.forEach(tr => {
-        const dataDia = tr.getAttribute('data-dia');
-        const isFolga = tr.classList.contains('folga');
-        const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
-        
-        novasBatidas[dataDia] = {
-            isFolga: isFolga,
-            horas: inputs
-        };
-
-        // Lógica de contagem para o progresso
-        if (isFolga) {
-            diasPreenchidos++;
-        } else {
-            // Verifica se pelo menos um campo de hora foi preenchido (ex: "08:00")
-            let preenchido = inputs.some(v => v && v.length === 5);
-            if (preenchido) diasPreenchidos++;
-        }
-    });
-
-    // Atualiza o objeto local
-    cartaoAtual.batidas = novasBatidas;
-    cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
-    cartaoAtual.dataEdicao = Date.now();
-
-    try {
-        const docRef = doc(db, "cartoes", idAtual);
-        await updateDoc(docRef, {
-            batidas: cartaoAtual.batidas,
-            progresso: cartaoAtual.progresso,
-            dataEdicao: cartaoAtual.dataEdicao
-        });
-        console.log(`✅ Nuvem atualizada! Progresso: ${cartaoAtual.progresso}%`);
-    } catch (e) {
-        console.error("❌ Erro ao salvar na nuvem:", e);
-    }
-}
-// Torna a função visível para os inputs da tabela
-window.salvarComAtraso = function() {
-    clearTimeout(timerSalvar);
-    
-    // Feedback visual discreto no console (ou adicione um elemento status no seu HTML)
-    console.log("⏳ Aguardando pausa na digitação para salvar...");
-
-    timerSalvar = setTimeout(async () => {
-        try {
-            await salvarProgressoAuto(); // Usa sua função existente que salva no Firestore
-            console.log("✅ Dados sincronizados com o Firebase!");
-        } catch (e) {
-            console.error("❌ Falha no salvamento automático:", e);
-        }
-    }, 2000); // Salva após 2 segundos de inatividade
-};
