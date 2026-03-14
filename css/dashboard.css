@@ -164,35 +164,17 @@
     opacity: 1; background: #fee2e2; color: #ef4444; transform: scale(1.1);
 }
 .btn-restaurar {
-    background: #f1f5f9;
-    border: 1px solid #cbd5e1;
-    color: #475569;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75em;
-    cursor: pointer;
-    transition: 0.2s;
+    background: #ecfdf5; border: 1px solid #10b981; color: #10b981;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: bold;
 }
-.btn-restaurar:hover {
-    background: #dcfce7;
-    color: #166534;
-    border-color: #bbf7d0;
-}
+.btn-restaurar:hover { background: #10b981; color: white; }
+
 .sessao-lixeira {
-    margin-top: 50px;
-    padding-top: 20px;
-    border-top: 2px dashed #e2e8f0;
+    margin-top: 50px; padding-top: 20px; border-top: 2px dashed #e2e8f0;
 }
-.sessao-lixeira h3 {
-    color: #64748b;
-    font-size: 1em;
-    margin-bottom: 15px;
-}
-.card-apagado {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    opacity: 0.8;
-}.card-apagado:hover { filter: grayscale(0%); opacity: 1; }
+.sessao-lixeira h3 { color: #64748b; font-size: 1.1em; display: flex; align-items: center; gap: 8px; }
+.card-apagado { opacity: 0.7; filter: grayscale(100%); transition: 0.3s; }
+.card-apagado:hover { filter: grayscale(0%); opacity: 1; }
 /* Estilo Premium para Inputs e Selects do Onboarding */
 .input-premium {
     width: 100%;

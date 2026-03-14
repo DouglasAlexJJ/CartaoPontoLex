@@ -152,60 +152,6 @@ async function carregarDashboard() {
     } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
     }
-    const q = query(collection(db, "cartoes"), where("userId", "==", idDoDono));
-    const querySnapshot = await getDocs(q);
-    
-    const ativos = [];
-    const apagados = [];
-
-    querySnapshot.forEach((doc) => {
-        const data = { id: doc.id, ...doc.data() };
-        if (data.isDeleted) {
-            apagados.push(data);
-        } else {
-            ativos.push(data);
-        }
-    });
-
-    // 2. Renderiza os Ativos no seu grid principal
-    renderizarCartoesAtivos(ativos);
-
-    // 3. Renderiza a Lixeira usando a sua função
-    const podeGerenciar = dadosUsuarioGlobal.tipoConta !== 'colaborador';
-    renderizarLixeira(apagados, podeGerenciar);
-}
-function renderizarLixeira(apagados, podeGerenciar) {
-    const dashboardMain = document.querySelector('.dashboard-main');
-    const lixeiraExistente = document.getElementById('area-lixeira');
-    if (lixeiraExistente) lixeiraExistente.remove();
-
-    if (apagados.length > 0 && podeGerenciar && dashboardMain) {
-        const agora = Date.now();
-        let lixeiraHtml = `
-            <div id="area-lixeira" class="sessao-lixeira">
-                <h3>🗑️ Lixeira (Retenção LGPD: 30 dias)</h3>
-                <div class="grid-recentes">
-        `;
-
-        apagados.forEach(cartao => {
-            // Se o deletedAt não existir por algum motivo, usamos a data atual pra não dar erro
-            const dataExclusao = cartao.deletedAt || agora;
-            const diasRestantes = 30 - Math.floor((agora - dataExclusao) / (1000 * 60 * 60 * 24));
-            
-            lixeiraHtml += `
-                <div class="card-recente card-apagado" style="border: 1px dashed #cbd5e1; opacity: 0.7;">
-                    <div class="card-recente-header">
-                        <h4 style="text-decoration: line-through; color: #94a3b8;">${cartao.config.reclamante}</h4>
-                        <button class="btn-restaurar" onclick="restaurarCartao('${cartao.id}')" style="cursor:pointer; background:#dcfce7; border:1px solid #bbf7d0; border-radius:4px; padding:4px 8px;">♻️ Restaurar</button>
-                    </div>
-                    <p style="color: #ef4444; font-size: 0.8em; font-weight: bold; margin-top:5px;">Exclui em ${diasRestantes} dias</p>
-                </div>
-            `;
-        });
-
-        lixeiraHtml += `</div></div>`;
-        dashboardMain.insertAdjacentHTML('beforeend', lixeiraHtml);
-    }
 }
 
 async function processarLimpezaLGPD() {
@@ -286,37 +232,36 @@ function renderizarGridRecentes(ativos, podeGerenciar) {
     gridRecentes.innerHTML = html;
 }
 
-window.confirmarExclusao = async (id) => {
-    if (confirm("Mover para a lixeira? O cartão ficará guardado por 30 dias.")) {
-        try {
-            const docRef = doc(db, "cartoes", id);
-            await updateDoc(docRef, {
-                isDeleted: true,
-                deletedAt: Date.now()
-            });
-            
-            console.log("Cartão movido para a lixeira.");
-            carregarDashboard(); // Recarrega para atualizar as listas
-        } catch (error) {
-            console.error("Erro ao mover para lixeira:", error);
-        }
-    }
-};
+function renderizarLixeira(apagados, podeGerenciar) {
+    const dashboardMain = document.querySelector('.dashboard-main');
+    const lixeiraExistente = document.getElementById('area-lixeira');
+    if (lixeiraExistente) lixeiraExistente.remove();
 
-window.restaurarCartao = async (id) => {
-    try {
-        const docRef = doc(db, "cartoes", id);
-        await updateDoc(docRef, {
-            isDeleted: false,
-            deletedAt: null
+    if (apagados.length > 0 && podeGerenciar && dashboardMain) {
+        const agora = Date.now();
+        let lixeiraHtml = `
+            <div id="area-lixeira" class="sessao-lixeira">
+                <h3>🗑️ Lixeira (Retenção LGPD: 30 dias)</h3>
+                <div class="grid-recentes">
+        `;
+
+        apagados.forEach(cartao => {
+            const diasRestantes = 30 - Math.floor((agora - cartao.deletedAt) / (1000 * 60 * 60 * 24));
+            lixeiraHtml += `
+                <div class="card-recente card-apagado">
+                    <div class="card-recente-header">
+                        <h4 style="text-decoration: line-through; color: #94a3b8;">${cartao.config.reclamante}</h4>
+                        <button class="btn-restaurar" onclick="restaurarCartao('${cartao.id}')">♻️ Restaurar</button>
+                    </div>
+                    <p style="color: #ef4444; font-size: 0.8em; font-weight: bold;">Exclui em ${diasRestantes} dias</p>
+                </div>
+            `;
         });
-        
-        console.log("Cartão restaurado com sucesso!");
-        carregarDashboard(); // Recarrega para ele voltar ao grid principal
-    } catch (error) {
-        console.error("Erro ao restaurar:", error);
+
+        lixeiraHtml += `</div></div>`;
+        dashboardMain.insertAdjacentHTML('beforeend', lixeiraHtml);
     }
-};
+}
 
 /* ==========================================================================
    4. AÇÕES DO USUÁRIO (WINDOW SCOPE)
