@@ -205,24 +205,21 @@ window.aplicarEscalaPersonalizada = function(btn) {
 
 let timerSalvar;
 
-// Torna a função visível para os inputs da tabela
+// 1. A função que o HTML chama (oninput)
 window.salvarComAtraso = function() {
     clearTimeout(timerSalvar);
-    
-    // Feedback visual discreto no console (ou adicione um elemento status no seu HTML)
-    console.log("⏳ Aguardando pausa na digitação para salvar...");
+    console.log("⏳ Aguardando pausa na digitação...");
 
     timerSalvar = setTimeout(async () => {
         try {
-            await salvarProgressoAuto(); // Usa sua função existente que salva no Firestore
-            console.log("✅ Dados sincronizados com o Firebase!");
+            await salvarProgressoAuto(); 
         } catch (e) {
-            console.error("❌ Falha no salvamento automático:", e);
+            console.error("Erro no timer de salvamento:", e);
         }
-    }, 2000); // Salva após 2 segundos de inatividade
+    }, 2000); 
 };
 
-// Garante que a função de salvar por clique também funcione
+// 2. A função que realmente grava no Firebase (Executa uma vez só)
 async function salvarProgressoAuto() {
     if (!cartaoAtual || !usuarioLogado) return;
 
@@ -232,44 +229,40 @@ async function salvarProgressoAuto() {
     let linhas = document.querySelectorAll('.linha-ponto');
     let diasPreenchidos = 0;
     
-    // Criamos um objeto temporário para não resetar o cartaoAtual.batidas bruscamente
-    const novasBatidas = {}; 
+    // OBJETO COMPACTO PARA CABER 3 ANOS (f = folga, h = horas)
+    const batidasCompactas = {}; 
     
     linhas.forEach(tr => {
         const dataDia = tr.getAttribute('data-dia');
-        const isFolga = tr.classList.contains('folga');
-        const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
+        const isF = tr.classList.contains('folga');
+        const h = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
         
-        novasBatidas[dataDia] = {
-            isFolga: isFolga,
-            horas: inputs
-        };
-
-        // Lógica de contagem para o progresso
-        if (isFolga) {
+        const temHora = h.some(v => v && v.length === 5);
+        
+        if (temHora || isF) {
+            batidasCompactas[dataDia] = {
+                f: isF,
+                h: h
+            };
             diasPreenchidos++;
-        } else {
-            // Verifica se pelo menos um campo de hora foi preenchido (ex: "08:00")
-            let preenchido = inputs.some(v => v && v.length === 5);
-            if (preenchido) diasPreenchidos++;
         }
     });
 
-    // Atualiza o objeto local
-    cartaoAtual.batidas = novasBatidas;
+    // Atualiza o objeto na memória
+    cartaoAtual.batidas = batidasCompactas;
     cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
     cartaoAtual.dataEdicao = Date.now();
 
     try {
         const docRef = doc(db, "cartoes", idAtual);
         await updateDoc(docRef, {
-            batidas: cartaoAtual.batidas,
+            batidas: batidasCompactas,
             progresso: cartaoAtual.progresso,
             dataEdicao: cartaoAtual.dataEdicao
         });
-        console.log(`✅ Nuvem atualizada! Progresso: ${cartaoAtual.progresso}%`);
+        console.log(`✅ Nuvem sincronizada! Progresso: ${cartaoAtual.progresso}%`);
     } catch (e) {
-        console.error("❌ Erro ao salvar na nuvem:", e);
+        console.error("❌ Erro ao salvar no Firebase:", e);
     }
 }
 
@@ -322,8 +315,8 @@ async function gerarFolha(cfg) {
         tr.setAttribute('data-dia', dataFormatada); 
         const batidasSalvasNoBanco = cartaoAtual.batidas[dataFormatada];
         
-        if (batidasSalvasNoBanco && batidasSalvasNoBanco.isFolga !== undefined) {
-            ehFolga = batidasSalvasNoBanco.isFolga;
+        if (batidasSalvasNoBanco && batidasSalvasNoBanco.f !== undefined) {
+            ehFolga = batidasSalvasNoBanco.f;
         }
 
         if (ehFeriado || numDia === 0) {
@@ -341,8 +334,8 @@ async function gerarFolha(cfg) {
         let inputsHtml = "";
         for (let i = 0; i < qtdDaLinha; i++) {
             let val = "";
-            if (batidasSalvasNoBanco && batidasSalvasNoBanco.horas[i] !== undefined) {
-                val = batidasSalvasNoBanco.horas[i];
+            if (batidasSalvasNoBanco && batidasSalvasNoBanco.h && batidasSalvasNoBanco.h[i] !== undefined) {
+                val = batidasSalvasNoBanco.h[i];
             } else if (!ehFolga && cfg.intervaloFixo) {
                 if (i === 1 && cfg.padraoE) val = cfg.padraoE;
                 if (i === 2 && cfg.padraoS) val = cfg.padraoS;
@@ -774,73 +767,4 @@ function alternarFeriadoManual(tr) {
 
     salvarProgressoAuto(); 
     // calcularLinha(tr); // Descomente quando criarmos a regra dos 100%
-}
-
-
-// Torna a função visível para os inputs da tabela
-window.salvarComAtraso = function() {
-    clearTimeout(timerSalvar);
-    
-    // Feedback visual discreto no console (ou adicione um elemento status no seu HTML)
-    console.log("⏳ Aguardando pausa na digitação para salvar...");
-
-    timerSalvar = setTimeout(async () => {
-        try {
-            await salvarProgressoAuto(); // Usa sua função existente que salva no Firestore
-            console.log("✅ Dados sincronizados com o Firebase!");
-        } catch (e) {
-            console.error("❌ Falha no salvamento automático:", e);
-        }
-    }, 2000); // Salva após 2 segundos de inatividade
-};
-
-// Garante que a função de salvar por clique também funcione
-async function salvarProgressoAuto() {
-    if (!cartaoAtual || !usuarioLogado) return;
-
-    const idAtual = localStorage.getItem('cartaoAtualId');
-    if (!idAtual) return;
-
-    let linhas = document.querySelectorAll('.linha-ponto');
-    let diasPreenchidos = 0;
-    
-    // Criamos um objeto temporário para não resetar o cartaoAtual.batidas bruscamente
-    const novasBatidas = {}; 
-    
-    linhas.forEach(tr => {
-        const dataDia = tr.getAttribute('data-dia');
-        const isFolga = tr.classList.contains('folga');
-        const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
-        
-        novasBatidas[dataDia] = {
-            isFolga: isFolga,
-            horas: inputs
-        };
-
-        // Lógica de contagem para o progresso
-        if (isFolga) {
-            diasPreenchidos++;
-        } else {
-            // Verifica se pelo menos um campo de hora foi preenchido (ex: "08:00")
-            let preenchido = inputs.some(v => v && v.length === 5);
-            if (preenchido) diasPreenchidos++;
-        }
-    });
-
-    // Atualiza o objeto local
-    cartaoAtual.batidas = novasBatidas;
-    cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
-    cartaoAtual.dataEdicao = Date.now();
-
-    try {
-        const docRef = doc(db, "cartoes", idAtual);
-        await updateDoc(docRef, {
-            batidas: cartaoAtual.batidas,
-            progresso: cartaoAtual.progresso,
-            dataEdicao: cartaoAtual.dataEdicao
-        });
-        console.log(`✅ Nuvem atualizada! Progresso: ${cartaoAtual.progresso}%`);
-    } catch (e) {
-        console.error("❌ Erro ao salvar na nuvem:", e);
-    }
 }
