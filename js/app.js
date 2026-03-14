@@ -30,6 +30,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+function atualizarCabecalho(cfg) {
+    const reclamante = document.getElementById('info-reclamante');
+    const reclamada = document.getElementById('info-reclamada');
+    const periodo = document.getElementById('info-periodo');
+
+    if (reclamante) reclamante.innerText = cfg.reclamante || "Nome não definido";
+    
+    // Exibe a Reclamada se houver
+    if (reclamada) {
+        reclamada.innerText = cfg.reclamada ? `Reclamada: ${cfg.reclamada}` : "";
+    }
+
+    // Formata o período: DD/MM/AAAA até DD/MM/AAAA
+    if (periodo && cfg.dataInicio && cfg.dataFim) {
+        const formatar = (data) => data.split('-').reverse().join('/');
+        periodo.innerText = `Período: ${formatar(cfg.dataInicio)} até ${formatar(cfg.dataFim)}`;
+    }
+}
+
 async function carregarCartaoDaNuvem(perfilUsuario) {
     const idAtual = localStorage.getItem('cartaoAtualId');
     if (!idAtual) { window.location.href = "dashboard.html"; return; }
@@ -40,10 +59,8 @@ async function carregarCartaoDaNuvem(perfilUsuario) {
     if (docSnap.exists()) {
         cartaoAtual = docSnap.data();
         
-        // --- NOVA LÓGICA DE PROTEÇÃO INCLUSIVA ---
+        // --- LÓGICA DE PROTEÇÃO ---
         const ehDono = cartaoAtual.userId === usuarioLogado.uid;
-        
-        // Verifica se o usuário logado é Colaborador OU Gestor do dono do cartão
         const ehParteDaEquipe = (
             (perfilUsuario.tipoConta === 'colaborador' || perfilUsuario.tipoConta === 'gestor') && 
             perfilUsuario.adminId === cartaoAtual.userId
@@ -52,7 +69,11 @@ async function carregarCartaoDaNuvem(perfilUsuario) {
         if (ehDono || ehParteDaEquipe) {
             configAtual = cartaoAtual.config;
             if(!cartaoAtual.batidas) cartaoAtual.batidas = {}; 
-            document.getElementById('info-reclamante').innerText = configAtual.reclamante;
+
+            // --- ATUALIZAÇÃO DO CABEÇALHO ---
+            atualizarCabecalho(configAtual);
+            
+            // Gera a folha
             gerarFolha(configAtual);
         } else {
             alert("Acesso Negado! Este cartão pertence a outro escritório.");

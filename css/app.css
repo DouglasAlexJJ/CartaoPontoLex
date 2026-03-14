@@ -1,9 +1,9 @@
 body { padding-bottom: 80px; }
-.app-header { background: white; padding: 10px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1001; }
-.app-info { text-align: center; }
+.app-header { background: white; padding: 10px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1001; height: auto; min-height: 70px; }
+.app-info { text-align: center; flex: 1; }
 .app-info strong { display: block; color: #0f172a; font-size: 1.1em; }
 .app-info small { color: #64748b; font-size: 0.85em; }
-
+#info-periodo { font-weight: 600; font-weight: 600; }
 .app-container { width: 98%; max-width: 1600px; margin: 20px auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: visible; }
 
 /* ==========================================================================
