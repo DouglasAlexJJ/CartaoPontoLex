@@ -267,26 +267,62 @@ async function salvarProgressoAuto() {
 }
 
 // 4. LÓGICA DE GERAÇÃO DA FOLHA (Mantida intacta)
+// 1. Função para montar o seletor de anos dinamicamente
+function configurarFiltroAnos(cfg) {
+    const select = document.getElementById('filtro-ano');
+    if (!select) return;
+
+    const anoInicio = new Date(cfg.dataInicio + "T00:00:00").getFullYear();
+    const anoFim = new Date(cfg.dataFim + "T00:00:00").getFullYear();
+
+    // Mantém o valor selecionado antes de limpar, para não resetar a view do usuário
+    const valorAtual = select.value;
+
+    select.innerHTML = '<option value="todos">Visualizar Todos os Anos (Lento)</option>';
+    
+    for (let ano = anoInicio; ano <= anoFim; ano++) {
+        const opt = document.createElement('option');
+        opt.value = ano;
+        opt.textContent = `Ano: ${ano}`;
+        select.appendChild(opt);
+    }
+
+    // Restaura a seleção se ela ainda for válida
+    if (valorAtual) select.value = valorAtual;
+}
+
+// 2. Função principal atualizada com Filtro de Ano e Performance
 async function gerarFolha(cfg) {
     const corpo = document.getElementById('corpo-tabela');
     if (!corpo) return; 
+
+    // Garante que o seletor de anos esteja pronto
+    configurarFiltroAnos(cfg);
+
     corpo.innerHTML = '<div style="padding:20px; text-align:center;">Carregando folha e feriados...</div>'; 
 
     const dataInicioObj = new Date(cfg.dataInicio + "T00:00:00");
     const dataFimObj = new Date(cfg.dataFim + "T00:00:00");
+    const anoFiltro = document.getElementById('filtro-ano')?.value || "todos";
 
-    // LÓGICA DE PERFORMANCE: Alerta se o período for maior que 3 anos
-    const diffAnos = dataFimObj.getFullYear() - dataInicioObj.getFullYear();
-    if (diffAnos > 3) {
-        console.warn("⚠️ Período longo detectado. Renderizando...");
-    }
-
-    await carregarFeriados(dataInicioObj.getFullYear(), cfg.uf);
+    // Carrega feriados apenas do ano selecionado (ou do primeiro ano se 'todos')
+    const anoParaFeriados = anoFiltro === "todos" ? dataInicioObj.getFullYear() : parseInt(anoFiltro);
+    await carregarFeriados(anoParaFeriados, cfg.uf);
+    
     corpo.innerHTML = ''; 
 
     let dataAtual = new Date(dataInicioObj);
 
+    // Loop de geração de dias
     while (dataAtual <= dataFimObj) {
+        const anoAtualLoop = dataAtual.getFullYear();
+
+        // LÓGICA DE PERFORMANCE: Se houver filtro de ano, pula os dias que não pertencem ao ano
+        if (anoFiltro !== "todos" && anoAtualLoop.toString() !== anoFiltro) {
+            dataAtual.setDate(dataAtual.getDate() + 1);
+            continue; 
+        }
+
         const numDia = dataAtual.getDay();
         const dataFormatada = dataAtual.toLocaleDateString('pt-BR');
         const dataISO = dataAtual.toISOString().split('T')[0];
@@ -294,7 +330,7 @@ async function gerarFolha(cfg) {
         const ehFeriado = listaFeriadosGlobais.includes(dataISO);
         let ehFolga = false;
 
-        // Lógica de Escalas (Mantida a sua original)
+        // Lógica de Escalas
         if (cfg.escala === "seg-sex") {
             ehFolga = (numDia === 0 || numDia === 6);
         } else if (cfg.escala === "seg-sab") {
@@ -315,6 +351,7 @@ async function gerarFolha(cfg) {
         tr.setAttribute('data-dia', dataFormatada); 
         const batidasSalvasNoBanco = cartaoAtual.batidas[dataFormatada];
         
+        // Lê do formato COMPACTO (f = folga)
         if (batidasSalvasNoBanco && batidasSalvasNoBanco.f !== undefined) {
             ehFolga = batidasSalvasNoBanco.f;
         }
@@ -327,20 +364,20 @@ async function gerarFolha(cfg) {
         }
         
         let qtdDaLinha = parseInt(cfg.qtdBatidas) || 4; 
-        if (batidasSalvasNoBanco && batidasSalvasNoBanco.horas) {
-            qtdDaLinha = batidasSalvasNoBanco.horas.length;
+        if (batidasSalvasNoBanco && batidasSalvasNoBanco.h) {
+            qtdDaLinha = batidasSalvasNoBanco.h.length;
         }
         
         let inputsHtml = "";
         for (let i = 0; i < qtdDaLinha; i++) {
             let val = "";
+            // Lê do formato COMPACTO (h = horas)
             if (batidasSalvasNoBanco && batidasSalvasNoBanco.h && batidasSalvasNoBanco.h[i] !== undefined) {
                 val = batidasSalvasNoBanco.h[i];
             } else if (!ehFolga && cfg.intervaloFixo) {
                 if (i === 1 && cfg.padraoE) val = cfg.padraoE;
                 if (i === 2 && cfg.padraoS) val = cfg.padraoS;
             }
-            // ADICIONADO: oninput="salvarComAtraso()" para cada input
             inputsHtml += `<input type="text" class="ponto ${ehFolga ? 'folga-input' : ''}" maxlength="5" value="${val}" placeholder="--" oninput="salvarComAtraso()">`;
         }
 
@@ -358,9 +395,15 @@ async function gerarFolha(cfg) {
         dataAtual.setDate(dataAtual.getDate() + 1);
     }
     
+    // Calcula os totais das linhas visíveis
     document.querySelectorAll('.linha-ponto').forEach(tr => calcularLinha(tr));
     configurarEventos();
 }
+
+// 3. Função global para o onchange do Select
+window.regerarFolhaFiltro = function() {
+    gerarFolha(configAtual);
+};
 
 function configurarEventos() {
     const inputs = Array.from(document.querySelectorAll('.ponto'));
