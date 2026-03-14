@@ -777,23 +777,6 @@ async function salvarProgressoAuto() {
 
 let timerSalvar;
 
-// Torna a função visível para os inputs da tabela
-window.salvarComAtraso = function() {
-    clearTimeout(timerSalvar);
-    
-    // Feedback visual discreto no console (ou adicione um elemento status no seu HTML)
-    console.log("⏳ Aguardando pausa na digitação para salvar...");
-
-    timerSalvar = setTimeout(async () => {
-        try {
-            await salvarProgressoAuto(); // Usa sua função existente que salva no Firestore
-            console.log("✅ Dados sincronizados com o Firebase!");
-        } catch (e) {
-            console.error("❌ Falha no salvamento automático:", e);
-        }
-    }, 2000); // Salva após 2 segundos de inatividade
-};
-
 // Garante que a função de salvar por clique também funcione
 async function salvarProgressoAuto() {
     if (!cartaoAtual || !usuarioLogado) return;
@@ -844,3 +827,19 @@ async function salvarProgressoAuto() {
         console.error("❌ Erro ao salvar na nuvem:", e);
     }
 }
+// Torna a função visível para os inputs da tabela
+window.salvarComAtraso = function() {
+    clearTimeout(timerSalvar);
+    
+    // Feedback visual discreto no console (ou adicione um elemento status no seu HTML)
+    console.log("⏳ Aguardando pausa na digitação para salvar...");
+
+    timerSalvar = setTimeout(async () => {
+        try {
+            await salvarProgressoAuto(); // Usa sua função existente que salva no Firestore
+            console.log("✅ Dados sincronizados com o Firebase!");
+        } catch (e) {
+            console.error("❌ Falha no salvamento automático:", e);
+        }
+    }, 2000); // Salva após 2 segundos de inatividade
+};
