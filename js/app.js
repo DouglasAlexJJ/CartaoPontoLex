@@ -203,76 +203,36 @@ window.aplicarEscalaPersonalizada = function(btn) {
     salvarProgressoAuto();
 };
 
-// 3. AUTO-SAVE NA NUVEM
-async function salvarProgressoAuto() {
-    if (!cartaoAtual || !usuarioLogado) return;
-
-    let linhas = document.querySelectorAll('.linha-ponto');
-    let diasPreenchidos = 0;
-    cartaoAtual.batidas = {}; 
-    
-    linhas.forEach(tr => {
-        const dataDia = tr.getAttribute('data-dia');
-        const isFolga = tr.classList.contains('folga');
-        const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
-        
-        cartaoAtual.batidas[dataDia] = {
-            isFolga: isFolga,
-            horas: inputs
-        };
-
-        if (isFolga) {
-            diasPreenchidos++;
-        } else {
-            let preenchido = inputs.some(v => v.length === 5);
-            if (preenchido) diasPreenchidos++;
-        }
-    });
-
-    cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
-    cartaoAtual.dataEdicao = Date.now();
-
-    const docRef = doc(db, "cartoes", cartaoAtual.id);
-    await updateDoc(docRef, {
-        batidas: cartaoAtual.batidas,
-        progresso: cartaoAtual.progresso,
-        dataEdicao: cartaoAtual.dataEdicao
-    });
-    
-    console.log("Nuvem atualizada!"); // Verifique isso no F12
-}
-
-// 4. LÓGICA DE GERAÇÃO DA FOLHA (Mantida intacta)
+// 3. LÓGICA DE GERAÇÃO DA FOLHA (Mantida intacta)
 async function gerarFolha(cfg) {
     const corpo = document.getElementById('corpo-tabela');
     if (!corpo) return; 
     corpo.innerHTML = '<div style="padding:20px; text-align:center;">Carregando folha e feriados...</div>'; 
 
-    // Carrega os feriados do ano do início do cartão antes de gerar
-    const anoInicio = new Date(cfg.dataInicio + "T00:00:00").getFullYear();
-    await carregarFeriados(anoInicio, cfg.uf);
-    
+    const dataInicioObj = new Date(cfg.dataInicio + "T00:00:00");
+    const dataFimObj = new Date(cfg.dataFim + "T00:00:00");
+
+    // LÓGICA DE PERFORMANCE: Alerta se o período for maior que 3 anos
+    const diffAnos = dataFimObj.getFullYear() - dataInicioObj.getFullYear();
+    if (diffAnos > 3) {
+        console.warn("⚠️ Período longo detectado. Renderizando...");
+    }
+
+    await carregarFeriados(dataInicioObj.getFullYear(), cfg.uf);
     corpo.innerHTML = ''; 
 
-    let dataAtual = new Date(cfg.dataInicio + "T00:00:00");
-    const dataFim = new Date(cfg.dataFim + "T00:00:00");
+    let dataAtual = new Date(dataInicioObj);
 
-    while (dataAtual <= dataFim) {
+    while (dataAtual <= dataFimObj) {
         const numDia = dataAtual.getDay();
         const dataFormatada = dataAtual.toLocaleDateString('pt-BR');
-        
-        // Formato para comparar com a API (YYYY-MM-DD)
         const dataISO = dataAtual.toISOString().split('T')[0];
         
-        let ehFolga = false;
-        // MARCAÇÃO DE FERIADO: Verifica se a data está na lista da API Brasil
         const ehFeriado = listaFeriadosGlobais.includes(dataISO);
-        let destaqueFDSouFeriado = (numDia === 0 || numDia === 6 || ehFeriado);
+        let ehFolga = false;
 
-        // Lógica de Escalas
-        if (cfg.escala === "livre") {
-            ehFolga = false; 
-        } else if (cfg.escala === "seg-sex") {
+        // Lógica de Escalas (Mantida a sua original)
+        if (cfg.escala === "seg-sex") {
             ehFolga = (numDia === 0 || numDia === 6);
         } else if (cfg.escala === "seg-sab") {
             ehFolga = (numDia === 0);
@@ -290,18 +250,15 @@ async function gerarFolha(cfg) {
 
         const tr = document.createElement('tr');
         tr.setAttribute('data-dia', dataFormatada); 
-
         const batidasSalvasNoBanco = cartaoAtual.batidas[dataFormatada];
         
         if (batidasSalvasNoBanco && batidasSalvasNoBanco.isFolga !== undefined) {
             ehFolga = batidasSalvasNoBanco.isFolga;
         }
 
-        // APLICAÇÃO VISUAL
-        // Se for feriado ou domingo, adicionamos uma classe de destaque (que você pode estilizar no CSS)
         if (ehFeriado || numDia === 0) {
             tr.className = `linha-ponto destaque-feriado ${ehFolga ? 'folga' : ''}`;
-            if(ehFeriado) tr.style.backgroundColor = "#fff5f5"; // Leve tom vermelho para feriado
+            if(ehFeriado) tr.style.backgroundColor = "#fff5f5";
         } else {
             tr.className = `linha-ponto ${ehFolga ? 'folga' : ''}`;
         }
@@ -309,7 +266,6 @@ async function gerarFolha(cfg) {
         let qtdDaLinha = parseInt(cfg.qtdBatidas) || 4; 
         if (batidasSalvasNoBanco && batidasSalvasNoBanco.horas) {
             qtdDaLinha = batidasSalvasNoBanco.horas.length;
-            if (qtdDaLinha < 2) qtdDaLinha = 2; 
         }
         
         let inputsHtml = "";
@@ -321,7 +277,8 @@ async function gerarFolha(cfg) {
                 if (i === 1 && cfg.padraoE) val = cfg.padraoE;
                 if (i === 2 && cfg.padraoS) val = cfg.padraoS;
             }
-            inputsHtml += `<input type="text" class="ponto ${ehFolga ? 'folga-input' : ''}" maxlength="5" value="${val}" placeholder="--">`;
+            // ADICIONADO: oninput="salvarComAtraso()" para cada input
+            inputsHtml += `<input type="text" class="ponto ${ehFolga ? 'folga-input' : ''}" maxlength="5" value="${val}" placeholder="--" oninput="salvarComAtraso()">`;
         }
 
         tr.innerHTML = `
@@ -747,4 +704,143 @@ function alternarFeriadoManual(tr) {
 
     salvarProgressoAuto(); 
     // calcularLinha(tr); // Descomente quando criarmos a regra dos 100%
+}
+
+
+// Torna a função visível para os inputs da tabela
+window.salvarComAtraso = function() {
+    clearTimeout(timerSalvar);
+    
+    // Feedback visual discreto no console (ou adicione um elemento status no seu HTML)
+    console.log("⏳ Aguardando pausa na digitação para salvar...");
+
+    timerSalvar = setTimeout(async () => {
+        try {
+            await salvarProgressoAuto(); // Usa sua função existente que salva no Firestore
+            console.log("✅ Dados sincronizados com o Firebase!");
+        } catch (e) {
+            console.error("❌ Falha no salvamento automático:", e);
+        }
+    }, 2000); // Salva após 2 segundos de inatividade
+};
+
+// Garante que a função de salvar por clique também funcione
+async function salvarProgressoAuto() {
+    if (!cartaoAtual || !usuarioLogado) return;
+
+    const idAtual = localStorage.getItem('cartaoAtualId');
+    if (!idAtual) return;
+
+    let linhas = document.querySelectorAll('.linha-ponto');
+    let diasPreenchidos = 0;
+    
+    // Criamos um objeto temporário para não resetar o cartaoAtual.batidas bruscamente
+    const novasBatidas = {}; 
+    
+    linhas.forEach(tr => {
+        const dataDia = tr.getAttribute('data-dia');
+        const isFolga = tr.classList.contains('folga');
+        const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
+        
+        novasBatidas[dataDia] = {
+            isFolga: isFolga,
+            horas: inputs
+        };
+
+        // Lógica de contagem para o progresso
+        if (isFolga) {
+            diasPreenchidos++;
+        } else {
+            // Verifica se pelo menos um campo de hora foi preenchido (ex: "08:00")
+            let preenchido = inputs.some(v => v && v.length === 5);
+            if (preenchido) diasPreenchidos++;
+        }
+    });
+
+    // Atualiza o objeto local
+    cartaoAtual.batidas = novasBatidas;
+    cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
+    cartaoAtual.dataEdicao = Date.now();
+
+    try {
+        const docRef = doc(db, "cartoes", idAtual);
+        await updateDoc(docRef, {
+            batidas: cartaoAtual.batidas,
+            progresso: cartaoAtual.progresso,
+            dataEdicao: cartaoAtual.dataEdicao
+        });
+        console.log(`✅ Nuvem atualizada! Progresso: ${cartaoAtual.progresso}%`);
+    } catch (e) {
+        console.error("❌ Erro ao salvar na nuvem:", e);
+    }
+}
+
+let timerSalvar;
+
+// Torna a função visível para os inputs da tabela
+window.salvarComAtraso = function() {
+    clearTimeout(timerSalvar);
+    
+    // Feedback visual discreto no console (ou adicione um elemento status no seu HTML)
+    console.log("⏳ Aguardando pausa na digitação para salvar...");
+
+    timerSalvar = setTimeout(async () => {
+        try {
+            await salvarProgressoAuto(); // Usa sua função existente que salva no Firestore
+            console.log("✅ Dados sincronizados com o Firebase!");
+        } catch (e) {
+            console.error("❌ Falha no salvamento automático:", e);
+        }
+    }, 2000); // Salva após 2 segundos de inatividade
+};
+
+// Garante que a função de salvar por clique também funcione
+async function salvarProgressoAuto() {
+    if (!cartaoAtual || !usuarioLogado) return;
+
+    const idAtual = localStorage.getItem('cartaoAtualId');
+    if (!idAtual) return;
+
+    let linhas = document.querySelectorAll('.linha-ponto');
+    let diasPreenchidos = 0;
+    
+    // Criamos um objeto temporário para não resetar o cartaoAtual.batidas bruscamente
+    const novasBatidas = {}; 
+    
+    linhas.forEach(tr => {
+        const dataDia = tr.getAttribute('data-dia');
+        const isFolga = tr.classList.contains('folga');
+        const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
+        
+        novasBatidas[dataDia] = {
+            isFolga: isFolga,
+            horas: inputs
+        };
+
+        // Lógica de contagem para o progresso
+        if (isFolga) {
+            diasPreenchidos++;
+        } else {
+            // Verifica se pelo menos um campo de hora foi preenchido (ex: "08:00")
+            let preenchido = inputs.some(v => v && v.length === 5);
+            if (preenchido) diasPreenchidos++;
+        }
+    });
+
+    // Atualiza o objeto local
+    cartaoAtual.batidas = novasBatidas;
+    cartaoAtual.progresso = Math.round((diasPreenchidos / linhas.length) * 100);
+    cartaoAtual.dataEdicao = Date.now();
+
+    try {
+        const docRef = doc(db, "cartoes", idAtual);
+        await updateDoc(docRef, {
+            batidas: cartaoAtual.batidas,
+            progresso: cartaoAtual.progresso,
+            dataEdicao: cartaoAtual.dataEdicao
+        });
+        console.log(`✅ Nuvem atualizada! Progresso: ${cartaoAtual.progresso}%`);
+    } catch (e) {
+        console.error("❌ Erro ao salvar na nuvem:", e);
+    }
 }
