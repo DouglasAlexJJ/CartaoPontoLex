@@ -308,3 +308,81 @@ tr.linha-ponto:hover .btn-acao-dia {
     font-weight: 700;
     letter-spacing: 0.5px;
 }
+/* ==========================================================================
+   SISTEMA DE MODAIS (AFASTAMENTOS E AJUSTES)
+   ========================================================================== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.7); /* Fundo escuro semi-transparente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000; /* Garante que fique por cima de absolutamente tudo */
+    backdrop-filter: blur(3px); /* Efeito premium de desfoque no fundo */
+}
+
+/* Classe que esconde o modal */
+.modal-overlay.escondido {
+    display: none !important;
+}
+
+.modal-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    max-width: 450px;
+    overflow: hidden;
+    animation: modalEntrada 0.3s ease-out; /* Animação suave ao abrir */
+}
+
+@keyframes modalEntrada {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.btn-fechar {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    line-height: 1;
+    cursor: pointer;
+    color: #64748b;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+.btn-fechar:hover {
+    color: #ef4444;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
