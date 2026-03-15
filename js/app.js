@@ -404,13 +404,21 @@ async function gerarFolha(cfg) {
 window.verificarPuloDeAno = function() {
     if (typeof configAtual === 'undefined' || !configAtual) return;
     
+    // CORREÇÃO: Força o salvamento imediato ANTES de destruir a tela atual!
+    // Usamos a salvarProgressoAuto() direta, sem o "ComAtraso".
+    if (typeof window.salvarProgressoAuto === 'function') {
+        window.salvarProgressoAuto(); 
+    } else if (typeof salvarProgressoAuto === 'function') {
+        salvarProgressoAuto();
+    }
+    
     const anoFimProcesso = new Date(configAtual.dataFim + "T00:00:00").getFullYear();
     
     if (anoVisualizacaoAtual < anoFimProcesso) {
         // Pula para o próximo ano e avisa que veio pelo teclado (true)
         window.mudarAno(1, true); 
     } else {
-        // Se já estiver no último ano do processo, dá um aviso amigável
+        // Se já estiver no último ano do processo
         alert("Você chegou ao final do período deste cartão!");
     }
 };
