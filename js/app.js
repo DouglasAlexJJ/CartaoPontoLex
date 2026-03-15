@@ -8,8 +8,8 @@ import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.
 
 const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 let configAtual = {};
+let cartaoAtual = null; // Tem que ser global para a gerarFolha ver
 window.batidasGlobal = {};
-let cartaoAtual = null;
 let usuarioLogado = null;
 let listaFeriadosGlobais = [];
 let anoVisualizacaoAtual = null;
@@ -59,7 +59,8 @@ async function carregarCartaoDaNuvem(perfilUsuario) {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-        const cartaoAtual = docSnap.data(); // Note que adicionei o 'const' aqui
+        // ATENÇÃO: Alimentando a variável GLOBAL cartaoAtual
+        cartaoAtual = docSnap.data(); 
         
         const ehDono = cartaoAtual.userId === usuarioLogado.uid;
         const ehParteDaEquipe = (
@@ -68,22 +69,17 @@ async function carregarCartaoDaNuvem(perfilUsuario) {
         );
 
         if (ehDono || ehParteDaEquipe) {
-            // --- ATUALIZAÇÃO DAS VARIÁVEIS GLOBAIS ---
             configAtual = cartaoAtual.config;
-            window.batidasGlobal = cartaoAtual.batidas || {}; // MÁGICA: Agora o PDF vai enxergar os dados!
+            window.batidasGlobal = cartaoAtual.batidas || {}; 
 
-            // --- ATUALIZAÇÃO DO CABEÇALHO ---
             atualizarCabecalho(configAtual);
             
-            // Gera a folha
-            gerarFolha(configAtual);
+            // Agora a gerarFolha vai encontrar o cartaoAtual preenchido
+            gerarFolha(configAtual); 
         } else {
-            alert("Acesso Negado! Este cartão pertence a outro escritório.");
+            alert("Acesso Negado!");
             window.location.href = "dashboard.html";
         }
-    } else {
-        alert("Cartão não encontrado.");
-        window.location.href = "dashboard.html";
     }
 }
 
@@ -339,7 +335,7 @@ async function gerarFolha(cfg) {
             tr.setAttribute('data-dia', dataFormatada); 
             
             // Busca dados no formato compacto (f e h)
-            const batidasSalvasNoBanco = cartaoAtual.batidas[dataFormatada];
+            const batidasSalvasNoBanco = (cartaoAtual && cartaoAtual.batidas) ? cartaoAtual.batidas[dataFormatada] : null;
             
             if (batidasSalvasNoBanco && batidasSalvasNoBanco.f !== undefined) {
                 ehFolga = batidasSalvasNoBanco.f;
@@ -1131,7 +1127,9 @@ window.gerarPDF = function() {
 
     const { reclamante, reclamada, dataInicio, dataFim, qtdBatidas } = configAtual;
     const nBatidas = parseInt(qtdBatidas || 4);
-    
+    const diaFmt = dataVar.toLocaleDateString('pt-BR');
+    const registro = (window.batidasGlobal && window.batidasGlobal[diaFmt]) ? window.batidasGlobal[diaFmt] : null;
+    const batidas = (registro && registro.h) ? registro.h : [];
     const elemento = document.createElement('div');
     elemento.style.padding = '15px';
     elemento.style.fontFamily = 'Arial, sans-serif';
