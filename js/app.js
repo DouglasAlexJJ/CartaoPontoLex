@@ -616,15 +616,22 @@ function pularLinha(trAtual) {
 }
 
 function calcularLinha(tr) {
+    if (!configAtual) return;
+
     const ins = tr.querySelectorAll('.ponto');
-    const isDomingoOuFeriado = tr.classList.contains('destaque-vermelho'); // Vem do seu gerarFolha
+    const dataString = tr.getAttribute('data-dia'); // Ex: "15/05/2024"
+    const isFeriado = tr.classList.contains('destaque-feriado') || tr.classList.contains('destaque-vermelho');
     const isFolga = tr.classList.contains('folga');
     
+    // Detectar se é Sábado ou Domingo para as porcentagens de folga
+    const [dia, mes, ano] = dataString.split('/');
+    const dataObj = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+    const diaSemana = dataObj.getDay(); // 0 = Domingo, 6 = Sábado
+
     let totalDiurno = 0;
     let totalNoturnoFicto = 0;
-    let totalNoturnoRelogio = 0;
 
-    // 1. Soma todos os turnos do dia
+    // 1. Soma todos os turnos do dia (Usando sua lógica de turnos)
     for (let i = 0; i < ins.length; i += 2) {
         const e = hhmmParaMin(ins[i]?.value);
         const s = hhmmParaMin(ins[i+1]?.value);
@@ -633,44 +640,86 @@ function calcularLinha(tr) {
             const turno = calcularTurno(e, s);
             totalDiurno += turno.diurno;
             totalNoturnoFicto += turno.noturnoFicto;
-            totalNoturnoRelogio += turno.noturnoRelogio;
         }
     }
 
-    let tempoTotal = totalDiurno + totalNoturnoFicto;
-    let tempoTotalEmHoras = tempoTotal / 60; // Para facilitar os limites
+    let tempoTotalMinutos = totalDiurno + totalNoturnoFicto;
+    let tempoTotalHoras = tempoTotalMinutos / 60;
     
-    // 2. Lógica de Horas Extras (Assumindo limite de 8h diárias por padrão)
-    // O ideal será buscar esse limite da config (ex: cfg.horasDiarias)
-    const LIMITE_DIARIO = 8; 
+    // 2. Definição de Limites e Porcentagens (Vem da nossa Config do Firebase)
+    const LIMITE_DIARIO = configAtual.horasDiarias || 8; 
+    const pctFolga1 = parseFloat(configAtual.heFolga1 || 50); // Sábado / 1ª Folga
+    const pctFolga2 = parseFloat(configAtual.heFolga2 || 100); // Domingo / Feriado
+    const regrasEscada = configAtual.regrasExtra || [{limite: '', porcento: 50}];
+
     let horasNormais = 0;
-    let extras50 = 0;
-    let extras100 = 0;
+    let extrasPorFaixa = {}; // Objeto para guardar { '50': 2, '60': 1.5 }
 
-    if (isFolga || isDomingoOuFeriado) {
-        // Trabalhou no dia de descanso? É tudo 100%!
-        extras100 = tempoTotalEmHoras;
+    // --- LÓGICA DE DISTRIBUIÇÃO DAS HORAS ---
+
+    if (isFeriado || (isFolga && diaSemana === 0)) {
+        // DOMINGOS E FERIADOS (100% ou Folga 2)
+        extrasPorFaixa[pctFolga2] = tempoTotalHoras;
+
+    } else if (isFolga && diaSemana === 6) {
+        // SÁBADOS (50% ou Folga 1)
+        extrasPorFaixa[pctFolga1] = tempoTotalHoras;
+
+    } else if (isFolga) {
+        // OUTRAS FOLGAS (Escala 6x2 por exemplo) - Usa Folga 1 por padrão
+        extrasPorFaixa[pctFolga1] = tempoTotalHoras;
+
     } else {
-        // Dia normal
-        if (tempoTotalEmHoras > LIMITE_DIARIO) {
+        // DIA NORMAL DE TRABALHO
+        if (tempoTotalHoras > LIMITE_DIARIO) {
             horasNormais = LIMITE_DIARIO;
-            extras50 = tempoTotalEmHoras - LIMITE_DIARIO;
+            let saldoExtra = tempoTotalHoras - LIMITE_DIARIO;
+
+            // MÁGICA: Percorre a "Escadinha" de Horas Extras
+            let acumuladoExtra = 0;
+            
+            // Ordena as regras por limite para não ter erro
+            const regrasOrdenadas = [...regrasEscada].sort((a, b) => {
+                if (a.limite === '') return 1;
+                if (b.limite === '') return -1;
+                return a.limite - b.limite;
+            });
+
+            regrasOrdenadas.forEach(regra => {
+                if (saldoExtra <= 0) return;
+
+                const pct = regra.porcento;
+                const lim = regra.limite;
+
+                if (lim === '' || isNaN(lim)) {
+                    // É a última faixa (ex: "em diante")
+                    extrasPorFaixa[pct] = (extrasPorFaixa[pct] || 0) + saldoExtra;
+                    saldoExtra = 0;
+                } else {
+                    let disponivelNestaFaixa = lim - acumuladoExtra;
+                    if (disponivelNestaFaixa > 0) {
+                        let consumo = Math.min(saldoExtra, disponivelNestaFaixa);
+                        extrasPorFaixa[pct] = (extrasPorFaixa[pct] || 0) + consumo;
+                        saldoExtra -= consumo;
+                        acumuladoExtra += consumo;
+                    }
+                }
+            });
         } else {
-            horasNormais = tempoTotalEmHoras;
+            horasNormais = tempoTotalHoras;
         }
     }
 
-    // 3. Atualiza o HTML
-    // Aqui nós preenchemos a coluna Total, mas já temos os dados das Extras!
-    tr.querySelector('.total-dia').innerText = minParaHHMM(Math.round(tempoTotal));
+    // 3. Atualiza o HTML e o DATASET para o rodapé ler depois
+    tr.querySelector('.total-dia').innerText = minParaHHMM(Math.round(tempoTotalMinutos));
     
-    // Podemos guardar os dados no TR para depois somar no rodapé geral
-    tr.dataset.normais = horasNormais.toFixed(2);
-    tr.dataset.ext50 = extras50.toFixed(2);
-    tr.dataset.ext100 = extras100.toFixed(2);
-    tr.dataset.adcNoturno = (totalNoturnoFicto / 60).toFixed(2);
+    // Guardamos o objeto de extras como uma string JSON para o rodapé conseguir somar qualquer %
+    tr.dataset.normais = horasNormais.toFixed(4);
+    tr.dataset.extrasJson = JSON.stringify(extrasPorFaixa);
+    tr.dataset.adcNoturno = (totalNoturnoFicto / 60).toFixed(4);
 
-    atualizarTotalGeral();
+    // Se você tiver a função de atualizar os totais do ano, chama ela
+    if (typeof atualizarTotalGeral === 'function') atualizarTotalGeral();
 }
 
 function hhmmParaMin(t) {
@@ -682,39 +731,51 @@ function hhmmParaMin(t) {
 function minParaHHMM(t) { return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; }
 
 function atualizarTotalGeral() {
-    let totGeral = 0;
-    let totNormais = 0;
-    let totExt50 = 0;
-    let totExt100 = 0;
-    let totNoturno = 0;
+    let totGeralMinutos = 0;
+    let totNormaisDecimal = 0;
+    let totNoturnoDecimal = 0;
+    let acumuladorExtras = {};
 
     document.querySelectorAll('.linha-ponto').forEach(tr => {
-        // 1. Soma do tempo total visual (o que aparece na coluna Total da tabela)
         const tempoVisual = tr.querySelector('.total-dia').innerText;
-        totGeral += hhmmParaMin(tempoVisual);
-        
-        // 2. Soma das rubricas jurídicas (que estão escondidas no dataset da linha)
-        totNormais += parseFloat(tr.dataset.normais || 0);
-        totExt50 += parseFloat(tr.dataset.ext50 || 0);
-        totExt100 += parseFloat(tr.dataset.ext100 || 0);
-        totNoturno += parseFloat(tr.dataset.adcNoturno || 0);
+        totGeralMinutos += hhmmParaMin(tempoVisual);
+        totNormaisDecimal += parseFloat(tr.dataset.normais || 0);
+        totNoturnoDecimal += parseFloat(tr.dataset.adcNoturno || 0);
+
+        try {
+            const extrasDaLinha = JSON.parse(tr.dataset.extrasJson || '{}');
+            for (let pct in extrasDaLinha) {
+                if (!acumuladorExtras[pct]) acumuladorExtras[pct] = 0;
+                acumuladorExtras[pct] += extrasDaLinha[porcentagem];
+            }
+        } catch (e) {}
     });
 
-    // Atualiza o painel na tela
-    document.getElementById('total-geral-periodo').innerText = minParaHHMM(totGeral);
-    
-    // Converte os decimais de volta para relógio e atualiza os visores coloridos
-    const elNormais = document.getElementById('total-normais');
-    if(elNormais) elNormais.innerText = decimalParaHHMM(totNormais);
-    
-    const elExt50 = document.getElementById('total-ext50');
-    if(elExt50) elExt50.innerText = decimalParaHHMM(totExt50);
-    
-    const elExt100 = document.getElementById('total-ext100');
-    if(elExt100) elExt100.innerText = decimalParaHHMM(totExt100);
-    
-    const elNoturno = document.getElementById('total-noturno');
-    if(elNoturno) elNoturno.innerText = decimalParaHHMM(totNoturno);
+    // 1. Atualiza os fixos
+    document.getElementById('total-geral-periodo').innerText = minParaHHMM(totGeralMinutos);
+    document.getElementById('total-normais').innerText = decimalParaHHMM(totNormaisDecimal);
+    document.getElementById('total-noturno').innerText = decimalParaHHMM(totNoturnoDecimal);
+
+    // 2. MÁGICA: Gera os totais de extras dinamicamente
+    const containerExtras = document.getElementById('container-extras-dinamico');
+    if (containerExtras) {
+        containerExtras.innerHTML = ""; // Limpa para reconstruir
+
+        // Ordena as porcentagens para o rodapé ficar organizado (50%, 60%, 100%...)
+        Object.keys(acumuladorExtras).sort((a,b) => a-b).forEach(pct => {
+            const totalHhMm = decimalParaHHMM(acumuladorExtras[pct]);
+            
+            const div = document.createElement('div');
+            div.className = "resumo-item";
+            div.style.borderLeft = "2px solid #e2e8f0";
+            div.style.paddingLeft = "15px";
+            div.innerHTML = `
+                <span>Total ${pct}%</span>
+                <strong>${totalHhMm}</strong>
+            `;
+            containerExtras.appendChild(div);
+        });
+    }
 }
 
 function ehFeriadoNacional(data) {

@@ -75,27 +75,22 @@
 
     <footer id="rodape-totalizador">
     <div class="resumo-painel">
-        <div class="resumo-item">
-            <span>Total Geral Trabalhado Esse Ano</span>
-            <strong id="total-geral-periodo">00:00</strong>
-        </div>
-        <div class="resumo-item">
-            <span>Horas Normais</span>
-            <strong id="total-normais" style="color: #f1f5f9;">00:00</strong>
-        </div>
-        <div class="resumo-item">
-            <span>Extras (50%)</span>
-            <strong id="total-ext50" style="color: #fbbf24;">00:00</strong>
-        </div>
-        <div class="resumo-item">
-            <span>Extras (100%)</span>
-            <strong id="total-ext100" style="color: #f87171;">00:00</strong>
-        </div>
-        <div class="resumo-item">
-            <span>Adic. Noturno Fictício</span>
-            <strong id="total-noturno" style="color: #60a5fa;">00:00</strong>
-        </div>
+    <div class="resumo-item">
+        <span>Total Geral (Ano)</span>
+        <strong id="total-geral-periodo">00:00</strong>
     </div>
+    
+    <div class="resumo-item">
+        <span>Normais</span>
+        <strong id="total-normais">00:00</strong>
+    </div>
+    <div class="resumo-item">
+        <span>Adic. Noturno</span>
+        <strong id="total-noturno">00:00</strong>
+    </div>
+
+    <div id="container-extras-dinamico" style="display: flex; gap: 15px;"></div>
+</div>
 </footer>
     <script type="module" src="js/app.js"></script>
 
