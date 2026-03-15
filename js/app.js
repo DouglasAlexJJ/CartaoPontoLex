@@ -8,6 +8,7 @@ import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.
 
 const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 let configAtual = {};
+window.batidasGlobal = {};
 let cartaoAtual = null;
 let usuarioLogado = null;
 let listaFeriadosGlobais = [];
@@ -58,9 +59,8 @@ async function carregarCartaoDaNuvem(perfilUsuario) {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-        cartaoAtual = docSnap.data();
+        const cartaoAtual = docSnap.data(); // Note que adicionei o 'const' aqui
         
-        // --- LÓGICA DE PROTEÇÃO ---
         const ehDono = cartaoAtual.userId === usuarioLogado.uid;
         const ehParteDaEquipe = (
             (perfilUsuario.tipoConta === 'colaborador' || perfilUsuario.tipoConta === 'gestor') && 
@@ -68,8 +68,9 @@ async function carregarCartaoDaNuvem(perfilUsuario) {
         );
 
         if (ehDono || ehParteDaEquipe) {
+            // --- ATUALIZAÇÃO DAS VARIÁVEIS GLOBAIS ---
             configAtual = cartaoAtual.config;
-            if(!cartaoAtual.batidas) cartaoAtual.batidas = {}; 
+            window.batidasGlobal = cartaoAtual.batidas || {}; // MÁGICA: Agora o PDF vai enxergar os dados!
 
             // --- ATUALIZAÇÃO DO CABEÇALHO ---
             atualizarCabecalho(configAtual);
