@@ -1120,107 +1120,98 @@ window.aplicarAjusteDatas = function() {
     alert("Período atualizado com sucesso!");
 };
 window.gerarPDF = function() {
-    if (!configAtual || !window.batidasGlobal) {
-        alert("Erro: Dados do cartão não carregados corretamente.");
+    // 1. Verificação de segurança inicial
+    if (!configAtual || !configAtual.dataInicio || !configAtual.dataFim) {
+        alert("Erro: Configurações do período não encontradas.");
         return;
     }
 
     const { reclamante, reclamada, dataInicio, dataFim, qtdBatidas } = configAtual;
     const nBatidas = parseInt(qtdBatidas || 4);
-    const diaFmt = dataVar.toLocaleDateString('pt-BR');
-    const registro = (window.batidasGlobal && window.batidasGlobal[diaFmt]) ? window.batidasGlobal[diaFmt] : null;
-    const batidas = (registro && registro.h) ? registro.h : [];
-    const elemento = document.createElement('div');
-    elemento.style.padding = '15px';
-    elemento.style.fontFamily = 'Arial, sans-serif';
-
-    // --- 1. PREPARAÇÃO DOS DADOS ---
-    // Forçamos a data para o início do dia para evitar erros de fuso horário
+    
+    // 2. Criação das datas (Ordem correta para evitar o ReferenceError)
     const dataIn = new Date(dataInicio + "T00:00:00");
     const dataFi = new Date(dataFim + "T00:00:00");
-    
+    let dataVar = new Date(dataIn); // Inicializada aqui, ANTES de qualquer uso
+
     let acumGeralExtras = {};
     let totGeralNormais = 0;
     let totGeralNoturno = 0;
     let totGeralMinutos = 0;
-
     const mesesRelatorio = {};
 
-    let dataVar = new Date(dataIn);
+    // 3. Loop pelo período total
     while (dataVar <= dataFi) {
-        const diaFmt = dataVar.toLocaleDateString('pt-BR'); // "15/03/2026"
-        const diaKey = diaFmt.replace(/\//g, '_'); // "15_03_2026"
+        const diaFmt = dataVar.toLocaleDateString('pt-BR');
+        const diaKeyUnderline = diaFmt.replace(/\//g, '_');
         
-        // Buscamos as batidas direto do objeto global que você usa no Firebase
-        const batidas = window.batidasGlobal[diaKey] || [];
+        // Busca o registro (que contém .h e .f)
+        const registro = (window.batidasGlobal[diaFmt]) || (window.batidasGlobal[diaKeyUnderline]) || null;
         
-        // Verifica se tem qualquer batida preenchida
-        const temDados = batidas.some(b => b && b.trim() !== "");
-
-        if (temDados) {
-            // CALCULO REAL DO DIA (Escadinha inclusa)
+        // Extrai o array de batidas (.h)
+        const batidas = (registro && registro.h) ? registro.h : [];
+        
+        // Só processa se o dia tiver alguma batida digitada
+        if (batidas.some(b => b && b.trim() !== "")) {
             const res = calcularValoresDiaParaRelatorio(dataVar, batidas);
-            
             const mesAno = diaFmt.substring(3); // "03/2026"
-            if (!mesesRelatorio[mesAno]) mesesRelatorio[mesAno] = [];
             
-            mesesRelatorio[mesAno].push({
-                data: diaFmt,
-                batidas: batidas,
-                total: res.totalFormatado,
-                noturno: res.noturno,
-                isDestaque: res.isDestaque
-            });
+            if (!mesesRelatorio[mesAno]) mesesRelatorio[mesAno] = [];
+            mesesRelatorio[mesAno].push({ data: diaFmt, batidas, res });
 
-            // Acumuladores para o Resumo Final
+            // Soma nos acumuladores
             totGeralNormais += res.normais;
             totGeralNoturno += res.noturno;
             totGeralMinutos += res.totalMinutos;
-            
-            for (let pct in res.extras) {
-                acumGeralExtras[pct] = (acumGeralExtras[pct] || 0) + res.extras[pct];
+            for (let p in res.extras) { 
+                acumGeralExtras[p] = (acumGeralExtras[p] || 0) + res.extras[p]; 
             }
         }
+        // Incrementa o dia para a próxima volta do loop
         dataVar.setDate(dataVar.getDate() + 1);
     }
 
-    // Verificação de segurança: Se não achou nada, avisa o usuário
+    // 4. Se não encontrou nada em nenhum ano/mês
     if (Object.keys(mesesRelatorio).length === 0) {
-        alert("Nenhum dado encontrado no período para gerar o relatório.");
+        alert("Não há batidas preenchidas no período selecionado.");
         return;
     }
 
-    // --- 2. MONTAGEM DO HTML (MESES) ---
-    let colunasHeader = `<th style="border: 1px solid #334155; padding: 4px;">DATA</th>`;
-    for (let i = 1; i <= nBatidas / 2; i++) {
-        colunasHeader += `<th style="border: 1px solid #334155;">ENT ${i}</th><th style="border: 1px solid #334155;">SAÍ ${i}</th>`;
-    }
-    colunasHeader += `<th style="border: 1px solid #334155;">TOTAL</th><th style="border: 1px solid #334155;">NOT.</th>`;
+    // 5. Montagem do Elemento HTML para o PDF
+    const elemento = document.createElement('div');
+    elemento.style.padding = '15px';
+    elemento.style.fontFamily = 'Arial, sans-serif';
 
+    // Cabeçalho das colunas (Entrada 1, Saída 1...)
+    let colunasHeader = `<th style="border:1px solid #333; padding:5px;">DATA</th>`;
+    for (let i = 1; i <= nBatidas / 2; i++) {
+        colunasHeader += `<th style="border:1px solid #333;">ENT ${i}</th><th style="border:1px solid #333;">SAÍ ${i}</th>`;
+    }
+    colunasHeader += `<th style="border:1px solid #333;">TOTAL</th><th style="border:1px solid #333;">NOT.</th>`;
+
+    // Gerar páginas por mês
     Object.keys(mesesRelatorio).forEach(mesAno => {
         const divMes = document.createElement('div');
         divMes.style.pageBreakAfter = 'always';
         divMes.innerHTML = `
-            <div style="text-align:center; border-bottom: 2px solid #0f172a; margin-bottom: 15px; padding-bottom: 10px;">
-                <h2 style="margin:0;">DEMONSTRATIVO DE FREQUÊNCIA - ${mesAno}</h2>
-                <p style="margin:5px 0; font-size: 0.9em;"><strong>Reclamante:</strong> ${reclamante} | <strong>Reclamada:</strong> ${reclamada}</p>
+            <div style="text-align:center; border-bottom:2px solid #000; margin-bottom:20px; padding-bottom:10px;">
+                <h2 style="margin:0;">RELATÓRIO DE PONTO - ${mesAno}</h2>
+                <p style="margin:5px 0;"><strong>Reclamante:</strong> ${reclamante} | <strong>Reclamada:</strong> ${reclamada}</p>
             </div>
             <table style="width:100%; border-collapse:collapse; font-size: 8.5px; text-align:center;">
                 <thead><tr style="background:#f1f5f9;">${colunasHeader}</tr></thead>
                 <tbody>
                     ${mesesRelatorio[mesAno].map(d => {
-                        let celulas = '';
+                        let cels = '';
                         for(let j=0; j<nBatidas; j++) {
-                            celulas += `<td style="border: 1px solid #e2e8f0; padding: 3px;">${d.batidas[j] || '-'}</td>`;
+                            cels += `<td style="border:1px solid #ccc; padding:3px;">${d.batidas[j] || '-'}</td>`;
                         }
-                        return `
-                            <tr style="${d.isDestaque ? 'background:#f8fafc;' : ''}">
-                                <td style="border: 1px solid #e2e8f0; font-weight:bold;">${d.data}</td>
-                                ${celulas}
-                                <td style="border: 1px solid #e2e8f0; font-weight:bold;">${d.total}</td>
-                                <td style="border: 1px solid #e2e8f0;">${decimalParaHHMM(d.noturno)}</td>
-                            </tr>
-                        `;
+                        return `<tr>
+                            <td style="border:1px solid #ccc; font-weight:bold;">${d.data}</td>
+                            ${cels}
+                            <td style="border:1px solid #ccc; font-weight:bold; background:#fafafa;">${d.res.totalFormatado}</td>
+                            <td style="border:1px solid #ccc;">${decimalParaHHMM(d.res.noturno)}</td>
+                        </tr>`;
                     }).join('')}
                 </tbody>
             </table>
@@ -1228,51 +1219,48 @@ window.gerarPDF = function() {
         elemento.appendChild(divMes);
     });
 
-    // --- 3. RESUMO FINAL ---
+    // 6. Resumo Final (Última Página)
     const divResumo = document.createElement('div');
     let extrasHtml = '';
     Object.keys(acumGeralExtras).sort((a,b)=>a-b).forEach(p => {
         extrasHtml += `
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 8px;">Horas Extras ${p}%</td>
-                <td style="padding: 8px; text-align:right;"><strong>${decimalParaHHMM(acumGeralExtras[p])}</strong></td>
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding:10px;">Horas Extras ${p}%</td>
+                <td style="padding:10px; text-align:right;"><strong>${decimalParaHHMM(acumGeralExtras[p])}</strong></td>
             </tr>
         `;
     });
 
     divResumo.innerHTML = `
-        <div style="text-align:center; margin-top: 20px;">
-            <h2 style="background:#0f172a; color:white; padding: 10px; border-radius: 5px;">RESUMO CONSOLIDADO DO PERÍODO</h2>
+        <div style="text-align:center; margin-top:30px;">
+            <h2 style="background:#1e293b; color:white; padding:15px; border-radius:8px;">RESUMO CONSOLIDADO</h2>
         </div>
-        <table style="width:100%; max-width: 500px; margin: 20px auto; border-collapse:collapse; border: 1px solid #0f172a;">
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 8px;">Horas Normais:</td>
-                <td style="padding: 8px; text-align:right;">${decimalParaHHMM(totGeralNormais)}</td>
+        <table style="width:100%; max-width:500px; margin:20px auto; border-collapse:collapse; border:1px solid #e2e8f0; font-size:14px;">
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding:10px;">Total Horas Normais:</td>
+                <td style="padding:10px; text-align:right;">${decimalParaHHMM(totGeralNormais)}</td>
             </tr>
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 8px;">Adicional Noturno:</td>
-                <td style="padding: 8px; text-align:right;">${decimalParaHHMM(totGeralNoturno)}</td>
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding:10px;">Total Adicional Noturno:</td>
+                <td style="padding:10px; text-align:right;">${decimalParaHHMM(totGeralNoturno)}</td>
             </tr>
             ${extrasHtml}
-            <tr style="background:#f1f5f9; font-size: 1.2em;">
-                <td style="padding: 10px;"><strong>TOTAL GERAL:</strong></td>
-                <td style="padding: 10px; text-align:right;"><strong>${minParaHHMM(totGeralMinutos)}</strong></td>
+            <tr style="background:#f8fafc; font-size:1.2em; border-top:2px solid #1e293b;">
+                <td style="padding:15px;"><strong>TOTAL GERAL DO PERÍODO:</strong></td>
+                <td style="padding:15px; text-align:right;"><strong>${minParaHHMM(totGeralMinutos)}</strong></td>
             </tr>
         </table>
-        <div style="margin-top: 60px; text-align:center;">
-            <p>__________________________________________</p>
-            <p>Assinatura do Responsável</p>
-        </div>
     `;
     elemento.appendChild(divResumo);
 
-    // --- 4. EXPORTAÇÃO ---
+    // 7. Configuração e Disparo do PDF
     const opt = {
         margin: [10, 8, 10, 8],
-        filename: `Relatorio_Ponto_${reclamante.split(' ')[0]}.pdf`,
+        filename: `Laudo_Ponto_${reclamante.split(' ')[0]}.pdf`,
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: nBatidas > 6 ? 'landscape' : 'portrait' }
     };
+
     html2pdf().set(opt).from(elemento).save();
 };
 
