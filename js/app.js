@@ -11,6 +11,7 @@ let configAtual = {};
 let cartaoAtual = null;
 let usuarioLogado = null;
 let listaFeriadosGlobais = [];
+let anoVisualizacaoAtual = null;
 
 // 1. Inicia buscando da Nuvem
 document.addEventListener('DOMContentLoaded', () => {
@@ -270,104 +271,139 @@ async function salvarProgressoAuto() {
 async function gerarFolha(cfg) {
     const corpo = document.getElementById('corpo-tabela');
     if (!corpo) return; 
-    corpo.innerHTML = '<div style="padding:20px; text-align:center;">Carregando folha e feriados...</div>'; 
 
-    const dataInicioObj = new Date(cfg.dataInicio + "T00:00:00");
-    const dataFimObj = new Date(cfg.dataFim + "T00:00:00");
-
-    // LÓGICA DE PERFORMANCE: Alerta se o período for maior que 3 anos
-    const diffAnos = dataFimObj.getFullYear() - dataInicioObj.getFullYear();
-    if (diffAnos > 3) {
-        console.warn("⚠️ Período longo detectado. Renderizando...");
+    // Define o ano inicial se for a primeira vez carregando
+    if (!anoVisualizacaoAtual) {
+        anoVisualizacaoAtual = new Date(cfg.dataInicio + "T00:00:00").getFullYear();
     }
 
-    await carregarFeriados(dataInicioObj.getFullYear(), cfg.uf);
+    // Atualiza o label do ano no rodapé (se você já tiver o span/div lá)
+    const labelAno = document.getElementById('label-ano-atual');
+    if (labelAno) labelAno.innerText = anoVisualizacaoAtual;
+
+    corpo.innerHTML = '<div style="padding:20px; text-align:center;">Carregando folha do ano ' + anoVisualizacaoAtual + '...</div>'; 
+
+    // Carrega feriados apenas do ano que está sendo visualizado
+    await carregarFeriados(anoVisualizacaoAtual, cfg.uf);
     corpo.innerHTML = ''; 
 
-    let dataAtual = new Date(dataInicioObj);
+    let dataAtual = new Date(cfg.dataInicio + "T00:00:00");
+    const dataFimProcesso = new Date(cfg.dataFim + "T00:00:00");
 
-    while (dataAtual <= dataFimObj) {
-        const numDia = dataAtual.getDay();
-        const dataFormatada = dataAtual.toLocaleDateString('pt-BR');
-        const dataISO = dataAtual.toISOString().split('T')[0];
-        
-        const ehFeriado = listaFeriadosGlobais.includes(dataISO);
-        let ehFolga = false;
+    // Loop por todos os dias do processo
+    while (dataAtual <= dataFimProcesso) {
+        const anoDoDia = dataAtual.getFullYear();
 
-        // Lógica de Escalas (Mantida a sua original)
-        if (cfg.escala === "seg-sex") {
-            ehFolga = (numDia === 0 || numDia === 6);
-        } else if (cfg.escala === "seg-sab") {
-            ehFolga = (numDia === 0);
-        } else if (cfg.escala === "6x2" || cfg.escala === "personalizada") {
-            if (cfg.dataFolgaInicial) {
-                let ref = new Date(cfg.dataFolgaInicial + "T00:00:00");
-                const diffDays = Math.floor((dataAtual - ref) / (1000 * 60 * 60 * 24));
-                const ciclo = (cfg.escala === "6x2") ? 8 : (cfg.trabPers + cfg.folgaPers);
-                const folgas = (cfg.escala === "6x2") ? 2 : cfg.folgaPers;
-                let resto = diffDays % ciclo;
-                if (resto < 0) resto += ciclo;
-                if (resto < folgas) ehFolga = true;
+        // SÓ GERA O HTML SE O DIA FOR DO ANO SELECIONADO
+        if (anoDoDia === anoVisualizacaoAtual) {
+            const numDia = dataAtual.getDay();
+            const dataFormatada = dataAtual.toLocaleDateString('pt-BR');
+            const dataISO = dataAtual.toISOString().split('T')[0];
+            
+            const ehFeriado = listaFeriadosGlobais.includes(dataISO);
+            let ehFolga = false;
+
+            // Lógica de Escalas
+            if (cfg.escala === "seg-sex") {
+                ehFolga = (numDia === 0 || numDia === 6);
+            } else if (cfg.escala === "seg-sab") {
+                ehFolga = (numDia === 0);
+            } else if (cfg.escala === "6x2" || cfg.escala === "personalizada") {
+                if (cfg.dataFolgaInicial) {
+                    let ref = new Date(cfg.dataFolgaInicial + "T00:00:00");
+                    const diffDays = Math.floor((dataAtual - ref) / (1000 * 60 * 60 * 24));
+                    const ciclo = (cfg.escala === "6x2") ? 8 : (cfg.trabPers + cfg.folgaPers);
+                    const folgas = (cfg.escala === "6x2") ? 2 : cfg.folgaPers;
+                    let resto = diffDays % ciclo;
+                    if (resto < 0) resto += ciclo;
+                    if (resto < folgas) ehFolga = true;
+                }
             }
-        }
 
-        const tr = document.createElement('tr');
-        tr.setAttribute('data-dia', dataFormatada); 
-        const batidasSalvasNoBanco = cartaoAtual.batidas[dataFormatada];
-        
-        if (batidasSalvasNoBanco && batidasSalvasNoBanco.f !== undefined) {
-            ehFolga = batidasSalvasNoBanco.f;
-        }
-
-        if (ehFeriado || numDia === 0) {
-            tr.className = `linha-ponto destaque-feriado ${ehFolga ? 'folga' : ''}`;
-            if(ehFeriado) tr.style.backgroundColor = "#fff5f5";
-        } else {
-            tr.className = `linha-ponto ${ehFolga ? 'folga' : ''}`;
-        }
-        
-        let qtdDaLinha = parseInt(cfg.qtdBatidas) || 4; 
-        if (batidasSalvasNoBanco && batidasSalvasNoBanco.horas) {
-            qtdDaLinha = batidasSalvasNoBanco.horas.length;
-        }
-        
-        let inputsHtml = "";
-        for (let i = 0; i < qtdDaLinha; i++) {
-            let val = "";
-            if (batidasSalvasNoBanco && batidasSalvasNoBanco.h && batidasSalvasNoBanco.h[i] !== undefined) {
-                val = batidasSalvasNoBanco.h[i];
-            } else if (!ehFolga && cfg.intervaloFixo) {
-                if (i === 1 && cfg.padraoE) val = cfg.padraoE;
-                if (i === 2 && cfg.padraoS) val = cfg.padraoS;
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-dia', dataFormatada); 
+            
+            // Busca dados no formato compacto (f e h)
+            const batidasSalvasNoBanco = cartaoAtual.batidas[dataFormatada];
+            
+            if (batidasSalvasNoBanco && batidasSalvasNoBanco.f !== undefined) {
+                ehFolga = batidasSalvasNoBanco.f;
             }
-            // ADICIONADO: oninput="salvarComAtraso()" para cada input
-            inputsHtml += `<input type="text" class="ponto ${ehFolga ? 'folga-input' : ''}" maxlength="5" value="${val}" placeholder="--" oninput="salvarComAtraso()">`;
+
+            // Estilização de FDS e Feriado
+            if (ehFeriado || numDia === 0) {
+                tr.className = `linha-ponto destaque-feriado ${ehFolga ? 'folga' : ''}`;
+                if(ehFeriado) tr.style.backgroundColor = "#fff5f5";
+            } else {
+                tr.className = `linha-ponto ${ehFolga ? 'folga' : ''}`;
+            }
+            
+            let qtdDaLinha = parseInt(cfg.qtdBatidas) || 4; 
+            if (batidasSalvasNoBanco && batidasSalvasNoBanco.h) {
+                qtdDaLinha = batidasSalvasNoBanco.h.length;
+            }
+            
+            let inputsHtml = "";
+            for (let i = 0; i < qtdDaLinha; i++) {
+                let val = "";
+                if (batidasSalvasNoBanco && batidasSalvasNoBanco.h && batidasSalvasNoBanco.h[i] !== undefined) {
+                    val = batidasSalvasNoBanco.h[i];
+                } else if (!ehFolga && cfg.intervaloFixo) {
+                    if (i === 1 && cfg.padraoE) val = cfg.padraoE;
+                    if (i === 2 && cfg.padraoS) val = cfg.padraoS;
+                }
+                
+                inputsHtml += `<input type="text" class="ponto ${ehFolga ? 'folga-input' : ''}" maxlength="5" value="${val}" placeholder="--" oninput="salvarComAtraso()">`;
+            }
+
+            tr.innerHTML = `
+                <td class="col-dia">
+                    <strong>${diasSemana[numDia]}</strong>${ehFeriado ? ' 🚩' : ''}<br>${dataFormatada}
+                </td>
+                <td class="celula-inputs">
+                    <div class="container-batidas">${inputsHtml}</div>
+                </td>
+                <td class="total-dia" style="color: #0284c7; font-weight: bold;">00:00</td>
+            `;
+
+            corpo.appendChild(tr);
         }
-
-        tr.innerHTML = `
-            <td class="col-dia">
-                <strong>${diasSemana[numDia]}</strong>${ehFeriado ? ' 🚩' : ''}<br>${dataFormatada}
-            </td>
-            <td class="celula-inputs">
-                <div class="container-batidas">${inputsHtml}</div>
-            </td>
-            <td class="total-dia" style="color: #0284c7; font-weight: bold;">00:00</td>
-        `;
-
-        corpo.appendChild(tr);
+        
+        // Incrementa o dia
         dataAtual.setDate(dataAtual.getDate() + 1);
     }
     
+    // Mostra/Esconde botões de navegação conforme o limite do processo
+    const btnAnterior = document.getElementById('btn-ano-anterior');
+    const btnProximo = document.getElementById('btn-ano-proximo');
+    
+    if (btnAnterior) {
+        btnAnterior.style.display = (anoVisualizacaoAtual > new Date(cfg.dataInicio + "T00:00:00").getFullYear()) ? 'block' : 'none';
+    }
+    if (btnProximo) {
+        btnProximo.style.display = (anoVisualizacaoAtual < new Date(cfg.dataFim + "T00:00:00").getFullYear()) ? 'block' : 'none';
+    }
+
     document.querySelectorAll('.linha-ponto').forEach(tr => calcularLinha(tr));
+    
+    // Próximo passo: vamos corrigir sua configurarEventos para lidar com o Enter
     configurarEventos();
 }
 
+// Função de apoio para trocar de ano (use no seu HTML)
+window.mudarAno = function(direcao) {
+    anoVisualizacaoAtual += direcao;
+    window.scrollTo(0, 0);
+    gerarFolha(configAtual);
+};
+
 function configurarEventos() {
     const inputs = Array.from(document.querySelectorAll('.ponto'));
+    
     inputs.forEach((input, index) => {
         input.onfocus = () => input.select();
         
-        // ATUALIZADO: Agora permite digitar '*' além de números
+        // Permite digitar '*' além de números
         input.onkeypress = (e) => { 
             if (!/[0-9*]/.test(e.key)) e.preventDefault(); 
         };
@@ -402,27 +438,6 @@ function configurarEventos() {
             if (e.key === '*' || e.key === 'Asterisk') {
                 e.preventDefault();
                 alternarFeriadoManual(tr);
-                const dataDia = tr.getAttribute('data-dia');
-                
-                // Inicializa objeto no banco se não existir
-                if (!cartaoAtual.batidas[dataDia]) {
-                    cartaoAtual.batidas[dataDia] = { horas: [], isFolga: false };
-                }
-
-                // Alterna o estado de feriado
-                const ehFeriado = !cartaoAtual.batidas[dataDia].isFeriado;
-                cartaoAtual.batidas[dataDia].isFeriado = ehFeriado;
-
-                // Feedback Visual na Linha
-                if (ehFeriado) {
-                    tr.classList.add('destaque-vermelho'); // Sua classe existente
-                    tr.style.backgroundColor = "#fff5f5"; // Fundo levemente avermelhado
-                } else {
-                    tr.classList.remove('destaque-vermelho');
-                    tr.style.backgroundColor = "";
-                }
-
-                salvarProgressoAuto(); // Salva a marcação no Firebase
                 return;
             }
 
@@ -430,7 +445,6 @@ function configurarEventos() {
             if (e.key === '+') {
                 e.preventDefault(); 
                 window.gerenciarBatidas(input, 2); 
-                
                 setTimeout(() => {
                     const todosInputsDestaLinha = input.closest('tr').querySelectorAll('.ponto');
                     const novoInput = todosInputsDestaLinha[todosInputsDestaLinha.length - 2];
@@ -450,14 +464,30 @@ function configurarEventos() {
             if (e.key === 'Tab' || e.key === 'Enter') {
                 e.preventDefault();
                 completarHora(input);
-                if (e.key === 'Tab') pularCampoInteligente(input, index, e.shiftKey ? -1 : 1);
-                else if (e.key === 'Enter') pularLinha(input.closest('tr'));
+
+                // Lógica de Pulo de Ano no Enter/Tab no último campo
+                const ehUltimoCampoDaPagina = (index === inputs.length - 1);
+
+                if (ehUltimoCampoDaPagina && e.key === 'Enter') {
+                    // Verifica se existe um próximo ano no processo
+                    const anoFimProcesso = new Date(configAtual.dataFim + "T00:00:00").getFullYear();
+                    if (anoVisualizacaoAtual < anoFimProcesso) {
+                        console.log("Fim do ano atingido. Pulando para o próximo...");
+                        window.mudarAno(1); // Chama a função que criamos na gerarFolha
+                    }
+                } else {
+                    if (e.key === 'Tab') {
+                        pularCampoInteligente(input, index, e.shiftKey ? -1 : 1);
+                    } else if (e.key === 'Enter') {
+                        pularLinha(input.closest('tr'));
+                    }
+                }
             }
         };
 
         input.onblur = () => {
             completarHora(input);
-            salvarProgressoAuto(); 
+            salvarComAtraso(); // Usando a função de atraso para performance
         };
     });
 }

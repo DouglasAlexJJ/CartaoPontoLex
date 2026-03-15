@@ -63,6 +63,14 @@
             </thead>
             <tbody id="corpo-tabela"></tbody>
         </table>
+        <div id="navegacao-folha" class="container-navegacao">
+            <button id="btn-ano-anterior" class="btn-nav" onclick="mudarAno(-1)">← Ano Anterior</button>
+            <div class="info-ano-atual">
+                <span>Visualizando: </span>
+                <strong id="label-ano-atual">2024</strong>
+            </div>
+            <button id="btn-ano-proximo" class="btn-nav" onclick="mudarAno(1)">Próximo Ano →</button>
+        </div>
     </main>
 
     <footer id="rodape-totalizador">
