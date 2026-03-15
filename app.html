@@ -8,6 +8,7 @@
     <script type="module" src="js/seguranca.js"></script>
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/app.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <header class="app-header">
@@ -31,7 +32,9 @@
         </button>
         
         <div id="menu-config-app" class="dropdown-content escondido">
-            <button onclick="alert('Exportação em PDF em breve!')">📄 Exportar PDF</button>
+            <button class="seu-estilo-original" onclick="gerarPDF()">
+                📄 Exportar PDF
+            </button>
             <div class="divisor"></div>
             
             <div class="menu-section">Afastamentos</div>

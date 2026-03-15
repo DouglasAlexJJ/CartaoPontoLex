@@ -1122,3 +1122,121 @@ window.aplicarAjusteDatas = function() {
     
     alert("Período atualizado com sucesso!");
 };
+window.gerarPDF = function() {
+    const { reclamante, reclamada, dataInicio, dataFim } = configAtual;
+    
+    // 1. Criar o container do relatório
+    const elemento = document.createElement('div');
+    elemento.style.padding = '40px';
+    elemento.style.fontFamily = 'Arial, sans-serif';
+    elemento.style.color = '#333';
+
+    // 2. Cabeçalho do Laudo
+    elemento.innerHTML = `
+        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+            <h2 style="margin: 0;">MEMÓRIA DE CÁLCULO - CARTÃO PONTO</h2>
+            <p style="margin: 5px 0;">Relatório Gerado em ${new Date().toLocaleDateString('pt-BR')}</p>
+        </div>
+        
+        <div style="margin-bottom: 30px; display: flex; justify-content: space-between;">
+            <div>
+                <p><strong>RECLAMANTE:</strong> ${reclamante || '---'}</p>
+                <p><strong>RECLAMADA:</strong> ${reclamada || '---'}</p>
+            </div>
+            <div style="text-align: right;">
+                <p><strong>PERÍODO:</strong> ${dataInicio} até ${dataFim}</p>
+                <p><strong>UF/CIDADE:</strong> ${configAtual.uf || ''} / ${configAtual.cidade || ''}</p>
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 30px;">
+            <thead>
+                <tr style="background: #f3f4f6; border: 1px solid #333;">
+                    <th style="padding: 5px; border: 1px solid #333;">DATA</th>
+                    <th style="padding: 5px; border: 1px solid #333;">ENTRADA</th>
+                    <th style="padding: 5px; border: 1px solid #333;">ALMOÇO</th>
+                    <th style="padding: 5px; border: 1px solid #333;">RETORNO</th>
+                    <th style="padding: 5px; border: 1px solid #333;">SAÍDA</th>
+                    <th style="padding: 5px; border: 1px solid #333;">TOTAL</th>
+                    <th style="padding: 5px; border: 1px solid #333;">ADC. NOT.</th>
+                </tr>
+            </thead>
+            <tbody id="corpo-tabela-pdf">
+                </tbody>
+        </table>
+
+        <div style="page-break-inside: avoid;">
+            <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 5px;">RESUMO DAS VERBAS APURADAS</h3>
+            <table style="width: 50%; border-collapse: collapse; margin-top: 10px;">
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 8px;"><strong>Horas Normais:</strong></td>
+                    <td style="text-align: right;">${document.getElementById('total-normais').innerText}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 8px;"><strong>Adicional Noturno:</strong></td>
+                    <td style="text-align: right;">${document.getElementById('total-noturno').innerText}</td>
+                </tr>
+                <tbody id="resumo-extras-pdf">
+                    </tbody>
+                <tr style="background: #f8fafc; font-size: 1.1em;">
+                    <td style="padding: 8px;"><strong>TOTAL GERAL:</strong></td>
+                    <td style="text-align: right;"><strong>${document.getElementById('total-geral-periodo').innerText}</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="margin-top: 100px; text-align: center; font-size: 0.9em;">
+            <div style="width: 250px; border-top: 1px solid #333; margin: 0 auto;"></div>
+            <p>Assinatura do Perito Responsável</p>
+        </div>
+    `;
+
+    // 3. Preencher as linhas da tabela
+    const corpoTabela = elemento.querySelector('#corpo-tabela-pdf');
+    document.querySelectorAll('.linha-ponto').forEach(tr => {
+        const data = tr.getAttribute('data-dia');
+        const inputs = tr.querySelectorAll('.ponto');
+        const total = tr.querySelector('.total-dia').innerText;
+        const noturno = decimalParaHHMM(parseFloat(tr.dataset.adcNoturno || 0));
+
+        const row = `
+            <tr style="border: 1px solid #ddd; ${tr.classList.contains('folga') ? 'background: #fafafa;' : ''}">
+                <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">${data}</td>
+                <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">${inputs[0]?.value || '-'}</td>
+                <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">${inputs[1]?.value || '-'}</td>
+                <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">${inputs[2]?.value || '-'}</td>
+                <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">${inputs[3]?.value || '-'}</td>
+                <td style="padding: 4px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${total}</td>
+                <td style="padding: 4px; border: 1px solid #ddd; text-align: center;">${noturno}</td>
+            </tr>
+        `;
+        corpoTabela.innerHTML += row;
+    });
+
+    // 4. Preencher o resumo de extras dinâmicas (70%, 80%, etc)
+    const resumoExtras = elemento.querySelector('#resumo-extras-pdf');
+    const containerDinamico = document.getElementById('container-extras-dinamico');
+    if (containerDinamico) {
+        containerDinamico.querySelectorAll('.resumo-item').forEach(item => {
+            const label = item.querySelector('span').innerText;
+            const valor = item.querySelector('strong').innerText;
+            resumoExtras.innerHTML += `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 8px;"><strong>${label}:</strong></td>
+                    <td style="text-align: right;">${valor}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // 5. Configuração e Geração do arquivo
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Calculo_Ponto_${reclamante.replace(/ /g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(elemento).save();
+};
