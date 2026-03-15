@@ -789,6 +789,7 @@ async function carregarFeriados(ano, uf) {
 
 // Adicionamos window. para o HTML conseguir enxergar a função
 window.alternarFeriadoManual = function(tr) {
+    if (!tr) return; // Proteção extra
     const dataDia = tr.getAttribute('data-dia');
     
     if (!cartaoAtual.batidas[dataDia]) {
@@ -807,5 +808,7 @@ window.alternarFeriadoManual = function(tr) {
         tr.style.backgroundColor = "";
     }
 
-    salvarComAtraso(); // Salvando com atraso para não travar
+    if (typeof salvarComAtraso === 'function') {
+        salvarComAtraso();
+    }
 };
