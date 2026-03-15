@@ -737,38 +737,52 @@ function atualizarTotalGeral() {
     let acumuladorExtras = {};
 
     document.querySelectorAll('.linha-ponto').forEach(tr => {
+        // 1. Soma do tempo total real
         const tempoVisual = tr.querySelector('.total-dia').innerText;
         totGeralMinutos += hhmmParaMin(tempoVisual);
+        
+        // 2. Soma das horas normais e adicional noturno
         totNormaisDecimal += parseFloat(tr.dataset.normais || 0);
         totNoturnoDecimal += parseFloat(tr.dataset.adcNoturno || 0);
 
+        // 3. Soma das Horas Extras do JSON (CORRIGIDO)
         try {
             const extrasDaLinha = JSON.parse(tr.dataset.extrasJson || '{}');
             for (let pct in extrasDaLinha) {
                 if (!acumuladorExtras[pct]) acumuladorExtras[pct] = 0;
-                acumuladorExtras[pct] += extrasDaLinha[porcentagem];
+                // Corrigido: era 'porcentagem', o correto é 'pct'
+                const valor = parseFloat(extrasDaLinha[pct]);
+                if (!isNaN(valor)) {
+                    acumuladorExtras[pct] += valor;
+                }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error("Erro ao processar extras da linha:", e);
+        }
     });
 
-    // 1. Atualiza os fixos
-    document.getElementById('total-geral-periodo').innerText = minParaHHMM(totGeralMinutos);
-    document.getElementById('total-normais').innerText = decimalParaHHMM(totNormaisDecimal);
-    document.getElementById('total-noturno').innerText = decimalParaHHMM(totNoturnoDecimal);
+    // --- ATUALIZAÇÃO DA INTERFACE ---
 
-    // 2. MÁGICA: Gera os totais de extras dinamicamente
+    if (document.getElementById('total-geral-periodo')) 
+        document.getElementById('total-geral-periodo').innerText = minParaHHMM(totGeralMinutos);
+    
+    if (document.getElementById('total-normais')) 
+        document.getElementById('total-normais').innerText = decimalParaHHMM(totNormaisDecimal);
+    
+    if (document.getElementById('total-noturno')) 
+        document.getElementById('total-noturno').innerText = decimalParaHHMM(totNoturnoDecimal);
+
+    // 4. Geração Dinâmica das colunas de Extras
     const containerExtras = document.getElementById('container-extras-dinamico');
     if (containerExtras) {
-        containerExtras.innerHTML = ""; // Limpa para reconstruir
+        containerExtras.innerHTML = ""; 
 
-        // Ordena as porcentagens para o rodapé ficar organizado (50%, 60%, 100%...)
-        Object.keys(acumuladorExtras).sort((a,b) => a-b).forEach(pct => {
+        // Ordena as porcentagens para ficar bonito (50, 60, 100...)
+        Object.keys(acumuladorExtras).sort((a,b) => Number(a) - Number(b)).forEach(pct => {
             const totalHhMm = decimalParaHHMM(acumuladorExtras[pct]);
             
             const div = document.createElement('div');
-            div.className = "resumo-item";
-            div.style.borderLeft = "2px solid #e2e8f0";
-            div.style.paddingLeft = "15px";
+            div.className = "resumo-item extra-dinamico";
             div.innerHTML = `
                 <span>Total ${pct}%</span>
                 <strong>${totalHhMm}</strong>

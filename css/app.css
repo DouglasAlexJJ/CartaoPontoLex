@@ -386,3 +386,22 @@ tr.linha-ponto:hover .btn-acao-dia {
     border-top: 1px solid #e2e8f0;
     background: #f8fafc;
 }
+/* Container que segura as H.E dinâmicas */
+#container-extras-dinamico {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap; /* Se tiver muita regra, ele pula linha em vez de esmagar */
+}
+
+/* Estilo para cada item de extra que o JS cria */
+.extra-dinamico {
+    border-left: 2px solid #e2e8f0;
+    padding-left: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.extra-dinamico span {
+    color: #2563eb; /* Um azul para destacar que é Hora Extra */
+    font-weight: 600;
+}
