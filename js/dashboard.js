@@ -216,13 +216,19 @@ function renderizarGridRecentes(ativos, podeGerenciar) {
     let html = ultimos.map(cartao => {
         const corBadge = cartao.progresso === 100 ? 'progresso-alto' : (cartao.progresso > 30 ? 'progresso-medio' : 'progresso-baixo');
         const dataStr = new Date(cartao.dataEdicao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        const btnDelete = podeGerenciar ? `<button class="btn-deletar" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')">🗑️</button>` : '';
+        
+        // --- BOTÕES DE AÇÃO: EDITAR E EXCLUIR ---
+        const btnEdit = `<button class="btn-editar" style="background:none; border:none; font-size: 1.1em; cursor:pointer;" onclick="event.stopPropagation(); editarCartao('${cartao.id}')" title="Editar Parâmetros">✏️</button>`;
+        const btnDelete = podeGerenciar ? `<button class="btn-deletar" style="margin-left: 5px;" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')" title="Mover para Lixeira">🗑️</button>` : '';
 
         return `
             <div class="card-recente" onclick="abrirCartao('${cartao.id}')">
                 <div class="card-recente-header">
                     <h4>${cartao.config.reclamante}</h4>
-                    ${btnDelete}
+                    <div style="display: flex; align-items: center;">
+                        ${btnEdit}
+                        ${btnDelete}
+                    </div>
                 </div>
                 <span class="badge-status ${corBadge}" style="display:inline-block; margin-bottom:10px;">${cartao.progresso}% Concluído</span>
                 <p><strong>Empresa:</strong> ${cartao.config.reclamada || 'Não informada'}</p>
@@ -344,6 +350,85 @@ window.restaurarCartao = async function(id) {
 };
 
 window.fazerLogout = () => auth.signOut().then(() => window.location.href = "index.html");
+
+window.editarCartao = function(id) {
+    // 1. Busca o cartão inteiro na memória que acabou de ser baixado do Firebase
+    const cartao = salvosNuvem.find(c => c.id === id);
+    if (!cartao) return;
+
+    const config = cartao.config;
+
+    // 2. Muda a cara do modal para modo "Edição"
+    document.getElementById('titulo-modal-cartao').innerText = "✏️ Editar Parâmetros";
+    document.getElementById('btn-salvar-cartao').innerText = "Salvar Alterações";
+    document.getElementById('cartao-edit-id').value = id;
+
+    // 3. Preenche os campos principais
+    document.getElementById('reclamante').value = config.reclamante || '';
+    document.getElementById('reclamada').value = config.reclamada || '';
+    document.getElementById('dataInicio').value = config.dataInicio || '';
+    document.getElementById('dataFim').value = config.dataFim || '';
+    document.getElementById('escala').value = config.escala || 'seg-sex';
+    document.getElementById('dataFolgaInicial').value = config.dataFolgaInicial || '';
+    
+    // Mostra ou esconde o campo de folga dependendo da escala
+    if (typeof toggleFolgaInicial === 'function') toggleFolgaInicial();
+
+    // 4. Intervalos e Batidas
+    document.getElementById('padraoE').value = config.padraoE || '12:00';
+    document.getElementById('padraoS').value = config.padraoS || '13:00';
+    
+    const checkIntervalo = document.getElementById('intervaloFixo');
+    checkIntervalo.checked = !!config.intervaloFixo;
+    if (typeof toggleIntervaloFixo === 'function') toggleIntervaloFixo();
+
+    const checkBatidas = document.getElementById('checkBatidas');
+    const inputQtdBatidas = document.getElementById('qtdBatidas');
+    if (config.qtdBatidas && config.qtdBatidas !== 4) {
+        checkBatidas.checked = true;
+        inputQtdBatidas.value = config.qtdBatidas;
+    } else {
+        checkBatidas.checked = false;
+        inputQtdBatidas.value = 4;
+    }
+    if (typeof toggleBatidas === 'function') toggleBatidas();
+
+    // 5. Parâmetros Sindicais (Onde a mágica acontece)
+    document.getElementById('config-adc-noturno').value = config.adcNoturno || '20';
+    
+    const containerRegras = document.getElementById('container-regras-extras');
+    containerRegras.innerHTML = ""; // Limpa a tabela
+
+    if (config.regrasExtra && config.regrasExtra.length > 0) {
+        // Se já tiver regra gravada, escreve todas elas na tela
+        config.regrasExtra.forEach(regra => {
+            window.adicionarRegraExtra(regra.limite, regra.porcento);
+        });
+    } else {
+        // Se for um cartão velho que não tinha regra, coloca 50% como padrão
+        window.adicionarRegraExtra('', '50'); 
+    }
+
+    // 6. UF e Cidade Inteligente (Espera a API do IBGE carregar)
+    const ufSelect = document.getElementById('novo-cartao-uf');
+    ufSelect.value = config.uf || '';
+    
+    if (config.uf) {
+        // "Engana" o navegador dizendo que o usuário escolheu o estado para ele puxar as cidades
+        ufSelect.dispatchEvent(new Event('change'));
+        
+        // Aguarda 800ms para a BrasilAPI devolver as cidades e então seleciona
+        setTimeout(() => {
+            document.getElementById('novo-cartao-cidade').value = config.cidade || '';
+        }, 800);
+    } else {
+        document.getElementById('novo-cartao-cidade').innerHTML = '<option value="">Selecione a Cidade</option>';
+        document.getElementById('novo-cartao-cidade').disabled = true;
+    }
+
+    // 7. Abre o modal!
+    document.getElementById('modal-novo').classList.remove('escondido');
+};
 
 // Gestão de Equipe
 window.abrirModalColaboradores = async function() {
@@ -594,6 +679,9 @@ window.salvarEIniciar = async function() {
     const ufSelecionada = document.getElementById('novo-cartao-uf').value;
     const cidadeSelecionada = document.getElementById('novo-cartao-cidade').value;
     
+    // 1. CAPTURANDO SE É EDIÇÃO OU NOVO CARTÃO
+    const editId = document.getElementById('cartao-edit-id').value;
+
     if (!reclamante || !dataIn || !dataFim) {
         alert("Preencha Reclamante, Data de Início e Fim!");
         return;
@@ -604,11 +692,30 @@ window.salvarEIniciar = async function() {
                             : usuarioAtual.uid;
 
     let trabPers = 6, folgaPers = 2;
-    if (escala === "personalizada") {
+    if (escala === "personalizada" && !editId) { 
+        // Só pede esses dados de novo se for criação
         trabPers = parseInt(prompt("Dias de TRABALHO?", "5")) || 5;
         folgaPers = parseInt(prompt("Dias de FOLGA?", "1")) || 1;
     }
 
+    // 2. LENDO OS NOVOS PARÂMETROS SINDICAIS
+    const adcNoturno = document.getElementById('config-adc-noturno').value || '20';
+    
+    // Lendo as regrinhas de horas extras dinâmicas e montando o array
+    const regrasExtra = [];
+    const itensRegra = document.querySelectorAll('.regra-item');
+    itensRegra.forEach(item => {
+        const limite = item.querySelector('.regra-limite').value;
+        const porcento = item.querySelector('.regra-porcento').value;
+        if (porcento) { 
+            regrasExtra.push({
+                limite: limite !== '' ? parseInt(limite) : '', // Vazio significa "Em diante"
+                porcento: parseInt(porcento)
+            });
+        }
+    });
+
+    // 3. MONTANDO A CONFIGURAÇÃO
     const config = {
         reclamante: reclamante,
         reclamada: document.getElementById('reclamada').value.trim(),
@@ -622,34 +729,59 @@ window.salvarEIniciar = async function() {
         qtdBatidas: document.getElementById('checkBatidas').checked ? (parseInt(document.getElementById('qtdBatidas').value) || 4) : 4,
         trabPers: trabPers,
         folgaPers: folgaPers,
-        // É bom salvar a UF e Cidade dentro da config também para facilitar o acesso
         uf: ufSelecionada,
-        cidade: cidadeSelecionada
-    };
-
-    const novoCartao = {
-        id: Date.now().toString(), 
-        userId: donoDoCartaoId,
-        criadoPor: usuarioAtual.email,
-        dataEdicao: Date.now(),
-        progresso: 0,
-        config: config,
-        // Mantendo na raiz do objeto conforme seu código anterior
         cidade: cidadeSelecionada,
-        uf: ufSelecionada,
-        batidas: {} 
+        // --- GRAVANDO OS PARÂMETROS SINDICAIS AQUI ---
+        adcNoturno: adcNoturno,
+        regrasExtra: regrasExtra
     };
 
     try {
-        // O 'db' agora virá do seu centralizador firebase-config.js
-        await setDoc(doc(db, "cartoes", novoCartao.id), novoCartao);
-        localStorage.setItem('cartaoAtualId', novoCartao.id);
-        window.location.href = "app.html";
+        if (editId) {
+            // ============================================
+            // MODO EDIÇÃO (ATUALIZA O CARTÃO EXISTENTE)
+            // ============================================
+            const docRef = doc(db, "cartoes", editId);
+            // IMPORTANTE: Fazemos um updateDoc para NÃO apagar o objeto "batidas" do processo
+            await updateDoc(docRef, {
+                config: config,
+                cidade: cidadeSelecionada,
+                uf: ufSelecionada,
+                dataEdicao: Date.now()
+            });
+            
+            alert("✅ Cartão atualizado com sucesso!");
+            fecharModalNovo(); // Fecha o modal
+            
+            // Recarrega a página para atualizar o painel visualmente
+            window.location.reload(); 
+
+        } else {
+            // ============================================
+            // MODO CRIAÇÃO (GERA UM CARTÃO DO ZERO)
+            // ============================================
+            const novoCartao = {
+                id: Date.now().toString(), 
+                userId: donoDoCartaoId,
+                criadoPor: usuarioAtual.email,
+                dataEdicao: Date.now(),
+                progresso: 0,
+                config: config,
+                cidade: cidadeSelecionada,
+                uf: ufSelecionada,
+                batidas: {} 
+            };
+
+            await setDoc(doc(db, "cartoes", novoCartao.id), novoCartao);
+            localStorage.setItem('cartaoAtualId', novoCartao.id);
+            window.location.href = "app.html";
+        }
     } catch (e) {
         console.error("Erro ao salvar no Firestore:", e);
-        alert("Erro ao criar cartão. Verifique se os campos de UF e Cidade existem.");
+        alert("Erro ao processar o cartão. Verifique sua conexão.");
     }
 };
+
 function configurarBuscaCidades() {
     const selectUF = document.getElementById('novo-cartao-uf');
     const selectCidade = document.getElementById('novo-cartao-cidade');
