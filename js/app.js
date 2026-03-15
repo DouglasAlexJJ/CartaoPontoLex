@@ -1123,28 +1123,39 @@ window.aplicarAjusteDatas = function() {
     alert("Período atualizado com sucesso!");
 };
 window.gerarPDF = function() {
-    const { reclamante, reclamada, dataInicio, dataFim } = configAtual;
+    const { reclamante, reclamada, dataInicio, dataFim, qtdBatidas } = configAtual;
+    const nBatidas = parseInt(qtdBatidas || 4); // Quantidade total de batidas (ex: 4, 6, 8)
     
-    // 1. Criar o container principal
     const elemento = document.createElement('div');
     elemento.style.padding = '20px';
     elemento.style.fontFamily = 'Arial, sans-serif';
 
-    // Agrupar linhas por Mês/Ano
+    // Agrupar por Mês
     const linhas = Array.from(document.querySelectorAll('.linha-ponto'));
     const meses = {};
-
     linhas.forEach(tr => {
-        const data = tr.getAttribute('data-dia'); // "DD/MM/YYYY"
-        const mesAno = data.substring(3); // "MM/YYYY"
+        const data = tr.getAttribute('data-dia');
+        const mesAno = data.substring(3);
         if (!meses[mesAno]) meses[mesAno] = [];
         meses[mesAno].push(tr);
     });
 
-    // 2. Gerar uma "página" para cada mês
-    Object.keys(meses).forEach((mesAno, index, array) => {
+    // 1. GERAR CABEÇALHO DINÂMICO DA TABELA
+    let headerColunasHtml = `<th style="padding: 5px; border: 1px solid #94a3b8;">DATA</th>`;
+    for (let i = 1; i <= nBatidas / 2; i++) {
+        headerColunasHtml += `
+            <th style="padding: 5px; border: 1px solid #94a3b8;">ENTRADA ${i}</th>
+            <th style="padding: 5px; border: 1px solid #94a3b8;">SAÍDA ${i}</th>
+        `;
+    }
+    headerColunasHtml += `
+        <th style="padding: 5px; border: 1px solid #94a3b8;">TOTAL</th>
+        <th style="padding: 5px; border: 1px solid #94a3b8;">NOTURNO</th>
+    `;
+
+    // 2. LOOP POR MÊS
+    Object.keys(meses).forEach((mesAno) => {
         const divMes = document.createElement('div');
-        // Força quebra de página após cada mês, exceto se for o último (o resumo virá depois)
         divMes.style.pageBreakAfter = 'always';
         divMes.style.marginBottom = '30px';
 
@@ -1154,16 +1165,10 @@ window.gerarPDF = function() {
                 <p style="margin: 5px 0; font-size: 0.9em;">Reclamante: ${reclamante || '---'} | Reclamada: ${reclamada || '---'}</p>
             </div>
             
-            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
                 <thead>
                     <tr style="background: #f1f5f9; border: 1px solid #333;">
-                        <th style="padding: 5px; border: 1px solid #94a3b8;">DATA</th>
-                        <th style="padding: 5px; border: 1px solid #94a3b8;">ENTRADA</th>
-                        <th style="padding: 5px; border: 1px solid #94a3b8;">ALMOÇO</th>
-                        <th style="padding: 5px; border: 1px solid #94a3b8;">RETORNO</th>
-                        <th style="padding: 5px; border: 1px solid #94a3b8;">SAÍDA</th>
-                        <th style="padding: 5px; border: 1px solid #94a3b8;">TOTAL</th>
-                        <th style="padding: 5px; border: 1px solid #94a3b8;">NOTURNO</th>
+                        ${headerColunasHtml}
                     </tr>
                 </thead>
                 <tbody>
@@ -1174,14 +1179,17 @@ window.gerarPDF = function() {
                         const not = decimalParaHHMM(parseFloat(tr.dataset.adcNoturno || 0));
                         const isDestque = tr.classList.contains('folga') || tr.classList.contains('destaque-vermelho');
                         
+                        // Gerar as células de horário dinamicamente
+                        let celulasHorario = '';
+                        for(let j = 0; j < nBatidas; j++) {
+                            celulasHorario += `<td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0;">${ins[j]?.value || '-'}</td>`;
+                        }
+
                         return `
                             <tr style="border-bottom: 1px solid #e2e8f0; ${isDestque ? 'background: #f8fafc;' : ''}">
-                                <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0;">${d}</td>
-                                <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0;">${ins[0]?.value || '-'}</td>
-                                <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0;">${ins[1]?.value || '-'}</td>
-                                <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0;">${ins[2]?.value || '-'}</td>
-                                <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0;">${ins[3]?.value || '-'}</td>
-                                <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold;">${tot}</td>
+                                <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold;">${d}</td>
+                                ${celulasHorario}
+                                <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0; font-weight: bold; background: #fdfdfd;">${tot}</td>
                                 <td style="padding: 4px; text-align: center; border: 1px solid #e2e8f0;">${not}</td>
                             </tr>
                         `;
@@ -1192,10 +1200,8 @@ window.gerarPDF = function() {
         elemento.appendChild(divMes);
     });
 
-    // 3. PÁGINA FINAL: RESUMO CONSOLIDADO
+    // 3. PÁGINA FINAL: RESUMO (Mantendo seu estilo que ficou bom)
     const divResumo = document.createElement('div');
-    divResumo.style.paddingTop = '20px';
-    
     let htmlExtras = '';
     const containerDinamico = document.getElementById('container-extras-dinamico');
     if (containerDinamico) {
@@ -1213,8 +1219,7 @@ window.gerarPDF = function() {
         <div style="text-align: center; margin-bottom: 30px;">
             <h2 style="border-bottom: 2px solid #1e3a8a; display: inline-block; padding-bottom: 5px;">RESUMO GERAL DO PERÍODO</h2>
         </div>
-
-        <table style="width: 100%; max-width: 500px; margin: 0 auto; border-collapse: collapse; font-size: 14px; background: #fff; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        <table style="width: 100%; max-width: 500px; margin: 0 auto; border-collapse: collapse; font-size: 14px; background: #fff; border: 1px solid #e2e8f0;">
             <tr style="border-bottom: 1px solid #e2e8f0;">
                 <td style="padding: 10px;">Horas Normais:</td>
                 <td style="padding: 10px; text-align: right;">${document.getElementById('total-normais').innerText}</td>
@@ -1229,24 +1234,20 @@ window.gerarPDF = function() {
                 <td style="padding: 12px; text-align: right;"><strong>${document.getElementById('total-geral-periodo').innerText}</strong></td>
             </tr>
         </table>
-
         <div style="margin-top: 80px; text-align: center;">
             <p>__________________________________________</p>
             <p style="font-size: 0.9em; color: #64748b;">Perito Responsável</p>
-            <p style="font-size: 0.8em; color: #94a3b8;">Relatório extraído do sistema Timecard v3.0</p>
         </div>
     `;
     elemento.appendChild(divResumo);
 
-    // 4. Configuração do PDF
     const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `Laudo_Ponto_${reclamante.replace(/ /g, '_')}.pdf`,
+        margin: [10, 5, 10, 5], // Margens laterais menores para caber mais colunas
+        filename: `Relatorio_Ponto_${reclamante.replace(/ /g, '_')}.pdf`,
         image: { type: 'jpeg', quality: 1 },
-        html2canvas: { scale: 2, logging: false, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: nBatidas > 6 ? 'landscape' : 'portrait' }
     };
 
-    // Gera o PDF
     html2pdf().set(opt).from(elemento).save();
 };
