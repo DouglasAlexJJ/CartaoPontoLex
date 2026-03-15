@@ -358,13 +358,8 @@ async function gerarFolha(cfg) {
 
             // ATUALIZADO: Incluindo a coluna da engrenagem (⚙️) antes da data
             tr.innerHTML = `
-                <td style="width: 40px; text-align: center; border-right: none;">
-                    <button type="button" 
-                            onclick="alternarFeriadoManual(this.closest('tr'))" 
-                            style="background: none; border: none; cursor: pointer; font-size: 1.1em; opacity: 0.5;"
-                            onmouseover="this.style.opacity='1'" 
-                            onmouseout="this.style.opacity='0.5'"
-                            title="Alternar Feriado/Folga">
+                <td style="width: 40px; text-align: center; border: none;">
+                    <button type="button" class="btn-config-dia" onclick="abrirMenuLinha(event, this.closest('tr'))" title="Opções do Dia">
                         ⚙️
                     </button>
                 </td>
@@ -788,28 +783,80 @@ async function carregarFeriados(ano, uf) {
 }
 
 // Adicionamos window. para o HTML conseguir enxergar a função
+/* ==========================================================================
+   MENU FLUTUANTE DA ENGRENAGEM (AÇÕES DA LINHA)
+   ========================================================================== */
+
+let linhaAtivaMenu = null;
+
+// 1. Abre o menu na posição do mouse
+window.abrirMenuLinha = function(event, tr) {
+    event.stopPropagation(); // Evita que o clique feche o menu imediatamente
+    linhaAtivaMenu = tr;
+    
+    const menu = document.getElementById('menu-acao-linha');
+    menu.classList.remove('escondido');
+    
+    // Calcula a posição do mouse para desenhar o menu ali
+    menu.style.top = `${event.pageY + 10}px`;
+    menu.style.left = `${event.pageX + 10}px`;
+};
+
+// 2. Fecha o menu se o usuário clicar em qualquer outro lugar da tela
+document.addEventListener('click', () => {
+    const menu = document.getElementById('menu-acao-linha');
+    if (menu && !menu.classList.contains('escondido')) {
+        menu.classList.add('escondido');
+    }
+});
+
+// 3. Roteia os cliques do menu para as funções corretas
+window.acionarMenuLinha = function(acao) {
+    if (!linhaAtivaMenu) return;
+
+    if (acao === 'feriado') {
+        alternarFeriadoManual(linhaAtivaMenu);
+    } else if (acao === 'folga') {
+        alternarFolgaManual(linhaAtivaMenu);
+    } else if (acao === 'add-batida') {
+        const inputRef = linhaAtivaMenu.querySelector('.ponto');
+        if (inputRef) window.gerenciarBatidas(inputRef, 2);
+    } else if (acao === 'rem-batida') {
+        const inputRef = linhaAtivaMenu.querySelector('.ponto');
+        if (inputRef) window.gerenciarBatidas(inputRef, -2);
+    }
+
+    // Fecha o menu após a ação
+    document.getElementById('menu-acao-linha').classList.add('escondido');
+};
+
+// 4. As funções base de folga e feriado (garantindo a sobrescrita da API)
 window.alternarFeriadoManual = function(tr) {
     if (!tr) return;
+    const jaEhFeriado = tr.classList.contains('destaque-feriado');
     
-    // Verifica se a linha JÁ ESTÁ marcada como feriado (seja pela API ou por clique anterior)
-    const jaEhFeriado = tr.classList.contains('destaque-feriado') || tr.classList.contains('destaque-vermelho');
-
     if (jaEhFeriado) {
-        // Se era feriado, o usuário quer REMOVER (Ex: Trabalhou no feriado)
-        tr.classList.remove('destaque-feriado', 'destaque-vermelho');
+        tr.classList.remove('destaque-feriado');
         tr.style.backgroundColor = "";
-        tr.setAttribute('data-feriado-manual', 'falso'); // Deixa um rastro para o salvamento
     } else {
-        // Se não era, o usuário quer ADICIONAR (Ex: Feriado Municipal)
         tr.classList.add('destaque-feriado');
         tr.style.backgroundColor = "#fff5f5";
-        tr.setAttribute('data-feriado-manual', 'verdadeiro'); // Deixa um rastro para o salvamento
     }
+    if (typeof window.salvarComAtraso === 'function') window.salvarComAtraso();
+};
 
-    // Chama o salvamento automático com segurança
-    if (typeof window.salvarComAtraso === 'function') {
-        window.salvarComAtraso();
-    } else if (typeof salvarComAtraso === 'function') {
-        salvarComAtraso();
+window.alternarFolgaManual = function(tr) {
+    if (!tr) return;
+    tr.classList.toggle('folga');
+    const inputs = tr.querySelectorAll('.ponto');
+    
+    if (tr.classList.contains('folga')) {
+        inputs.forEach(input => {
+            input.classList.add('folga-input');
+            input.value = ""; 
+        });
+    } else {
+        inputs.forEach(input => input.classList.remove('folga-input'));
     }
+    if (typeof window.salvarComAtraso === 'function') window.salvarComAtraso();
 };
