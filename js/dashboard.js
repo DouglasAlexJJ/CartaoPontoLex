@@ -41,6 +41,27 @@ onAuthStateChanged(auth, async (user) => {
    2. CONFIGURAÇÃO DA INTERFACE
    ========================================================================== */
 
+window.adicionarRegraExtra = function(limite = '', porcentagem = '50') {
+    const container = document.getElementById('container-regras-extras');
+    if (!container) return;
+
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.gap = '8px';
+    div.style.alignItems = 'center';
+    div.className = 'regra-item';
+
+    div.innerHTML = `
+        <span style="font-size: 0.85em; color: #475569; width: 45px;">Até a</span>
+        <input type="number" class="input-moderno regra-limite" placeholder="Ex: 2" value="${limite}" style="width: 70px; text-align: center;">
+        <span style="font-size: 0.85em; color: #475569; width: 60px;">ª H.E é</span>
+        <input type="number" class="input-moderno regra-porcento" value="${porcentagem}" style="width: 80px; text-align: center;">
+        <span style="font-size: 0.85em; color: #475569; font-weight: bold;">%</span>
+        <button type="button" onclick="this.parentElement.remove()" class="btn-secundario" style="color: #ef4444; border-color: #fca5a5; padding: 5px 10px; margin-left: auto;">Remover</button>
+    `;
+    container.appendChild(div);
+};
+
 function configurarInterfacePorPerfil() {
     if (!dadosUsuarioGlobal) return;
 
@@ -425,12 +446,28 @@ window.copiarLinkConvite = () => {
 window.fecharModalColaboradores = () => document.getElementById('modal-colaboradores').classList.add('escondido');
 window.abrirModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.remove('escondido');
 window.fecharModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.add('escondido');
-window.abrirModalNovo = () => {
-    if (dadosUsuarioGlobal.tipoConta === 'pessoal') {
-        alert("Sua conta atual não possui uma assinatura ativa. Assine um plano para criar novos cartões.");
-        return;
-    }
+window.abrirModalNovo = function() {
     document.getElementById('modal-novo').classList.remove('escondido');
+    
+    // Ajusta os textos para modo "Criação"
+    document.getElementById('titulo-modal-cartao').innerText = "➕ Novo Cartão Ponto";
+    document.getElementById('btn-salvar-cartao').innerText = "Gerar Cartão ➔";
+    
+    // Zera o ID oculto (Isso diz ao sistema: "É um cartão novo!")
+    document.getElementById('cartao-edit-id').value = "";
+    
+    // Limpa os campos de texto principais para não trazer lixo de outro cartão
+    document.getElementById('reclamante').value = '';
+    document.getElementById('reclamada').value = '';
+    document.getElementById('dataInicio').value = '';
+    document.getElementById('dataFim').value = '';
+    
+    // Reseta as regras sindicais
+    document.getElementById('config-adc-noturno').value = '20';
+    document.getElementById('container-regras-extras').innerHTML = "";
+    
+    // Injeta a regra padrão de "Tudo a 50%" para começar
+    window.adicionarRegraExtra('', '50'); 
 };
 window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
 window.abrirModalPerfil = function() {

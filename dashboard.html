@@ -88,33 +88,38 @@
 
     <!-- Modais -->
     <div id="modal-novo" class="modal-overlay escondido">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 650px;">
             <div class="modal-header">
-                <h3>➕ Novo Cartão Ponto</h3>
+                <h3 id="titulo-modal-cartao">➕ Novo Cartão Ponto</h3>
                 <button class="btn-fechar" onclick="fecharModalNovo()">×</button>
             </div>
-            <div class="modal-body">
+            
+            <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+                
+                <input type="hidden" id="cartao-edit-id" value="">
+
                 <div class="form-group">
                     <label>Reclamante<span class="obrigatorio">*</span></label>
-                    <input type="text" id="reclamante" placeholder="Nome do Reclamante">
+                    <input type="text" id="reclamante" class="input-moderno" placeholder="Nome do Reclamante">
                 </div>
                 <div class="form-group">
                     <label>Reclamada</label>
-                    <input type="text" id="reclamada" placeholder="Nome da Reclamada">
+                    <input type="text" id="reclamada" class="input-moderno" placeholder="Nome da Reclamada">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
+                <div class="form-row" style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
                         <label>Data de Início <span class="obrigatorio">*</span></label>
-                        <input type="date" id="dataInicio">
+                        <input type="date" id="dataInicio" class="input-moderno">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="flex: 1;">
                         <label>Data de Fim <span class="obrigatorio">*</span></label>
-                        <input type="date" id="dataFim">
+                        <input type="date" id="dataFim" class="input-moderno">
                     </div>
                 </div>
+                
                 <div class="form-group">
                     <label>Escala Base</label>
-                    <select id="escala" onchange="toggleFolgaInicial()">
+                    <select id="escala" class="input-moderno" onchange="toggleFolgaInicial()">
                         <option value="seg-sex">Segunda a Sexta</option>
                         <option value="seg-sab">Segunda a Sábado</option>
                         <option value="6x2">Escala 6x2</option>
@@ -122,48 +127,52 @@
                         <option value="personalizada">⚙️ Escala Personalizada...</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Estado (UF)</label>
-                    <select id="novo-cartao-uf" class="input-moderno">
-                        <option value="">Selecione o Estado</option>
-                        <option value="AC">Acre</option>
-                        <option value="AL">Alagoas</option>
-                        <option value="AP">Amapá</option>
-                        <option value="AM">Amazonas</option>
-                        <option value="BA">Bahia</option>
-                        <option value="CE">Ceará</option>
-                        <option value="DF">Distrito Federal</option>
-                        <option value="ES">Espírito Santo</option>
-                        <option value="GO">Goiás</option>
-                        <option value="MA">Maranhão</option>
-                        <option value="MT">Mato Grosso</option>
-                        <option value="MS">Mato Grosso do Sul</option>
-                        <option value="MG">Minas Gerais</option>
-                        <option value="PA">Pará</option>
-                        <option value="PB">Paraíba</option>
-                        <option value="PR">Paraná</option>
-                        <option value="PE">Pernambuco</option>
-                        <option value="PI">Piauí</option>
-                        <option value="RJ">Rio de Janeiro</option>
-                        <option value="RN">Rio Grande do Norte</option>
-                        <option value="RS">Rio Grande do Sul</option>
-                        <option value="RO">Rondônia</option>
-                        <option value="RR">Roraima</option>
-                        <option value="SC">Santa Catarina</option>
-                        <option value="SP">São Paulo</option>
-                        <option value="SE">Sergipe</option>
-                        <option value="TO">Tocantins</option>
-                    </select>
+
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Estado (UF)</label>
+                        <select id="novo-cartao-uf" class="input-moderno">
+                            <option value="">Selecione o Estado</option>
+                            <option value="AC">Acre</option>
+                            <option value="AL">Alagoas</option>
+                            <option value="AP">Amapá</option>
+                            <option value="AM">Amazonas</option>
+                            <option value="BA">Bahia</option>
+                            <option value="CE">Ceará</option>
+                            <option value="DF">Distrito Federal</option>
+                            <option value="ES">Espírito Santo</option>
+                            <option value="GO">Goiás</option>
+                            <option value="MA">Maranhão</option>
+                            <option value="MT">Mato Grosso</option>
+                            <option value="MS">Mato Grosso do Sul</option>
+                            <option value="MG">Minas Gerais</option>
+                            <option value="PA">Pará</option>
+                            <option value="PB">Paraíba</option>
+                            <option value="PR">Paraná</option>
+                            <option value="PE">Pernambuco</option>
+                            <option value="PI">Piauí</option>
+                            <option value="RJ">Rio de Janeiro</option>
+                            <option value="RN">Rio Grande do Norte</option>
+                            <option value="RS">Rio Grande do Sul</option>
+                            <option value="RO">Rondônia</option>
+                            <option value="RR">Roraima</option>
+                            <option value="SC">Santa Catarina</option>
+                            <option value="SP">São Paulo</option>
+                            <option value="SE">Sergipe</option>
+                            <option value="TO">Tocantins</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Cidade</label>
+                        <select id="novo-cartao-cidade" class="input-moderno" disabled>
+                            <option value="">Selecione a Cidade</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Cidade</label>
-                    <select id="novo-cartao-cidade" class="input-moderno" disabled>
-                        <option value="">Selecione a Cidade</option>
-                    </select>
-                </div>
+
                 <div id="container-folga-inicial" class="form-group" style="display:none;">
                     <label>Data da 1ª Folga (Para ciclos):</label>
-                    <input type="date" id="dataFolgaInicial">
+                    <input type="date" id="dataFolgaInicial" class="input-moderno">
                 </div>
 
                 <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 15px;">
@@ -173,7 +182,7 @@
                     </label>
                     <div id="container-batidas-input" style="display:none; margin-top: 10px; padding-left: 24px;">
                         <label style="font-size: 0.85em; margin-bottom: 5px; display: block; color: #475569;">Número de batidas por dia:</label>
-                        <input type="number" id="qtdBatidas" value="4" min="2" style="width: 100px; text-align: center;">
+                        <input type="number" id="qtdBatidas" value="4" min="2" style="width: 100px; text-align: center;" class="input-moderno">
                     </div>
 
                     <div class="divisor" style="margin: 15px 0;"></div>
@@ -185,16 +194,42 @@
                     <div id="container-intervalo" style="display:none; margin-top: 10px; padding-left: 24px;">
                         <label style="font-size: 0.85em; margin-bottom: 5px; display: block; color: #475569;">Horário de Intervalo Padrão:</label>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="text" id="padraoE" value="12:00" maxlength="5" style="width: 70px; text-align: center;"> 
+                            <input type="text" id="padraoE" class="input-moderno" value="12:00" maxlength="5" style="width: 70px; text-align: center;"> 
                             <span style="font-size: 0.85em; color: #64748b;">até</span>
-                            <input type="text" id="padraoS" value="13:00" maxlength="5" style="width: 70px; text-align: center;">
+                            <input type="text" id="padraoS" class="input-moderno" value="13:00" maxlength="5" style="width: 70px; text-align: center;">
                         </div>
                     </div>
                 </div>
+
+                <div class="divisor" style="margin: 25px 0 15px;"></div>
+                <h4 style="margin: 0 0 15px 0; color: #0f172a; font-size: 1.1em;">⚖️ Parâmetros Sindicais (Cálculos)</h4>
+
+                <div class="form-group">
+                    <label>Adicional Noturno Padrão (%)</label>
+                    <input type="number" id="config-adc-noturno" class="input-moderno" value="20" style="width: 100px;">
+                </div>
+
+                <div class="form-group" style="background: #eff6ff; padding: 15px; border-radius: 8px; border: 1px solid #bfdbfe;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="margin: 0; font-weight: bold; color: #1e40af;">Escalonamento de Horas Extras</label>
+                        <button type="button" onclick="adicionarRegraExtra()" class="btn-secundario" style="padding: 4px 10px; font-size: 0.8em; border-color: #3b82f6; color: #2563eb; background: white;">
+                            ➕ Adicionar Faixa
+                        </button>
+                    </div>
+                    
+                    <div id="container-regras-extras" style="display: flex; flex-direction: column; gap: 10px;">
+                        </div>
+                    <small style="color: #64748b; font-size: 0.75em; display: block; margin-top: 10px; line-height: 1.4;">
+                        Exemplo: As primeiras 2 horas a 50%, e da 3ª em diante a 60%.<br>
+                        👉 Crie uma regra: "Até a <strong>2ª</strong> H.E é <strong>50%</strong>"<br>
+                        👉 E outra regra: "Até a <strong>[Deixe vazio]</strong> H.E é <strong>60%</strong>" (Vazio = Daí em diante)
+                    </small>
+                </div>
+
             </div>
             <div class="modal-footer">
                 <button class="btn-secundario" onclick="fecharModalNovo()">Cancelar</button>
-                <button class="btn-primario" onclick="salvarEIniciar()">Gerar Cartão ➔</button>
+                <button id="btn-salvar-cartao" class="btn-primario" onclick="salvarEIniciar()">Gerar Cartão ➔</button>
             </div>
         </div>
     </div>
