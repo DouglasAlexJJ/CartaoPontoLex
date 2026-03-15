@@ -642,54 +642,52 @@ function calcularLinha(tr) {
 
     let tempoTotalHoras = (totalDiurno + totalNoturnoFicto) / 60;
     
-    const LIMITE_DIARIO = parseFloat(configAtual.horasDiarias || 8);
-    const pctFolga1 = parseFloat(configAtual.heFolga1 || 50); 
-    const pctFolga2 = parseFloat(configAtual.heFolga2 || 100); 
+    // Garantindo que os parâmetros sejam números
+    const LIMITE_DIARIO = Number(configAtual.horasDiarias || 8);
+    const pctFolga1 = Number(configAtual.heFolga1 || 50); 
+    const pctFolga2 = Number(configAtual.heFolga2 || 100); 
     const regrasEscada = configAtual.regrasExtra || [];
 
     let horasNormais = 0;
     let extrasPorFaixa = {}; 
 
-    // --- LOGICA UNIFICADA ---
-
     if (isFeriado || (isFolga && diaSemana === 0)) {
-        // DOMINGO OU FERIADO -> Usa a % da Folga 2
+        // DOMINGO OU FERIADO
         extrasPorFaixa[pctFolga2] = (extrasPorFaixa[pctFolga2] || 0) + tempoTotalHoras;
-
     } else if (isFolga) {
-        // SÁBADO OU OUTRA FOLGA -> Usa a % da Folga 1
+        // SÁBADO OU FOLGA ESCALonada
         extrasPorFaixa[pctFolga1] = (extrasPorFaixa[pctFolga1] || 0) + tempoTotalHoras;
-
     } else {
-        // DIA NORMAL -> Aplica a Escadinha
+        // DIA NORMAL (Segunda a Sexta) -> AQUI ENTRA A ESCADINHA
         if (tempoTotalHoras > LIMITE_DIARIO) {
             horasNormais = LIMITE_DIARIO;
             let saldoExtra = tempoTotalHoras - LIMITE_DIARIO;
             let acumuladoExtraNoDia = 0;
 
-            // Ordena a escadinha (essencial!)
+            // Ordenação rigorosa da escadinha
             const escadaOrdenada = [...regrasEscada].sort((a, b) => {
-                if (a.limite === '' || a.limite === null) return 1;
-                if (b.limite === '' || b.limite === null) return -1;
-                return a.limite - b.limite;
+                let limA = a.limite === '' ? 999 : Number(a.limite);
+                let limB = b.limite === '' ? 999 : Number(b.limite);
+                return limA - limB;
             });
 
             if (escadaOrdenada.length === 0) {
-                // Se não tem escadinha, joga tudo no padrão 50%
                 extrasPorFaixa[50] = saldoExtra;
             } else {
                 escadaOrdenada.forEach(regra => {
                     if (saldoExtra <= 0) return;
-                    const pct = parseFloat(regra.porcento);
-                    const lim = regra.limite;
+                    
+                    const pct = Number(regra.porcento);
+                    const lim = regra.limite === '' ? null : Number(regra.limite);
 
-                    if (lim === '' || lim === null) {
+                    if (lim === null) {
+                        // Faixa final (ex: acima de 5h)
                         extrasPorFaixa[pct] = (extrasPorFaixa[pct] || 0) + saldoExtra;
                         saldoExtra = 0;
                     } else {
-                        let espacoNaFaixa = parseFloat(lim) - acumuladoExtraNoDia;
-                        if (espacoNaFaixa > 0) {
-                            let consumo = Math.min(saldoExtra, espacoNaFaixa);
+                        let espacoNestaFaixa = lim - acumuladoExtraNoDia;
+                        if (espacoNestaFaixa > 0) {
+                            let consumo = Math.min(saldoExtra, espacoNestaFaixa);
                             extrasPorFaixa[pct] = (extrasPorFaixa[pct] || 0) + consumo;
                             saldoExtra -= consumo;
                             acumuladoExtraNoDia += consumo;
@@ -731,8 +729,9 @@ function atualizarTotalGeral() {
         try {
             const extras = JSON.parse(tr.dataset.extrasJson || '{}');
             for (let pct in extras) {
-                // Acumula os valores de cada porcentagem
-                acumuladorExtras[pct] = (acumuladorExtras[pct] || 0) + parseFloat(extras[pct]);
+                // Força a porcentagem a ser tratada como número para somar certo
+                let p = Number(pct);
+                acumuladorExtras[p] = (acumuladorExtras[p] || 0) + Number(extras[pct]);
             }
         } catch (e) {}
     });
@@ -746,13 +745,15 @@ function atualizarTotalGeral() {
     const container = document.getElementById('container-extras-dinamico');
     if (container) {
         container.innerHTML = "";
-        Object.keys(acumuladorExtras).sort((a,b) => a-b).forEach(pct => {
-            if (acumuladorExtras[pct] > 0) { // Só mostra se tiver horas
+        // Ordena as chaves numericamente (50, 70, 80, 100...)
+        Object.keys(acumuladorExtras).sort((a,b) => Number(a) - Number(b)).forEach(pct => {
+            let valor = acumuladorExtras[pct];
+            if (valor > 0.001) { // Só mostra se tiver tempo (evita lixo de processamento)
                 const div = document.createElement('div');
                 div.className = "resumo-item extra-dinamico";
                 div.innerHTML = `
                     <span>Total ${pct}%</span>
-                    <strong>${decimalParaHHMM(acumuladorExtras[pct])}</strong>
+                    <strong>${decimalParaHHMM(valor)}</strong>
                 `;
                 container.appendChild(div);
             }
