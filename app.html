@@ -34,12 +34,8 @@
             <button onclick="alert('Exportação em PDF em breve!')">📄 Exportar PDF</button>
             <div class="divisor"></div>
             
-            <div class="menu-section">Lançar Afastamentos</div>
-            <button onclick="abrirModalAfastamento('Férias')">🏖️ Férias</button>
-            <button onclick="abrirModalAfastamento('Atestado Médico')">🩺 Atestado Médico</button>
-            <button onclick="abrirModalAfastamento('Licença')">📜 Licenças</button>
-            <button onclick="abrirModalAfastamento('Acidente de Trabalho')">🚑 Acidente de Trabalho</button>
-            <button onclick="abrirModalAfastamento('Outros')">📌 Outros</button>
+            <div class="menu-section">Afastamentos</div>
+            <button onclick="abrirModalAfastamentoUnificado()">Lançar Afastamentos</button>
             
             <div class="divisor"></div>
             <div class="menu-section">Estrutura</div>
@@ -164,6 +160,49 @@
     <div class="menu-section-small">Horários</div>
     <button onclick="acionarMenuLinha('add-batida')">➕ Adicionar Batidas</button>
     <button onclick="acionarMenuLinha('rem-batida')">➖ Remover Batidas</button>
+</div>
+<div id="modal-afastamento" class="modal-overlay escondido">
+    <div class="modal-card" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3>🏖️ Lançar Afastamento</h3>
+            <button class="btn-fechar" onclick="fecharModalAfastamento()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.85em; color: #64748b; margin-bottom: 15px;">
+                Os dias selecionados serão marcados como folga na tabela e os horários apagados.
+            </p>
+            
+            <div class="form-group">
+                <label>Tipo de Afastamento</label>
+                <select id="afastamento-tipo-select" class="input-premium" onchange="verificarTipoAfastamento()" style="cursor: pointer;">
+                    <option value="Férias">Férias</option>
+                    <option value="Atestado Médico">Atestado Médico</option>
+                    <option value="Licença">Licença</option>
+                    <option value="Afastamento (Auxílio-Doença)">Afastamento (Auxílio-Doença)</option>
+                    <option value="Outros">Outros</option>
+                </select>
+            </div>
+
+            <div class="form-group escondido" id="grupo-outros-desc">
+                <label>Descrição (Opcional)</label>
+                <input type="text" id="afastamento-descricao" class="input-premium" placeholder="Ex: Licença Paternidade, Luto...">
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 15px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Data Inicial</label>
+                    <input type="date" id="afastamento-inicio" class="input-premium">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Data Final</label>
+                    <input type="date" id="afastamento-fim" class="input-premium">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="aplicarAfastamento()" class="btn-primario" style="width: 100%;">Aplicar na Tabela</button>
+        </div>
+    </div>
 </div>
 </body>
 </html>

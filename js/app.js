@@ -731,27 +731,6 @@ document.addEventListener('click', () => {
     }
 });
 
-// AFASTAMENTOS
-window.abrirModalAfastamento = function(tipo) {
-    document.getElementById('titulo-modal-afastamento').innerText = `Lançar ${tipo}`;
-    document.getElementById('afastamento-tipo').value = tipo;
-    
-    // Limpa os campos
-    document.getElementById('afastamento-inicio').value = '';
-    document.getElementById('afastamento-fim').value = '';
-    
-    document.getElementById('modal-afastamento').classList.remove('escondido');
-};
-
-window.fecharModalAfastamento = function() {
-    document.getElementById('modal-afastamento').classList.add('escondido');
-};
-
-window.aplicarAfastamento = function() {
-    alert("Função de pintar a tabela e bloquear os dias será feita na próxima etapa!");
-    fecharModalAfastamento();
-};
-
 // AJUSTE DE DATAS
 window.abrirModalAjusteDatas = function() {
     if(!configAtual) return;
@@ -859,4 +838,111 @@ window.alternarFolgaManual = function(tr) {
         inputs.forEach(input => input.classList.remove('folga-input'));
     }
     if (typeof window.salvarComAtraso === 'function') window.salvarComAtraso();
+};
+/* ==========================================================================
+   SISTEMA DE AFASTAMENTOS UNIFICADO
+   ========================================================================== */
+
+// 1. Abre o modal e limpa os campos antigos
+window.abrirModalAfastamentoUnificado = function() {
+    document.getElementById('modal-afastamento').classList.remove('escondido');
+    
+    // Reseta o formulário
+    document.getElementById('afastamento-tipo-select').value = 'Férias';
+    document.getElementById('afastamento-descricao').value = '';
+    document.getElementById('grupo-outros-desc').classList.add('escondido');
+    document.getElementById('afastamento-inicio').value = '';
+    document.getElementById('afastamento-fim').value = '';
+
+    // Fecha o menu principal de configurações se ele estiver aberto
+    const menuPrincipal = document.getElementById('menu-config-app');
+    if(menuPrincipal) menuPrincipal.classList.add('escondido');
+};
+
+// 2. Fecha o modal
+window.fecharModalAfastamento = function() {
+    document.getElementById('modal-afastamento').classList.add('escondido');
+};
+
+// 3. Mostra/Esconde o campo de "Outros" dinamicamente
+window.verificarTipoAfastamento = function() {
+    const tipo = document.getElementById('afastamento-tipo-select').value;
+    const grupoOutros = document.getElementById('grupo-outros-desc');
+    
+    if (tipo === 'Outros') {
+        grupoOutros.classList.remove('escondido');
+    } else {
+        grupoOutros.classList.add('escondido');
+    }
+};
+
+// 4. Aplica o afastamento na tabela
+window.aplicarAfastamento = function() {
+    const tipoSelecionado = document.getElementById('afastamento-tipo-select').value;
+    const descricao = document.getElementById('afastamento-descricao').value;
+    const dataInicio = document.getElementById('afastamento-inicio').value;
+    const dataFim = document.getElementById('afastamento-fim').value;
+
+    if (!dataInicio || !dataFim) {
+        alert("Por favor, selecione as datas inicial e final do afastamento.");
+        return;
+    }
+
+    const dataInicioObj = new Date(dataInicio + "T00:00:00");
+    const dataFimObj = new Date(dataFim + "T00:00:00");
+
+    if (dataInicioObj > dataFimObj) {
+        alert("A data inicial não pode ser maior que a data final.");
+        return;
+    }
+
+    // Define o nome que vai aparecer (se for 'Outros' e tiver descrição, usa ela)
+    const nomeMotivo = (tipoSelecionado === 'Outros' && descricao.trim() !== "") ? descricao : tipoSelecionado;
+
+    let aplicou = false;
+    let dataAtualLoop = new Date(dataInicioObj);
+
+    // Percorre todos os dias do período
+    while(dataAtualLoop <= dataFimObj) {
+        const dataFormatada = dataAtualLoop.toLocaleDateString('pt-BR');
+        
+        // Pega a linha na tabela pelo atributo 'data-dia'
+        const tr = document.querySelector(`tr[data-dia="${dataFormatada}"]`);
+
+        if (tr) {
+            aplicou = true;
+            tr.classList.add('folga'); // Fica cinza
+            
+            // Apaga os horários e bloqueia visualmente
+            const inputs = tr.querySelectorAll('.ponto');
+            inputs.forEach(input => {
+                input.classList.add('folga-input');
+                input.value = ""; 
+            });
+
+            // Atualiza o objeto do Firebase na memória
+            if (!cartaoAtual.batidas[dataFormatada]) {
+                cartaoAtual.batidas[dataFormatada] = { h: [] };
+            }
+            cartaoAtual.batidas[dataFormatada].f = true;
+            // Futuramente podemos exibir esse motivo na exportação
+            cartaoAtual.batidas[dataFormatada].motivo = nomeMotivo; 
+        }
+        
+        dataAtualLoop.setDate(dataAtualLoop.getDate() + 1);
+    }
+
+    if (aplicou) {
+        // Dispara o salvamento e fecha o modal
+        if (typeof window.salvarComAtraso === 'function') {
+            window.salvarComAtraso();
+        } else if (typeof salvarComAtraso === 'function') {
+            salvarComAtraso();
+        }
+        
+        fecharModalAfastamento();
+        alert(`✅ ${nomeMotivo} aplicado com sucesso!`);
+    } else {
+        alert("Nenhum dia encontrado neste período na página atual.");
+    }
 };
