@@ -946,3 +946,85 @@ window.aplicarAfastamento = function() {
         alert("Nenhum dia encontrado neste período na página atual.");
     }
 };
+/* ==========================================================================
+   SISTEMA DE AJUSTE DE PERÍODO (INCLUIR/EXCLUIR DATAS)
+   ========================================================================== */
+
+// 1. Abre o modal e já preenche com as datas atuais do processo
+window.abrirModalAjusteDatas = function() {
+    if (typeof configAtual === 'undefined' || !configAtual) return;
+
+    // Puxa as datas direto da configuração atual e joga nos inputs
+    document.getElementById('ajuste-data-inicio').value = configAtual.dataInicio;
+    document.getElementById('ajuste-data-fim').value = configAtual.dataFim;
+    
+    document.getElementById('modal-ajuste-datas').classList.remove('escondido');
+    
+    // Fecha o menu principal da engrenagem se estiver aberto
+    const menuPrincipal = document.getElementById('menu-config-app');
+    if (menuPrincipal) menuPrincipal.classList.add('escondido');
+};
+
+// 2. Fecha o modal
+window.fecharModalAjusteDatas = function() {
+    document.getElementById('modal-ajuste-datas').classList.add('escondido');
+};
+
+// 3. Aplica o novo período, limpa o lixo e regera a tela
+window.aplicarAjusteDatas = function() {
+    const novaInicio = document.getElementById('ajuste-data-inicio').value;
+    const novaFim = document.getElementById('ajuste-data-fim').value;
+
+    if (!novaInicio || !novaFim) {
+        alert("Por favor, preencha a data inicial e final.");
+        return;
+    }
+
+    const dataInicioObj = new Date(novaInicio + "T00:00:00");
+    const dataFimObj = new Date(novaFim + "T00:00:00");
+
+    if (dataInicioObj > dataFimObj) {
+        alert("A data inicial não pode ser maior que a data final.");
+        return;
+    }
+
+    // Pede confirmação pois essa ação pode apagar dias já digitados
+    const confirma = confirm("Deseja confirmar a alteração do período? Datas que ficarem de fora do novo limite serão apagadas.");
+    if (!confirma) return;
+
+    // 3.1 Atualiza a configuração na memória
+    configAtual.dataInicio = novaInicio;
+    configAtual.dataFim = novaFim;
+
+    // 3.2 Limpa o banco de dados (Apaga os dias que ficaram de fora)
+    if (cartaoAtual && cartaoAtual.batidas) {
+        for (let dataFormatada in cartaoAtual.batidas) {
+            // Converte a data salva "DD/MM/YYYY" para objeto Date comparável
+            const [dia, mes, ano] = dataFormatada.split('/');
+            const dataBatidaObj = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+            
+            // Se a data do banco for menor que o novo início OU maior que o novo fim, deleta!
+            if (dataBatidaObj < dataInicioObj || dataBatidaObj > dataFimObj) {
+                delete cartaoAtual.batidas[dataFormatada];
+            }
+        }
+    }
+
+    // 3.3 Atualiza o texto visual do período lá no topo da tela (Cabeçalho)
+    const infoPeriodo = document.getElementById('info-periodo');
+    if (infoPeriodo) {
+        infoPeriodo.innerText = `Período: ${novaInicio.split('-').reverse().join('/')} a ${novaFim.split('-').reverse().join('/')}`;
+    }
+
+    // 3.4 Força a paginação a voltar para o primeiro ano do novo período
+    anoVisualizacaoAtual = dataInicioObj.getFullYear();
+
+    // 3.5 Salva no banco de dados e fecha o modal
+    if (typeof window.salvarComAtraso === 'function') window.salvarComAtraso();
+    fecharModalAjusteDatas();
+
+    // 3.6 Regera a tabela para mostrar as novas linhas (ou esconder as removidas)
+    gerarFolha(configAtual);
+    
+    alert("Período atualizado com sucesso!");
+};
