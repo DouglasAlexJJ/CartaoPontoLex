@@ -789,26 +789,27 @@ async function carregarFeriados(ano, uf) {
 
 // Adicionamos window. para o HTML conseguir enxergar a função
 window.alternarFeriadoManual = function(tr) {
-    if (!tr) return; // Proteção extra
-    const dataDia = tr.getAttribute('data-dia');
+    if (!tr) return;
     
-    if (!cartaoAtual.batidas[dataDia]) {
-        cartaoAtual.batidas[dataDia] = { horas: [], isFolga: false };
-    }
+    // Verifica se a linha JÁ ESTÁ marcada como feriado (seja pela API ou por clique anterior)
+    const jaEhFeriado = tr.classList.contains('destaque-feriado') || tr.classList.contains('destaque-vermelho');
 
-    const ehFeriado = !cartaoAtual.batidas[dataDia].isFeriado;
-    cartaoAtual.batidas[dataDia].isFeriado = ehFeriado;
-
-    // Estilização
-    if (ehFeriado) {
-        tr.classList.add('destaque-vermelho');
-        tr.style.backgroundColor = "#fff5f5";
-    } else {
-        tr.classList.remove('destaque-vermelho');
+    if (jaEhFeriado) {
+        // Se era feriado, o usuário quer REMOVER (Ex: Trabalhou no feriado)
+        tr.classList.remove('destaque-feriado', 'destaque-vermelho');
         tr.style.backgroundColor = "";
+        tr.setAttribute('data-feriado-manual', 'falso'); // Deixa um rastro para o salvamento
+    } else {
+        // Se não era, o usuário quer ADICIONAR (Ex: Feriado Municipal)
+        tr.classList.add('destaque-feriado');
+        tr.style.backgroundColor = "#fff5f5";
+        tr.setAttribute('data-feriado-manual', 'verdadeiro'); // Deixa um rastro para o salvamento
     }
 
-    if (typeof salvarComAtraso === 'function') {
+    // Chama o salvamento automático com segurança
+    if (typeof window.salvarComAtraso === 'function') {
+        window.salvarComAtraso();
+    } else if (typeof salvarComAtraso === 'function') {
         salvarComAtraso();
     }
 };
