@@ -153,29 +153,31 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
     bottom: 0; 
     left: 0; 
     width: 100%; 
-    background: #1e293b; 
+    background: #0f172a; /* Azul bem escuro (Slate 900) */
     color: white; 
-    padding: 15px 0; 
+    padding: 8px 0; /* Diminuído de 15px para 8px */
     display: flex; 
     justify-content: center; 
     z-index: 2000; 
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.15); 
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+    border-top: 1px solid #1e293b;
 }
 
 .resumo-painel {
     display: flex;
     align-items: center;
-    background: #f8fafc; /* Um cinza bem clarinho para destacar do fundo */
-    padding: 12px 20px;
-    border-top: 1px solid #e2e8f0;
-    gap: 0; /* Tiramos o gap para as bordas encostarem */
+    background: transparent; /* Removido o fundo claro */
+    padding: 0 20px;
+    border: none;
+    gap: 0;
 }
 
 .resumo-item {
     display: flex;
     flex-direction: column;
-    padding: 0 25px;
-    position: relative; /* Para o separador se basear aqui */
+    padding: 0 20px; /* Reduzi um pouco o respiro lateral */
+    position: relative;
+    align-items: center; /* Centraliza o texto e o número */
 }
 
 .resumo-item:last-child { 
@@ -187,28 +189,29 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
     content: "";
     position: absolute;
     left: 0;
-    top: 15%; /* Não encosta no topo */
-    height: 70%; /* Não encosta na base */
+    top: 20%;
+    height: 60%;
     width: 1px;
-    background-color: #cbd5e1; /* Cor de borda suave, nada de branco cortante */
+    background-color: rgba(255, 255, 255, 0.1); /* Linha branca quase invisível */
 }
 
 .resumo-item span {
-    font-size: 0.7rem;
-    font-weight: 700;
+    font-size: 0.65rem; /* Menor para economizar espaço */
+    font-weight: 600;
     text-transform: uppercase;
-    color: #64748b;
-    margin-bottom: 2px;
+    color: #94a3b8; /* Cinza azulado (mais legível no escuro) */
+    margin-bottom: 0px;
 }
 
 .resumo-item strong {
-    font-size: 1.15rem;
-    color: #0f172a;
+    font-size: 1.05rem; /* Um pouco menor para ser proporcional */
+    color: #f8fafc;
     font-family: 'Inter', sans-serif;
+    letter-spacing: -0.5px;
 }
 
 #total-geral-periodo {
-    color: #2563eb; /* Um azul para o total principal */
+    color: #38bdf8; /* Azul claro brilhante para o total */
 }
 
 .destaque-feriado {
@@ -412,4 +415,8 @@ tr.linha-ponto:hover .btn-acao-dia {
 .extra-dinamico span {
     color: #2563eb; /* Um azul para destacar que é Hora Extra */
     font-weight: 600;
+}
+
+.extra-dinamico strong {
+    color: #4ade80; /* Verde para as horas extras */
 }
