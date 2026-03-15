@@ -162,23 +162,20 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
     box-shadow: 0 -4px 15px rgba(0,0,0,0.15); 
 }
 
-.resumo-painel { 
-    display: flex; 
-    gap: 20px; 
-    align-items: center; 
-    justify-content: space-around; 
-    width: 95%; 
-    max-width: 1200px; 
+.resumo-painel {
+    display: flex;
+    align-items: center;
+    gap: 30px; /* Espaço generoso entre os totais sem precisar de linhas */
+    padding: 10px 20px;
+    flex-wrap: wrap;
 }
 
-.resumo-item { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    justify-content: center; 
-    border-right: 1px solid #334155; 
-    padding-right: 40px; 
-    width: 20%;
+.resumo-item {
+    display: flex;
+    flex-direction: column;
+    border: none !important; /* Remove qualquer borda que tenha sobrado */
+    padding-left: 0 !important;
+    margin: 0;
 }
 
 .resumo-item:last-child { 
@@ -186,18 +183,17 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
     padding-right: 0; 
 }
 
-.resumo-item span { 
-    font-size: 0.7em; 
-    text-transform: uppercase; 
-    color: #94a3b8; 
-    letter-spacing: 0.5px; 
-    margin-bottom: 5px; 
+.resumo-item span {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 2px;
 }
 
-.resumo-item strong { 
-    font-size: 1.4em; 
-    font-weight: 800; 
-    font-family: monospace; /* Fonte monoespaçada fica linda em números */
+.resumo-item strong {
+    font-size: 1.1rem;
+    color: #1e293b;
 }
 
 #total-geral-periodo { color: #10b981; font-size: 1.6em; }
@@ -395,10 +391,9 @@ tr.linha-ponto:hover .btn-acao-dia {
 
 /* Estilo para cada item de extra que o JS cria */
 .extra-dinamico {
-    border-left: 2px solid #e2e8f0;
-    padding-left: 15px;
-    display: flex;
-    flex-direction: column;
+    border-left: none !important; /* Mata a "listra branca" de vez */
+    padding-left: 0 !important;
+    margin-left: 0 !important;
 }
 
 .extra-dinamico span {
