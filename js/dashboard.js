@@ -395,6 +395,8 @@ window.editarCartao = function(id) {
 
     // 5. Parâmetros Sindicais (Onde a mágica acontece)
     document.getElementById('config-adc-noturno').value = config.adcNoturno || '20';
+    document.getElementById('config-he-folga1').value = config.heFolga1 || '50';
+    document.getElementById('config-he-folga2').value = config.heFolga2 || '100';
     
     const containerRegras = document.getElementById('container-regras-extras');
     containerRegras.innerHTML = ""; // Limpa a tabela
@@ -549,6 +551,8 @@ window.abrirModalNovo = function() {
     
     // Reseta as regras sindicais
     document.getElementById('config-adc-noturno').value = '20';
+    document.getElementById('config-he-folga1').value = '50';
+    document.getElementById('config-he-folga2').value = '100';
     document.getElementById('container-regras-extras').innerHTML = "";
     
     // Injeta a regra padrão de "Tudo a 50%" para começar
@@ -700,6 +704,8 @@ window.salvarEIniciar = async function() {
 
     // 2. LENDO OS NOVOS PARÂMETROS SINDICAIS
     const adcNoturno = document.getElementById('config-adc-noturno').value || '20';
+    const heFolga1 = document.getElementById('config-he-folga1').value || '50';
+    const heFolga2 = document.getElementById('config-he-folga2').value || '100';
     
     // Lendo as regrinhas de horas extras dinâmicas e montando o array
     const regrasExtra = [];
@@ -731,8 +737,9 @@ window.salvarEIniciar = async function() {
         folgaPers: folgaPers,
         uf: ufSelecionada,
         cidade: cidadeSelecionada,
-        // --- GRAVANDO OS PARÂMETROS SINDICAIS AQUI ---
         adcNoturno: adcNoturno,
+        heFolga1: heFolga1,
+        heFolga2: heFolga2,
         regrasExtra: regrasExtra
     };
 
