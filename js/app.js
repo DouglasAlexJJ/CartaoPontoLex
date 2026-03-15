@@ -1120,19 +1120,21 @@ window.aplicarAjusteDatas = function() {
     alert("Período atualizado com sucesso!");
 };
 window.gerarPDF = function() {
-    // 1. Verificação de segurança inicial
-    if (!configAtual || !configAtual.dataInicio || !configAtual.dataFim) {
-        alert("Erro: Configurações do período não encontradas.");
+    if (!configAtual || !window.batidasGlobal) {
+        alert("Erro: Dados não carregados.");
         return;
     }
 
     const { reclamante, reclamada, dataInicio, dataFim, qtdBatidas } = configAtual;
     const nBatidas = parseInt(qtdBatidas || 4);
     
-    // 2. Criação das datas (Ordem correta para evitar o ReferenceError)
+    const elemento = document.createElement('div');
+    elemento.style.padding = '10px';
+    elemento.style.fontFamily = 'Arial, sans-serif';
+
     const dataIn = new Date(dataInicio + "T00:00:00");
     const dataFi = new Date(dataFim + "T00:00:00");
-    let dataVar = new Date(dataIn); // Inicializada aqui, ANTES de qualquer uso
+    let dataVar = new Date(dataIn);
 
     let acumGeralExtras = {};
     let totGeralNormais = 0;
@@ -1140,76 +1142,64 @@ window.gerarPDF = function() {
     let totGeralMinutos = 0;
     const mesesRelatorio = {};
 
-    // 3. Loop pelo período total
+    // 1. PROCESSAMENTO DE DADOS
     while (dataVar <= dataFi) {
         const diaFmt = dataVar.toLocaleDateString('pt-BR');
-        const diaKeyUnderline = diaFmt.replace(/\//g, '_');
-        
-        // Busca o registro (que contém .h e .f)
-        const registro = (window.batidasGlobal[diaFmt]) || (window.batidasGlobal[diaKeyUnderline]) || null;
-        
-        // Extrai o array de batidas (.h)
+        const registro = window.batidasGlobal[diaFmt] || window.batidasGlobal[diaFmt.replace(/\//g, '_')] || null;
         const batidas = (registro && registro.h) ? registro.h : [];
         
-        // Só processa se o dia tiver alguma batida digitada
         if (batidas.some(b => b && b.trim() !== "")) {
             const res = calcularValoresDiaParaRelatorio(dataVar, batidas);
-            const mesAno = diaFmt.substring(3); // "03/2026"
+            const mesAno = diaFmt.substring(3);
             
             if (!mesesRelatorio[mesAno]) mesesRelatorio[mesAno] = [];
             mesesRelatorio[mesAno].push({ data: diaFmt, batidas, res });
 
-            // Soma nos acumuladores
             totGeralNormais += res.normais;
             totGeralNoturno += res.noturno;
             totGeralMinutos += res.totalMinutos;
-            for (let p in res.extras) { 
-                acumGeralExtras[p] = (acumGeralExtras[p] || 0) + res.extras[p]; 
+
+            // Soma as extras no acumulador global do PDF
+            for (let p in res.extras) {
+                let pct = parseFloat(p);
+                acumGeralExtras[pct] = (acumGeralExtras[pct] || 0) + res.extras[p];
             }
         }
-        // Incrementa o dia para a próxima volta do loop
         dataVar.setDate(dataVar.getDate() + 1);
     }
 
-    // 4. Se não encontrou nada em nenhum ano/mês
     if (Object.keys(mesesRelatorio).length === 0) {
-        alert("Não há batidas preenchidas no período selecionado.");
+        alert("Não há dados preenchidos no período.");
         return;
     }
 
-    // 5. Montagem do Elemento HTML para o PDF
-    const elemento = document.createElement('div');
-    elemento.style.padding = '15px';
-    elemento.style.fontFamily = 'Arial, sans-serif';
-
-    // Cabeçalho das colunas (Entrada 1, Saída 1...)
-    let colunasHeader = `<th style="border:1px solid #333; padding:5px;">DATA</th>`;
+    // 2. MONTAGEM DAS TABELAS MENSAIS
+    let colunasHeader = `<th style="border:1px solid #000; padding:3px;">DATA</th>`;
     for (let i = 1; i <= nBatidas / 2; i++) {
-        colunasHeader += `<th style="border:1px solid #333;">ENT ${i}</th><th style="border:1px solid #333;">SAÍ ${i}</th>`;
+        colunasHeader += `<th style="border:1px solid #000;">ENT ${i}</th><th style="border:1px solid #000;">SAÍ ${i}</th>`;
     }
-    colunasHeader += `<th style="border:1px solid #333;">TOTAL</th><th style="border:1px solid #333;">NOT.</th>`;
+    colunasHeader += `<th style="border:1px solid #000;">TOTAL</th><th style="border:1px solid #000;">NOT.</th>`;
 
-    // Gerar páginas por mês
     Object.keys(mesesRelatorio).forEach(mesAno => {
         const divMes = document.createElement('div');
         divMes.style.pageBreakAfter = 'always';
         divMes.innerHTML = `
-            <div style="text-align:center; border-bottom:2px solid #000; margin-bottom:20px; padding-bottom:10px;">
-                <h2 style="margin:0;">RELATÓRIO DE PONTO - ${mesAno}</h2>
-                <p style="margin:5px 0;"><strong>Reclamante:</strong> ${reclamante} | <strong>Reclamada:</strong> ${reclamada}</p>
+            <div style="text-align:center; border-bottom:1px solid #000; margin-bottom:10px;">
+                <h3 style="margin:0;">MEMÓRIA DE CÁLCULO - ${mesAno}</h3>
+                <p style="font-size:10px; margin:5px;">${reclamante} vs ${reclamada}</p>
             </div>
-            <table style="width:100%; border-collapse:collapse; font-size: 8.5px; text-align:center;">
-                <thead><tr style="background:#f1f5f9;">${colunasHeader}</tr></thead>
+            <table style="width:100%; border-collapse:collapse; font-size: 8px; text-align:center; table-layout: fixed;">
+                <thead><tr style="background:#eee;">${colunasHeader}</tr></thead>
                 <tbody>
                     ${mesesRelatorio[mesAno].map(d => {
                         let cels = '';
                         for(let j=0; j<nBatidas; j++) {
-                            cels += `<td style="border:1px solid #ccc; padding:3px;">${d.batidas[j] || '-'}</td>`;
+                            cels += `<td style="border:1px solid #ccc; overflow:hidden;">${d.batidas[j] || '-'}</td>`;
                         }
                         return `<tr>
                             <td style="border:1px solid #ccc; font-weight:bold;">${d.data}</td>
                             ${cels}
-                            <td style="border:1px solid #ccc; font-weight:bold; background:#fafafa;">${d.res.totalFormatado}</td>
+                            <td style="border:1px solid #ccc; font-weight:bold;">${d.res.totalFormatado}</td>
                             <td style="border:1px solid #ccc;">${decimalParaHHMM(d.res.noturno)}</td>
                         </tr>`;
                     }).join('')}
@@ -1219,50 +1209,55 @@ window.gerarPDF = function() {
         elemento.appendChild(divMes);
     });
 
-    // 6. Resumo Final (Última Página)
+    // 3. RESUMO FINAL (Garantindo que apareça)
     const divResumo = document.createElement('div');
+    divResumo.style.marginTop = '20px';
+    
     let extrasHtml = '';
-    Object.keys(acumGeralExtras).sort((a,b)=>a-b).forEach(p => {
-        extrasHtml += `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding:10px;">Horas Extras ${p}%</td>
-                <td style="padding:10px; text-align:right;"><strong>${decimalParaHHMM(acumGeralExtras[p])}</strong></td>
-            </tr>
-        `;
+    // Ordenar e gerar linhas de extras
+    Object.keys(acumGeralExtras).sort((a,b) => a-b).forEach(p => {
+        if (acumGeralExtras[p] > 0) {
+            extrasHtml += `
+                <tr style="border-bottom: 1px solid #ccc;">
+                    <td style="padding:8px;">Horas Extras ${p}%</td>
+                    <td style="padding:8px; text-align:right;"><strong>${decimalParaHHMM(acumGeralExtras[p])}</strong></td>
+                </tr>
+            `;
+        }
     });
 
     divResumo.innerHTML = `
-        <div style="text-align:center; margin-top:30px;">
-            <h2 style="background:#1e293b; color:white; padding:15px; border-radius:8px;">RESUMO CONSOLIDADO</h2>
+        <div style="text-align:center; margin-bottom:15px;">
+            <h3 style="background:#eee; padding:10px; border:1px solid #000;">RESUMO CONSOLIDADO DO PERÍODO</h3>
         </div>
-        <table style="width:100%; max-width:500px; margin:20px auto; border-collapse:collapse; border:1px solid #e2e8f0; font-size:14px;">
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding:10px;">Total Horas Normais:</td>
-                <td style="padding:10px; text-align:right;">${decimalParaHHMM(totGeralNormais)}</td>
+        <table style="width:100%; max-width:400px; margin:0 auto; border-collapse:collapse; font-size:12px; border:1px solid #000;">
+            <tr style="border-bottom: 1px solid #ccc;">
+                <td style="padding:8px;">Total Horas Normais:</td>
+                <td style="padding:8px; text-align:right;">${decimalParaHHMM(totGeralNormais)}</td>
             </tr>
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding:10px;">Total Adicional Noturno:</td>
-                <td style="padding:10px; text-align:right;">${decimalParaHHMM(totGeralNoturno)}</td>
+            <tr style="border-bottom: 1px solid #ccc;">
+                <td style="padding:8px;">Total Adicional Noturno:</td>
+                <td style="padding:8px; text-align:right;">${decimalParaHHMM(totGeralNoturno)}</td>
             </tr>
             ${extrasHtml}
-            <tr style="background:#f8fafc; font-size:1.2em; border-top:2px solid #1e293b;">
-                <td style="padding:15px;"><strong>TOTAL GERAL DO PERÍODO:</strong></td>
-                <td style="padding:15px; text-align:right;"><strong>${minParaHHMM(totGeralMinutos)}</strong></td>
+            <tr style="background:#f0f0f0; font-weight:bold;">
+                <td style="padding:8px;">TOTAL GERAL:</td>
+                <td style="padding:8px; text-align:right;">${minParaHHMM(totGeralMinutos)}</td>
             </tr>
         </table>
     `;
     elemento.appendChild(divResumo);
 
-    // 7. Configuração e Disparo do PDF
+    // 4. CONFIGURAÇÃO JS-PDF (Ajuste para não cortar)
     const opt = {
-        margin: [10, 8, 10, 8],
-        filename: `Laudo_Ponto_${reclamante.split(' ')[0]}.pdf`,
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: nBatidas > 6 ? 'landscape' : 'portrait' }
+        margin: 5,
+        filename: `Laudo_${reclamante.split(' ')[0]}.pdf`,
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: nBatidas >= 6 ? 'landscape' : 'portrait' }
     };
 
     html2pdf().set(opt).from(elemento).save();
-};
+}
 
 /**
  * FUNÇÃO DE CÁLCULO PARA O RELATÓRIO (Portando sua lógica da UI)
@@ -1281,9 +1276,8 @@ function calcularValoresDiaParaRelatorio(dataObj, batidas) {
 
     const totalMinutos = tDiurno + tNotFicto;
     const tHoras = totalMinutos / 60;
-    const diaSemana = dataObj.getDay(); // 0=Dom, 6=Sab
+    const diaSemana = dataObj.getDay(); 
 
-    // Pegamos as regras da config
     const limite = Number(configAtual.horasDiarias || 8);
     const pFolga1 = Number(configAtual.heFolga1 || 50);
     const pFolga2 = Number(configAtual.heFolga2 || 100);
@@ -1292,22 +1286,20 @@ function calcularValoresDiaParaRelatorio(dataObj, batidas) {
     let resNormais = 0;
     let resExtras = {};
 
-    // 1. Identifica Feriados (Opcional: Se você tiver lista de feriados, cheque aqui)
-    const isFeriadoOuDom = (diaSemana === 0); // Simplificado: Domingo é sempre Folga 2
-
-    if (isFeriadoOuDom) {
+    // Lógica de Folgas (Sáb/Dom)
+    if (diaSemana === 0) {
         resExtras[pFolga2] = tHoras;
-    } else if (diaSemana === 6) { // Sábado
+    } else if (diaSemana === 6) {
         resExtras[pFolga1] = tHoras;
     } else {
-        // Dia Normal -> Escadinha
+        // Dia Normal - Aplica Escadinha
         if (tHoras > limite) {
             resNormais = limite;
             let saldo = tHoras - limite;
             let acumulado = 0;
-
+            
             const ord = [...escada].sort((a,b) => (a.limite==='' ? 999 : Number(a.limite)) - (b.limite==='' ? 999 : Number(b.limite)));
-
+            
             if (ord.length === 0) {
                 resExtras[50] = saldo;
             } else {
@@ -1339,7 +1331,6 @@ function calcularValoresDiaParaRelatorio(dataObj, batidas) {
         totalMinutos: totalMinutos,
         noturno: tNotFicto / 60,
         normais: resNormais,
-        extras: resExtras,
-        isDestaque: (diaSemana === 0 || diaSemana === 6)
+        extras: resExtras
     };
 }
