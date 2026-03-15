@@ -165,17 +165,17 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
 .resumo-painel {
     display: flex;
     align-items: center;
-    gap: 30px; /* Espaço generoso entre os totais sem precisar de linhas */
-    padding: 10px 20px;
-    flex-wrap: wrap;
+    background: #f8fafc; /* Um cinza bem clarinho para destacar do fundo */
+    padding: 12px 20px;
+    border-top: 1px solid #e2e8f0;
+    gap: 0; /* Tiramos o gap para as bordas encostarem */
 }
 
 .resumo-item {
     display: flex;
     flex-direction: column;
-    border: none !important; /* Remove qualquer borda que tenha sobrado */
-    padding-left: 0 !important;
-    margin: 0;
+    padding: 0 25px;
+    position: relative; /* Para o separador se basear aqui */
 }
 
 .resumo-item:last-child { 
@@ -183,20 +183,33 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
     padding-right: 0; 
 }
 
+.resumo-item:not(:first-child)::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 15%; /* Não encosta no topo */
+    height: 70%; /* Não encosta na base */
+    width: 1px;
+    background-color: #cbd5e1; /* Cor de borda suave, nada de branco cortante */
+}
+
 .resumo-item span {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
     color: #64748b;
     margin-bottom: 2px;
 }
 
 .resumo-item strong {
-    font-size: 1.1rem;
-    color: #1e293b;
+    font-size: 1.15rem;
+    color: #0f172a;
+    font-family: 'Inter', sans-serif;
 }
 
-#total-geral-periodo { color: #10b981; font-size: 1.6em; }
+#total-geral-periodo {
+    color: #2563eb; /* Um azul para o total principal */
+}
 
 .destaque-feriado {
     border-left: 5px solid #ef4444 !important;

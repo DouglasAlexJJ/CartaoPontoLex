@@ -782,7 +782,7 @@ function atualizarTotalGeral() {
             const totalHhMm = decimalParaHHMM(acumuladorExtras[pct]);
             
             const div = document.createElement('div');
-            div.className = "resumo-item extra-dinamico";
+            div.className = "resumo-item";
             div.innerHTML = `
                 <span>Total ${pct}%</span>
                 <strong>${totalHhMm}</strong>
