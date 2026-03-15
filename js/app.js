@@ -396,11 +396,44 @@ async function gerarFolha(cfg) {
     configurarEventos();
 }
 
-// Função de apoio para trocar de ano (use no seu HTML)
-window.mudarAno = function(direcao) {
+/* ==========================================================================
+   NAVEGAÇÃO DE ANOS E PULO AUTOMÁTICO
+   ========================================================================== */
+
+// Função inteligente que verifica se tem um próximo ano e pula
+window.verificarPuloDeAno = function() {
+    if (typeof configAtual === 'undefined' || !configAtual) return;
+    
+    const anoFimProcesso = new Date(configAtual.dataFim + "T00:00:00").getFullYear();
+    
+    if (anoVisualizacaoAtual < anoFimProcesso) {
+        // Pula para o próximo ano e avisa que veio pelo teclado (true)
+        window.mudarAno(1, true); 
+    } else {
+        // Se já estiver no último ano do processo, dá um aviso amigável
+        alert("Você chegou ao final do período deste cartão!");
+    }
+};
+
+// Atualizada para focar no primeiro input quando virar o ano pelo teclado
+window.mudarAno = async function(direcao, focarNoPrimeiro = false) {
     anoVisualizacaoAtual += direcao;
     window.scrollTo(0, 0);
-    gerarFolha(configAtual);
+    
+    // Regera a folha (await garante que espera a tabela ser desenhada na tela)
+    await gerarFolha(configAtual);
+    
+    // Se a virada de ano foi feita pelo Enter/Digitação, foca no 1º campo livre
+    if (focarNoPrimeiro) {
+        setTimeout(() => {
+            // Procura o primeiro campo do ano novo que não seja folga
+            const primeiroInput = document.querySelector('.ponto:not(.folga-input)');
+            if (primeiroInput) {
+                primeiroInput.focus();
+                primeiroInput.select();
+            }
+        }, 150); // Dá um tempinho para o navegador respirar e renderizar
+    }
 };
 
 function configurarEventos() {
@@ -409,7 +442,6 @@ function configurarEventos() {
     inputs.forEach((input, index) => {
         input.onfocus = () => input.select();
         
-        // Permite digitar '*' além de números
         input.onkeypress = (e) => { 
             if (!/[0-9*]/.test(e.key)) e.preventDefault(); 
         };
@@ -418,7 +450,6 @@ function configurarEventos() {
             if (e.inputType === 'deleteContentBackward') return;
             let val = input.value.replace(':', '');
             
-            // Se o usuário digitou *, removemos do valor para não quebrar a hora
             if (val.includes('*')) {
                 input.value = input.value.replace('*', '');
                 return;
@@ -429,71 +460,68 @@ function configurarEventos() {
                 if (parseInt(h) > 23) h = "23";
                 input.value = h + ":" + val.substring(2);
             }
+            
             if (input.value.length === 5) {
                 let [h, m] = input.value.split(':');
                 if (parseInt(m) > 59) input.value = h + ":59";
-                calcularLinha(input.closest('tr'));
-                pularCampoInteligente(input, index, 1);
+                
+                if (typeof calcularLinha === 'function') calcularLinha(input.closest('tr'));
+                
+                // --- MÁGICA: SE FOR O ÚLTIMO CAMPO DA PÁGINA (DIA 31/12) ---
+                if (index === inputs.length - 1) {
+                    window.verificarPuloDeAno();
+                } else {
+                    if (typeof pularCampoInteligente === 'function') {
+                        pularCampoInteligente(input, index, 1);
+                    }
+                }
             }
         };
 
         input.onkeydown = (e) => {
             const tr = input.closest('tr');
 
-            // --- ATALHO: TECLA '*' PARA DEFINIR COMO FERIADO ---
-            if (e.key === '*' || e.key === 'Asterisk') {
-                e.preventDefault();
-                alternarFeriadoManual(tr);
-                return;
-            }
-
-            // --- ATALHO: TECLA '+' PARA ADICIONAR BATIDAS ---
-            if (e.key === '+') {
+            // Atalhos + e - para gerenciar batidas
+            if (e.key === '+' && typeof window.gerenciarBatidas === 'function') {
                 e.preventDefault(); 
                 window.gerenciarBatidas(input, 2); 
                 setTimeout(() => {
-                    const todosInputsDestaLinha = input.closest('tr').querySelectorAll('.ponto');
-                    const novoInput = todosInputsDestaLinha[todosInputsDestaLinha.length - 2];
-                    if (novoInput) novoInput.focus();
+                    const todosInputs = tr.querySelectorAll('.ponto');
+                    const novo = todosInputs[todosInputs.length - 2];
+                    if (novo) novo.focus();
                 }, 10);
                 return;
             }
 
-            // --- ATALHO: TECLA '-' PARA REMOVER BATIDAS ---
-            if (e.key === '-') {
+            if (e.key === '-' && typeof window.gerenciarBatidas === 'function') {
                 e.preventDefault(); 
                 window.gerenciarBatidas(input, -2);
                 return;
             }
 
-            // --- NAVEGAÇÃO PADRÃO (Tab / Enter) ---
+            // Teclas de navegação (Enter e Tab)
             if (e.key === 'Tab' || e.key === 'Enter') {
                 e.preventDefault();
-                completarHora(input);
+                if (typeof completarHora === 'function') completarHora(input);
 
-                // Lógica de Pulo de Ano no Enter/Tab no último campo
-                const ehUltimoCampoDaPagina = (index === inputs.length - 1);
+                const voltando = e.shiftKey; // Pressionou Shift + Tab para voltar
 
-                if (ehUltimoCampoDaPagina && e.key === 'Enter') {
-                    // Verifica se existe um próximo ano no processo
-                    const anoFimProcesso = new Date(configAtual.dataFim + "T00:00:00").getFullYear();
-                    if (anoVisualizacaoAtual < anoFimProcesso) {
-                        console.log("Fim do ano atingido. Pulando para o próximo...");
-                        window.mudarAno(1); // Chama a função que criamos na gerarFolha
-                    }
+                // --- MÁGICA: ENTER OU TAB NO ÚLTIMO CAMPO ---
+                if (!voltando && index === inputs.length - 1 && (e.key === 'Enter' || e.key === 'Tab')) {
+                    window.verificarPuloDeAno();
                 } else {
-                    if (e.key === 'Tab') {
-                        pularCampoInteligente(input, index, e.shiftKey ? -1 : 1);
-                    } else if (e.key === 'Enter') {
-                        pularLinha(input.closest('tr'));
+                    if (e.key === 'Tab' && typeof pularCampoInteligente === 'function') {
+                        pularCampoInteligente(input, index, voltando ? -1 : 1);
+                    } else if (e.key === 'Enter' && typeof pularLinha === 'function') {
+                        pularLinha(tr);
                     }
                 }
             }
         };
 
         input.onblur = () => {
-            completarHora(input);
-            salvarComAtraso(); // Usando a função de atraso para performance
+            if (typeof completarHora === 'function') completarHora(input);
+            if (typeof window.salvarComAtraso === 'function') window.salvarComAtraso();
         };
     });
 }
