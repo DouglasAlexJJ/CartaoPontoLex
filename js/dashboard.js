@@ -46,19 +46,25 @@ window.adicionarRegraExtra = function(limite = '', porcentagem = '50') {
     if (!container) return;
 
     const div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.gap = '8px';
-    div.style.alignItems = 'center';
-    div.className = 'regra-item';
+    // Usamos a classe CSS que criamos para alinhar tudo perfeitamente
+    div.className = 'regra-item'; 
 
     div.innerHTML = `
-        <span style="font-size: 0.85em; color: #475569; width: 45px;">Até a</span>
-        <input type="number" class="input-moderno regra-limite" placeholder="Ex: 2" value="${limite}" style="width: 70px; text-align: center;">
-        <span style="font-size: 0.85em; color: #475569; width: 60px;">ª H.E é</span>
-        <input type="number" class="input-moderno regra-porcento" value="${porcentagem}" style="width: 80px; text-align: center;">
-        <span style="font-size: 0.85em; color: #475569; font-weight: bold;">%</span>
-        <button type="button" onclick="this.parentElement.remove()" class="btn-secundario" style="color: #ef4444; border-color: #fca5a5; padding: 5px 10px; margin-left: auto;">Remover</button>
+        <span>Até a</span>
+        
+        <input type="number" class="regra-limite" placeholder="Ex: 6" value="${limite}" title="Deixe vazio para 'Daí em diante'">
+        
+        <span>ª H.E é</span>
+        
+        <input type="number" class="regra-porcento" value="${porcentagem}">
+        
+        <span>%</span>
+        
+        <button type="button" onclick="this.parentElement.remove()" class="btn-remover-regra">
+            🗑️ Remover
+        </button>
     `;
+    
     container.appendChild(div);
 };
 

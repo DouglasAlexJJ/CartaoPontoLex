@@ -312,3 +312,92 @@ select.input-premium {
     align-items: center;
     flex-wrap: wrap;
 }
+/* ==========================================================================
+   ESTILOS DOS PARÂMETROS SINDICAIS E REGRAS
+   ========================================================================== */
+
+/* O card azul clarinho que envolve tudo */
+.card-sindical {
+    background: #f0f9ff;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #bae6fd;
+    margin-top: 15px;
+}
+
+/* O cabeçalho onde fica o botão de adicionar */
+.header-sindical {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #bae6fd;
+}
+
+/* A caixinha branca de cada regra gerada */
+.regra-item {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    gap: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+}
+
+.regra-item:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+/* Os textos entre os inputs */
+.regra-item span {
+    font-size: 0.9em;
+    color: #334155;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Os campos numéricos turbinados */
+.regra-item input[type="number"] {
+    width: 80px;
+    text-align: center;
+    font-size: 1.05em;
+    font-weight: 600;
+    color: #0f172a;
+    padding: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #f8fafc;
+    transition: all 0.2s;
+}
+
+.regra-item input[type="number"]:focus {
+    background: #ffffff;
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Botão de remover mais discreto mas elegante */
+.btn-remover-regra {
+    background: white;
+    color: #ef4444;
+    border: 1px solid #fca5a5;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: auto; /* Joga o botão todo para a direita */
+    transition: all 0.2s;
+}
+
+.btn-remover-regra:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+}
