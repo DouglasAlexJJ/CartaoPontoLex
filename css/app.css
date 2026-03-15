@@ -230,3 +230,35 @@ input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px 
     font-weight: 600;
 }
 .btn-nav:hover { background: #eff6ff; color: #2563eb; }
+/* Coluna da engrenagem */
+.col-acoes-linha {
+    width: 30px;
+    text-align: center;
+    vertical-align: middle;
+    border: none !important; /* Remove borda para parecer "fora" da tabela */
+    background: transparent !important;
+}
+
+.btn-acao-dia {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.3; /* Fica clarinho por padrão */
+    transition: opacity 0.2s, transform 0.2s;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Quando passa o mouse na linha, a engrenagem brilha */
+tr.linha-ponto:hover .btn-acao-dia {
+    opacity: 1;
+    transform: rotate(45deg);
+}
+
+/* Se quiser esconder as bordas da primeira coluna para dar efeito de "fora" */
+#corpo-tabela td:first-child {
+    border-left: none;
+}

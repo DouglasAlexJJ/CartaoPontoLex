@@ -356,7 +356,18 @@ async function gerarFolha(cfg) {
                 inputsHtml += `<input type="text" class="ponto ${ehFolga ? 'folga-input' : ''}" maxlength="5" value="${val}" placeholder="--" oninput="salvarComAtraso()">`;
             }
 
+            // ATUALIZADO: Incluindo a coluna da engrenagem (⚙️) antes da data
             tr.innerHTML = `
+                <td style="width: 40px; text-align: center; border-right: none;">
+                    <button type="button" 
+                            onclick="alternarFeriadoManual(this.closest('tr'))" 
+                            style="background: none; border: none; cursor: pointer; font-size: 1.1em; opacity: 0.5;"
+                            onmouseover="this.style.opacity='1'" 
+                            onmouseout="this.style.opacity='0.5'"
+                            title="Alternar Feriado/Folga">
+                        ⚙️
+                    </button>
+                </td>
                 <td class="col-dia">
                     <strong>${diasSemana[numDia]}</strong>${ehFeriado ? ' 🚩' : ''}<br>${dataFormatada}
                 </td>
