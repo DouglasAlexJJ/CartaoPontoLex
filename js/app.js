@@ -1120,17 +1120,14 @@ window.aplicarAjusteDatas = function() {
     alert("Período atualizado com sucesso!");
 };
 window.gerarPDF = function() {
-    if (!configAtual || !window.batidasGlobal) {
-        alert("Erro: Dados não carregados.");
-        return;
-    }
+    if (!configAtual || !window.batidasGlobal) return;
 
     const { reclamante, reclamada, dataInicio, dataFim, qtdBatidas } = configAtual;
     const nBatidas = parseInt(qtdBatidas || 4);
     
     const elemento = document.createElement('div');
     elemento.style.padding = '10px';
-    elemento.style.fontFamily = 'Arial, sans-serif';
+    elemento.style.color = '#000'; // Força cor preta para o texto
 
     const dataIn = new Date(dataInicio + "T00:00:00");
     const dataFi = new Date(dataFim + "T00:00:00");
@@ -1142,7 +1139,6 @@ window.gerarPDF = function() {
     let totGeralMinutos = 0;
     const mesesRelatorio = {};
 
-    // 1. PROCESSAMENTO DE DADOS
     while (dataVar <= dataFi) {
         const diaFmt = dataVar.toLocaleDateString('pt-BR');
         const registro = window.batidasGlobal[diaFmt] || window.batidasGlobal[diaFmt.replace(/\//g, '_')] || null;
@@ -1155,11 +1151,11 @@ window.gerarPDF = function() {
             if (!mesesRelatorio[mesAno]) mesesRelatorio[mesAno] = [];
             mesesRelatorio[mesAno].push({ data: diaFmt, batidas, res });
 
-            totGeralNormais += res.normais;
-            totGeralNoturno += res.noturno;
-            totGeralMinutos += res.totalMinutos;
+            // Acumulando com travas de segurança
+            totGeralNormais += (res.normais || 0);
+            totGeralNoturno += (res.noturno || 0);
+            totGeralMinutos += (res.totalMinutos || 0);
 
-            // Soma as extras no acumulador global do PDF
             for (let p in res.extras) {
                 let pct = parseFloat(p);
                 acumGeralExtras[pct] = (acumGeralExtras[pct] || 0) + res.extras[p];
@@ -1168,39 +1164,31 @@ window.gerarPDF = function() {
         dataVar.setDate(dataVar.getDate() + 1);
     }
 
-    if (Object.keys(mesesRelatorio).length === 0) {
-        alert("Não há dados preenchidos no período.");
-        return;
-    }
-
-    // 2. MONTAGEM DAS TABELAS MENSAIS
-    let colunasHeader = `<th style="border:1px solid #000; padding:3px;">DATA</th>`;
+    // Gerador de colunas dinâmicas
+    let colunasHeader = `<th style="border:1px solid #000;">DATA</th>`;
     for (let i = 1; i <= nBatidas / 2; i++) {
-        colunasHeader += `<th style="border:1px solid #000;">ENT ${i}</th><th style="border:1px solid #000;">SAÍ ${i}</th>`;
+        colunasHeader += `<th style="border:1px solid #000;">E ${i}</th><th style="border:1px solid #000;">S ${i}</th>`;
     }
-    colunasHeader += `<th style="border:1px solid #000;">TOTAL</th><th style="border:1px solid #000;">NOT.</th>`;
+    colunasHeader += `<th style="border:1px solid #000; background:#eee;">TOTAL</th><th style="border:1px solid #000;">NOT.</th>`;
 
     Object.keys(mesesRelatorio).forEach(mesAno => {
         const divMes = document.createElement('div');
         divMes.style.pageBreakAfter = 'always';
         divMes.innerHTML = `
-            <div style="text-align:center; border-bottom:1px solid #000; margin-bottom:10px;">
-                <h3 style="margin:0;">MEMÓRIA DE CÁLCULO - ${mesAno}</h3>
-                <p style="font-size:10px; margin:5px;">${reclamante} vs ${reclamada}</p>
-            </div>
-            <table style="width:100%; border-collapse:collapse; font-size: 8px; text-align:center; table-layout: fixed;">
-                <thead><tr style="background:#eee;">${colunasHeader}</tr></thead>
+            <h3 style="text-align:center;">MEMÓRIA DE CÁLCULO - ${mesAno}</h3>
+            <table style="width:100%; border-collapse:collapse; font-size: 8px; text-align:center; border:1px solid #000;">
+                <thead><tr style="background:#ddd;">${colunasHeader}</tr></thead>
                 <tbody>
                     ${mesesRelatorio[mesAno].map(d => {
                         let cels = '';
                         for(let j=0; j<nBatidas; j++) {
-                            cels += `<td style="border:1px solid #ccc; overflow:hidden;">${d.batidas[j] || '-'}</td>`;
+                            cels += `<td style="border:1px solid #000;">${d.batidas[j] || '-'}</td>`;
                         }
                         return `<tr>
-                            <td style="border:1px solid #ccc; font-weight:bold;">${d.data}</td>
+                            <td style="border:1px solid #000; font-weight:bold;">${d.data}</td>
                             ${cels}
-                            <td style="border:1px solid #ccc; font-weight:bold;">${d.res.totalFormatado}</td>
-                            <td style="border:1px solid #ccc;">${decimalParaHHMM(d.res.noturno)}</td>
+                            <td style="border:1px solid #000; font-weight:bold; background:#f9f9f9;">${d.res.totalFormatado}</td>
+                            <td style="border:1px solid #000;">${decimalParaHHMM(d.res.noturno)}</td>
                         </tr>`;
                     }).join('')}
                 </tbody>
@@ -1209,53 +1197,38 @@ window.gerarPDF = function() {
         elemento.appendChild(divMes);
     });
 
-    // 3. RESUMO FINAL (Garantindo que apareça)
-    const divResumo = document.createElement('div');
-    divResumo.style.marginTop = '20px';
-    
+    // --- RESUMO FINAL ---
     let extrasHtml = '';
-    // Ordenar e gerar linhas de extras
     Object.keys(acumGeralExtras).sort((a,b) => a-b).forEach(p => {
         if (acumGeralExtras[p] > 0) {
             extrasHtml += `
-                <tr style="border-bottom: 1px solid #ccc;">
-                    <td style="padding:8px;">Horas Extras ${p}%</td>
-                    <td style="padding:8px; text-align:right;"><strong>${decimalParaHHMM(acumGeralExtras[p])}</strong></td>
-                </tr>
-            `;
+                <tr style="border-bottom: 1px solid #000;">
+                    <td style="padding:5px;">Horas Extras ${p}%</td>
+                    <td style="padding:5px; text-align:right;">${decimalParaHHMM(acumGeralExtras[p])}</td>
+                </tr>`;
         }
     });
 
+    const divResumo = document.createElement('div');
     divResumo.innerHTML = `
-        <div style="text-align:center; margin-bottom:15px;">
-            <h3 style="background:#eee; padding:10px; border:1px solid #000;">RESUMO CONSOLIDADO DO PERÍODO</h3>
-        </div>
-        <table style="width:100%; max-width:400px; margin:0 auto; border-collapse:collapse; font-size:12px; border:1px solid #000;">
-            <tr style="border-bottom: 1px solid #ccc;">
-                <td style="padding:8px;">Total Horas Normais:</td>
-                <td style="padding:8px; text-align:right;">${decimalParaHHMM(totGeralNormais)}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #ccc;">
-                <td style="padding:8px;">Total Adicional Noturno:</td>
-                <td style="padding:8px; text-align:right;">${decimalParaHHMM(totGeralNoturno)}</td>
-            </tr>
+        <h3 style="text-align:center; border:1px solid #000; background:#eee; margin-top:20px;">RESUMO FINAL</h3>
+        <table style="width:100%; max-width:400px; margin:10px auto; border-collapse:collapse; border:1px solid #000; font-size:12px;">
+            <tr><td style="padding:5px;">Horas Normais:</td><td style="text-align:right; padding:5px;">${decimalParaHHMM(totGeralNormais)}</td></tr>
+            <tr><td style="padding:5px;">Adic. Noturno:</td><td style="text-align:right; padding:5px;">${decimalParaHHMM(totGeralNoturno)}</td></tr>
             ${extrasHtml}
-            <tr style="background:#f0f0f0; font-weight:bold;">
-                <td style="padding:8px;">TOTAL GERAL:</td>
-                <td style="padding:8px; text-align:right;">${minParaHHMM(totGeralMinutos)}</td>
+            <tr style="background:#ddd; font-weight:bold; border-top:2px solid #000;">
+                <td style="padding:5px;">TOTAL GERAL:</td>
+                <td style="text-align:right; padding:5px;">${minParaHHMM(totGeralMinutos)}</td>
             </tr>
         </table>
     `;
     elemento.appendChild(divResumo);
 
-    // 4. CONFIGURAÇÃO JS-PDF (Ajuste para não cortar)
     const opt = {
-        margin: 5,
-        filename: `Laudo_${reclamante.split(' ')[0]}.pdf`,
-        html2canvas: { scale: 2, useCORS: true },
+        margin: 10,
+        filename: `Relatorio_${reclamante.split(' ')[0]}.pdf`,
         jsPDF: { unit: 'mm', format: 'a4', orientation: nBatidas >= 6 ? 'landscape' : 'portrait' }
     };
-
     html2pdf().set(opt).from(elemento).save();
 }
 
@@ -1264,13 +1237,16 @@ window.gerarPDF = function() {
  */
 function calcularValoresDiaParaRelatorio(dataObj, batidas) {
     let tDiurno = 0, tNotFicto = 0;
+    
+    // 1. Cálculo dos turnos com trava de segurança
     for (let i = 0; i < batidas.length; i += 2) {
         const e = hhmmParaMin(batidas[i]);
         const s = hhmmParaMin(batidas[i+1]);
         if (e > 0 && s > 0) {
             const turno = calcularTurno(e, s);
-            tDiurno += turno.diurno;
-            tNotFicto += turno.noturnoFicto;
+            // O || 0 garante que se o turno vier vazio, ele some zero e não quebre
+            tDiurno += (turno.diurno || 0);
+            tNotFicto += (turno.noturnoFicto || 0);
         }
     }
 
@@ -1286,13 +1262,12 @@ function calcularValoresDiaParaRelatorio(dataObj, batidas) {
     let resNormais = 0;
     let resExtras = {};
 
-    // Lógica de Folgas (Sáb/Dom)
+    // 2. Distribuição das Horas (Folgas vs Escadinha)
     if (diaSemana === 0) {
         resExtras[pFolga2] = tHoras;
     } else if (diaSemana === 6) {
         resExtras[pFolga1] = tHoras;
     } else {
-        // Dia Normal - Aplica Escadinha
         if (tHoras > limite) {
             resNormais = limite;
             let saldo = tHoras - limite;
@@ -1328,9 +1303,9 @@ function calcularValoresDiaParaRelatorio(dataObj, batidas) {
 
     return {
         totalFormatado: minParaHHMM(totalMinutos),
-        totalMinutos: totalMinutos,
-        noturno: tNotFicto / 60,
-        normais: resNormais,
+        totalMinutos: totalMinutos || 0,
+        noturno: tNotFicto / 60 || 0,
+        normais: resNormais || 0,
         extras: resExtras
     };
 }
