@@ -613,97 +613,63 @@ function pularLinha(trAtual) {
 }
 
 function calcularLinha(tr) {
-    if (!configAtual) return;
-
     const ins = tr.querySelectorAll('.ponto');
-    const dataString = tr.getAttribute('data-dia'); 
-    const isFeriado = tr.classList.contains('destaque-feriado') || tr.classList.contains('destaque-vermelho');
-    const isFolga = tr.classList.contains('folga');
+    const dataString = tr.getAttribute('data-dia');
+    const isFeriado = tr.classList.contains('destaque-vermelho') || tr.classList.contains('destaque-feriado');
     
     const [dia, mes, ano] = dataString.split('/');
     const dataObj = new Date(`${ano}-${mes}-${dia}T00:00:00`);
-    const diaSemana = dataObj.getDay(); 
+    const diaSemana = dataObj.getDay(); // 0 = Dom, 6 = Sab
 
-    let totalDiurno = 0;
-    let totalNoturnoFicto = 0;
+    let totalTrabalhadoMin = 0;
+    let totalIntervaloMin = 0;
 
+    // 1. Cálculo do Trabalho e do Intervalo (Art. 71)
     for (let i = 0; i < ins.length; i += 2) {
         const e = hhmmParaMin(ins[i]?.value);
         const s = hhmmParaMin(ins[i+1]?.value);
+        
         if (e > 0 && s > 0) {
-            const turno = calcularTurno(e, s);
-            totalDiurno += turno.diurno;
-            totalNoturnoFicto += turno.noturnoFicto;
-        }
-    }
-
-    let tempoTotalHoras = (totalDiurno + totalNoturnoFicto) / 60;
-    
-    // Garantindo que os parâmetros sejam números
-    const LIMITE_DIARIO = Number(configAtual.horasDiarias || 8);
-    const pctFolga1 = Number(configAtual.heFolga1 || 50); 
-    const pctFolga2 = Number(configAtual.heFolga2 || 100); 
-    const regrasEscada = configAtual.regrasExtra || [];
-
-    let horasNormais = 0;
-    let extrasPorFaixa = {}; 
-
-    if (isFeriado || (isFolga && diaSemana === 0)) {
-        // DOMINGO OU FERIADO
-        extrasPorFaixa[pctFolga2] = (extrasPorFaixa[pctFolga2] || 0) + tempoTotalHoras;
-    } else if (isFolga) {
-        // SÁBADO OU FOLGA ESCALonada
-        extrasPorFaixa[pctFolga1] = (extrasPorFaixa[pctFolga1] || 0) + tempoTotalHoras;
-    } else {
-        // DIA NORMAL (Segunda a Sexta) -> AQUI ENTRA A ESCADINHA
-        if (tempoTotalHoras > LIMITE_DIARIO) {
-            horasNormais = LIMITE_DIARIO;
-            let saldoExtra = tempoTotalHoras - LIMITE_DIARIO;
-            let acumuladoExtraNoDia = 0;
-
-            // Ordenação rigorosa da escadinha
-            const escadaOrdenada = [...regrasEscada].sort((a, b) => {
-                let limA = a.limite === '' ? 999 : Number(a.limite);
-                let limB = b.limite === '' ? 999 : Number(b.limite);
-                return limA - limB;
-            });
-
-            if (escadaOrdenada.length === 0) {
-                extrasPorFaixa[50] = saldoExtra;
-            } else {
-                escadaOrdenada.forEach(regra => {
-                    if (saldoExtra <= 0) return;
-                    
-                    const pct = Number(regra.porcento);
-                    const lim = regra.limite === '' ? null : Number(regra.limite);
-
-                    if (lim === null) {
-                        // Faixa final (ex: acima de 5h)
-                        extrasPorFaixa[pct] = (extrasPorFaixa[pct] || 0) + saldoExtra;
-                        saldoExtra = 0;
-                    } else {
-                        let espacoNestaFaixa = lim - acumuladoExtraNoDia;
-                        if (espacoNestaFaixa > 0) {
-                            let consumo = Math.min(saldoExtra, espacoNestaFaixa);
-                            extrasPorFaixa[pct] = (extrasPorFaixa[pct] || 0) + consumo;
-                            saldoExtra -= consumo;
-                            acumuladoExtraNoDia += consumo;
-                        }
-                    }
-                });
+            totalTrabalhadoMin += (s - e);
+            
+            // Calcula intervalo entre turnos (Ex: Saída 1 e Entrada 2)
+            const proximaE = hhmmParaMin(ins[i+2]?.value);
+            if (proximaE > 0) {
+                totalIntervaloMin += (proximaE - s);
             }
-        } else {
-            horasNormais = tempoTotalHoras;
         }
     }
 
-    // Salvamento nos Datasets
-    tr.querySelector('.total-dia').innerText = minParaHHMM(Math.round(tempoTotalHoras * 60));
-    tr.dataset.normais = horasNormais.toFixed(4);
-    tr.dataset.extrasJson = JSON.stringify(extrasPorFaixa);
-    tr.dataset.adcNoturno = (totalNoturnoFicto / 60).toFixed(4);
+    let horasTrabalhadasDec = totalTrabalhadoMin / 60;
+    let extraDiaria = 0;
+    let violacaoArt71 = 0;
 
-    if (typeof atualizarTotalGeral === 'function') atualizarTotalGeral();
+    // --- ARTIGO 71 (Intervalo Intrajornada) ---
+    // Se trabalhou > 6h, deve ter 1h de intervalo. Se < 1h, apura a diferença ou a hora cheia.
+    if (horasTrabalhadasDec > 6 && totalIntervaloMin < 60) {
+        violacaoArt71 = (60 - totalIntervaloMin) / 60; // Apura o que faltou para 1h
+    } else if (horasTrabalhadasDec > 4 && horasTrabalhadasDec <= 6 && totalIntervaloMin < 15) {
+        violacaoArt71 = (15 - totalIntervaloMin) / 60; // Apura o que faltou para 15min
+    }
+
+    // --- HORAS EXTRAS DIÁRIAS (> 8h) ---
+    // Só calculamos extra diária em dias "comuns" (não feriados/domingos, que são brutos)
+    if (!isFeriado && diaSemana !== 0) {
+        if (horasTrabalhadasDec > 8) {
+            extraDiaria = horasTrabalhadasDec - 8;
+        }
+    }
+
+    // --- ATUALIZAÇÃO DO HTML E DATASET ---
+    tr.querySelector('.total-dia').innerText = minParaHHMM(totalTrabalhadoMin);
+    
+    tr.dataset.totalBruto = horasTrabalhadasDec.toFixed(4);
+    tr.dataset.extraDiaria = extraDiaria.toFixed(4);
+    tr.dataset.art71 = violacaoArt71.toFixed(4);
+    tr.dataset.isDomingoFeriado = (isFeriado || diaSemana === 0) ? "sim" : "nao";
+    tr.dataset.isSabado = (diaSemana === 6) ? "sim" : "nao";
+
+    atualizarTotalGeral();
 }
 
 function hhmmParaMin(t) {
@@ -715,47 +681,67 @@ function hhmmParaMin(t) {
 function minParaHHMM(t) { return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; }
 
 function atualizarTotalGeral() {
-    let totGeralMin = 0, totNormaisDec = 0, totNoturnoDec = 0;
-    let acumuladorExtras = {};
+    let acumuladorSemanal = 0;
+    let totalExtraDiaria = 0;
+    let totalExtraSemanal = 0;
+    let totalDomFeriado = 0;
+    let totalArt71 = 0;
+    let totalArt66 = 0; // Interjornada (11h)
 
-    document.querySelectorAll('.linha-ponto').forEach(tr => {
-        totGeralMin += hhmmParaMin(tr.querySelector('.total-dia').innerText);
-        totNormaisDec += parseFloat(tr.dataset.normais || 0);
-        totNoturnoDec += parseFloat(tr.dataset.adcNoturno || 0);
+    const linhas = Array.from(document.querySelectorAll('.linha-ponto'));
 
-        try {
-            const extras = JSON.parse(tr.dataset.extrasJson || '{}');
-            for (let pct in extras) {
-                // Força a porcentagem a ser tratada como número para somar certo
-                let p = Number(pct);
-                acumuladorExtras[p] = (acumuladorExtras[p] || 0) + Number(extras[pct]);
+    linhas.forEach((tr, index) => {
+        const bruto = parseFloat(tr.dataset.totalBruto || 0);
+        const diaria = parseFloat(tr.dataset.extraDiaria || 0);
+        const art71 = parseFloat(tr.dataset.art71 || 0);
+        const isDF = tr.dataset.isDomingoFeriado === "sim";
+        const isSab = tr.dataset.isSabado === "sim";
+
+        // 1. Acumula Domingos e Feriados Brutos
+        if (isDF) {
+            totalDomFeriado += bruto;
+        } else {
+            // 2. Horas Extras Diárias
+            totalExtraDiaria += diaria;
+            
+            // 3. Lógica Semanal (44h)
+            // Somamos apenas as horas "normais" (até 8h) para a média semanal
+            acumuladorSemanal += (bruto - diaria);
+        }
+
+        // Se for Sábado, verificamos se o acumulado da semana passou de 44h
+        if (isSab) {
+            if (acumuladorSemanal > 44) {
+                totalExtraSemanal += (acumuladorSemanal - 44);
             }
-        } catch (e) {}
+            acumuladorSemanal = 0; // Reseta para a próxima semana
+        }
+
+        totalArt71 += art71;
+
+        // --- ARTIGO 66 (Interjornada 11h) ---
+        // Compara a saída de hoje com a entrada de amanhã
+        const proxLinha = linhas[index + 1];
+        if (proxLinha) {
+            const saidaHoje = hhmmParaMin(tr.querySelectorAll('.ponto')[3]?.value); // Última saída
+            const entradaAmanha = hhmmParaMin(proxLinha.querySelectorAll('.ponto')[0]?.value); // Primeira entrada
+            
+            if (saidaHoje > 0 && entradaAmanha > 0) {
+                // Cálculo simplificado (assumindo que não virou a noite)
+                let descanso = (1440 - saidaHoje) + entradaAmanha;
+                if (descanso < 660) { // 660 min = 11h
+                    totalArt66 += (660 - descanso) / 60;
+                }
+            }
+        }
     });
 
-    // Atualiza fixos
-    document.getElementById('total-geral-periodo').innerText = minParaHHMM(totGeralMin);
-    document.getElementById('total-normais').innerText = decimalParaHHMM(totNormaisDec);
-    document.getElementById('total-noturno').innerText = decimalParaHHMM(totNoturnoDec);
-
-    // Atualiza Dinâmicos (Escadinha e Folgas)
-    const container = document.getElementById('container-extras-dinamico');
-    if (container) {
-        container.innerHTML = "";
-        // Ordena as chaves numericamente (50, 70, 80, 100...)
-        Object.keys(acumuladorExtras).sort((a,b) => Number(a) - Number(b)).forEach(pct => {
-            let valor = acumuladorExtras[pct];
-            if (valor > 0.001) { // Só mostra se tiver tempo (evita lixo de processamento)
-                const div = document.createElement('div');
-                div.className = "resumo-item extra-dinamico";
-                div.innerHTML = `
-                    <span>Total ${pct}%</span>
-                    <strong>${decimalParaHHMM(valor)}</strong>
-                `;
-                container.appendChild(div);
-            }
-        });
-    }
+    // Atualiza os visores no rodapé
+    document.getElementById('total-extra-diaria').innerText = decimalParaHHMM(totalExtraDiaria);
+    document.getElementById('total-extra-semanal').innerText = decimalParaHHMM(totalExtraSemanal);
+    document.getElementById('total-dom-feriado').innerText = decimalParaHHMM(totalDomFeriado);
+    document.getElementById('total-art71').innerText = decimalParaHHMM(totalArt71);
+    document.getElementById('total-art66').innerText = decimalParaHHMM(totalArt66);
 }
 
 function ehFeriadoNacional(data) {

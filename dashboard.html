@@ -202,48 +202,29 @@
                 </div>
 
                 <div class="divisor" style="margin: 25px 0 15px;"></div>
-                <h4 style="margin: 0 0 15px 0; color: #0f172a; font-size: 1.1em;">⚖️ Parâmetros Sindicais (Cálculos)</h4>
+                <h4 style="margin: 0 0 15px 0; color: #0f172a; font-size: 1.1em;">⚖️ Parâmetros de Auditoria (CLT)</h4>
 
-                <div class="box-sindical-topo">
-                    <div class="form-group">
-                        <label>Adicional Noturno</label>
-                        <div class="input-wrapper-porcento">
-                            <input type="number" id="config-adc-noturno" class="input-sindical" value="20">
+                <div class="box-auditoria" style="background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    <div style="display: flex; gap: 15px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label style="font-size: 0.85em; color: #475569;">Limite Diário (Horas)</label>
+                            <input type="number" id="horasDiarias" class="input-moderno" value="8" style="text-align: center;">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label style="font-size: 0.85em; color: #475569;">Limite Semanal (Horas)</label>
+                            <input type="number" id="horasSemanais" class="input-moderno" value="44" style="text-align: center;">
                         </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label>H.E. 1ª Folga (Ex: Sáb)</label>
-                        <div class="input-wrapper-porcento">
-                            <input type="number" id="config-he-folga1" class="input-sindical" value="50">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>H.E. 2ª Folga/Feriado</label>
-                        <div class="input-wrapper-porcento">
-                            <input type="number" id="config-he-folga2" class="input-sindical" value="100">
-                        </div>
+                    <div style="margin-top: 10px; padding: 10px; background: #fff; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <p style="margin: 0; font-size: 0.75em; color: #64748b; line-height: 1.4;">
+                            ℹ️ <strong>Nota do Sistema:</strong> Este modo foca na apuração quantitativa. 
+                            O sistema irá destacar automaticamente violações dos Artigos 66, 67 e 71 da CLT, 
+                            além de separar horas excedentes aos limites acima.
+                        </p>
                     </div>
                 </div>
-
-                <div class="form-group" style="background: #eff6ff; padding: 15px; border-radius: 8px; border: 1px solid #bfdbfe;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <label style="margin: 0; font-weight: bold; color: #1e40af;">Escalonamento de Horas Extras</label>
-                        <button type="button" onclick="adicionarRegraExtra()" class="btn-secundario" style="padding: 4px 10px; font-size: 0.8em; border-color: #3b82f6; color: #2563eb; background: white;">
-                            ➕ Adicionar Faixa
-                        </button>
-                    </div>
-                    
-                    <div id="container-regras-extras" style="display: flex; flex-direction: column; gap: 10px;">
-                        </div>
-                    <small style="color: #64748b; font-size: 0.75em; display: block; margin-top: 10px; line-height: 1.4;">
-                        Exemplo: As primeiras 2 horas a 50%, e da 3ª em diante a 60%.<br>
-                        👉 Crie uma regra: "Até a <strong>2ª</strong> H.E é <strong>50%</strong>"<br>
-                        👉 E outra regra: "Até a <strong>[Deixe vazio]</strong> H.E é <strong>60%</strong>" (Vazio = Daí em diante)
-                    </small>
-                </div>
-
+            </div> ```
             </div>
             <div class="modal-footer">
                 <button class="btn-secundario" onclick="fecharModalNovo()">Cancelar</button>
