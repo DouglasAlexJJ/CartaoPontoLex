@@ -685,11 +685,11 @@ window.salvarEIniciar = async function() {
     const dataFim = document.getElementById('dataFim').value;
     const escala = document.getElementById('escala').value;
     
-    // CAPTURANDO CIDADE E UF DOS SELECTS QUE CRIAMOS
+    // Capturando Cidade e UF
     const ufSelecionada = document.getElementById('novo-cartao-uf').value;
     const cidadeSelecionada = document.getElementById('novo-cartao-cidade').value;
     
-    // 1. CAPTURANDO SE É EDIÇÃO OU NOVO CARTÃO
+    // Capturando se é edição ou novo
     const editId = document.getElementById('cartao-edit-id').value;
 
     if (!reclamante || !dataIn || !dataFim) {
@@ -703,31 +703,15 @@ window.salvarEIniciar = async function() {
 
     let trabPers = 6, folgaPers = 2;
     if (escala === "personalizada" && !editId) { 
-        // Só pede esses dados de novo se for criação
         trabPers = parseInt(prompt("Dias de TRABALHO?", "5")) || 5;
         folgaPers = parseInt(prompt("Dias de FOLGA?", "1")) || 1;
     }
 
-    // 2. LENDO OS NOVOS PARÂMETROS SINDICAIS
-    const adcNoturno = document.getElementById('config-adc-noturno').value || '20';
-    const heFolga1 = document.getElementById('config-he-folga1').value || '50';
-    const heFolga2 = document.getElementById('config-he-folga2').value || '100';
+    // --- 1. NOVOS PARÂMETROS DE AUDITORIA (Substituindo os sindicais) ---
+    const horasDiarias = parseFloat(document.getElementById('horasDiarias').value) || 8;
+    const horasSemanais = parseFloat(document.getElementById('horasSemanais').value) || 44;
     
-    // Lendo as regrinhas de horas extras dinâmicas e montando o array
-    const regrasExtra = [];
-    const itensRegra = document.querySelectorAll('.regra-item');
-    itensRegra.forEach(item => {
-        const limite = item.querySelector('.regra-limite').value;
-        const porcento = item.querySelector('.regra-porcento').value;
-        if (porcento) { 
-            regrasExtra.push({
-                limite: limite !== '' ? parseInt(limite) : '', // Vazio significa "Em diante"
-                porcento: parseInt(porcento)
-            });
-        }
-    });
-
-    // 3. MONTANDO A CONFIGURAÇÃO
+    // --- 2. MONTANDO A CONFIGURAÇÃO (Limpando campos removidos) ---
     const config = {
         reclamante: reclamante,
         reclamada: document.getElementById('reclamada').value.trim(),
@@ -743,19 +727,15 @@ window.salvarEIniciar = async function() {
         folgaPers: folgaPers,
         uf: ufSelecionada,
         cidade: cidadeSelecionada,
-        adcNoturno: adcNoturno,
-        heFolga1: heFolga1,
-        heFolga2: heFolga2,
-        regrasExtra: regrasExtra
+        // Novos campos
+        horasDiarias: horasDiarias,
+        horasSemanais: horasSemanais
     };
 
     try {
         if (editId) {
-            // ============================================
-            // MODO EDIÇÃO (ATUALIZA O CARTÃO EXISTENTE)
-            // ============================================
+            // MODO EDIÇÃO
             const docRef = doc(db, "cartoes", editId);
-            // IMPORTANTE: Fazemos um updateDoc para NÃO apagar o objeto "batidas" do processo
             await updateDoc(docRef, {
                 config: config,
                 cidade: cidadeSelecionada,
@@ -764,15 +744,11 @@ window.salvarEIniciar = async function() {
             });
             
             alert("✅ Cartão atualizado com sucesso!");
-            fecharModalNovo(); // Fecha o modal
-            
-            // Recarrega a página para atualizar o painel visualmente
+            fecharModalNovo();
             window.location.reload(); 
 
         } else {
-            // ============================================
-            // MODO CRIAÇÃO (GERA UM CARTÃO DO ZERO)
-            // ============================================
+            // MODO CRIAÇÃO
             const novoCartao = {
                 id: Date.now().toString(), 
                 userId: donoDoCartaoId,
