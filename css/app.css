@@ -1,30 +1,38 @@
+/* ==========================================================================
+   LAYOUT GERAL
+   ========================================================================== */
 body { padding-bottom: 80px; }
-.app-header { background: white; padding: 10px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1001; height: auto; min-height: 70px; }
+
+.app-header { 
+    background: white; padding: 10px 20px; border-bottom: 1px solid #e2e8f0; 
+    display: flex; justify-content: space-between; align-items: center; 
+    position: sticky; top: 0; z-index: 1001; min-height: 70px; 
+}
+
 .app-info { text-align: center; flex: 1; }
 .app-info strong { display: block; color: #0f172a; font-size: 1.1em; }
 .app-info small { color: #64748b; font-size: 0.85em; }
-#info-periodo { font-weight: 600; font-weight: 600; }
-.app-container { width: 98%; max-width: 1600px; margin: 20px auto; background: white; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: visible; }
+#info-periodo { font-weight: 600; }
 
-/* ==========================================================================
-   TABELA E COLUNAS (Layout Dinâmico e Elástico)
-   ========================================================================== */
-table { 
-    width: 100%; 
-    table-layout: fixed; 
-    border-collapse: collapse; 
+.app-container { 
+    width: 98%; max-width: 1600px; margin: 20px auto; background: white; 
+    border-radius: 8px; border: 1px solid #e2e8f0; 
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: visible; 
 }
 
-th { background: #1e293b; color: white; padding: 10px; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; }
+/* ==========================================================================
+   TABELA DE PONTO
+   ========================================================================== */
+table { width: 100%; table-layout: fixed; border-collapse: collapse; }
 
-/* O SEGREDO ESTÁ AQUI: height: auto permite que a linha cresça para baixo! */
+th { 
+    background: #1e293b; color: white; padding: 10px; font-size: 0.8em; 
+    text-transform: uppercase; letter-spacing: 0.5px; 
+}
+
 td { 
-    border-bottom: 1px solid #f1f5f9; 
-    padding: 10px 8px; /* Mais espaço em cima e embaixo */
-    height: auto; 
-    min-height: 55px; 
-    vertical-align: middle; 
-    text-align: center; 
+    border-bottom: 1px solid #f1f5f9; padding: 10px 8px; 
+    height: auto; min-height: 55px; vertical-align: middle; text-align: center; 
 }
 
 .col-dia { width: 15%; font-size: 0.8em; background: #f8fafc; text-align: left; padding-left: 15px; color: #475569; }
@@ -33,464 +41,110 @@ td {
 .total-dia { width: 20%; font-weight: bold; font-size: 0.9em; background: #f8fafc; border-left: 1px solid #e2e8f0; }
 
 /* ==========================================================================
-   MENU SUSPENSO DO CABEÇALHO (CONFIGURAÇÕES PREMIUM)
+   INPUTS E BATIDAS
    ========================================================================== */
-.dropdown-content { 
-    display: none; 
-    position: absolute; 
-    right: 0; 
-    top: 130%; 
-    background: #ffffff; 
-    min-width: 260px; /* Um pouco mais largo para acomodar os textos e ícones */
-    border-radius: 10px; 
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
-    border: 2px solid #1e293b; /* Borda Azul Marinho Padrão do Sistema */
-    z-index: 9999; 
-    padding: 8px 0; 
-    overflow: hidden;
-}
-
-.dropdown-content:not(.escondido) { 
-    display: block; 
-    animation: abrirMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Animação suave de entrada */
-@keyframes abrirMenu {
-    from { opacity: 0; transform: translateY(-10px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* Estilização dos Títulos "Lançar Afastamentos" e "Estrutura" */
-.menu-section { 
-    padding: 8px 15px; 
-    font-size: 0.75em; 
-    font-weight: 800; 
-    color: #1e40af; /* Texto Azul Forte */
-    background-color: #eff6ff; /* Fundo Azul Super Claro */
-    text-transform: uppercase; 
-    letter-spacing: 0.5px;
-    border-left: 4px solid #2563eb; /* Detalhe em fita na lateral esquerda */
-    margin: 5px 0;
-}
-
-/* Estilização dos Botões (Férias, Atestados, etc) */
-.dropdown-content button { 
-    display: flex; 
-    align-items: center;
-    gap: 12px; /* Espaço perfeito entre o emoji/ícone e o texto */
-    width: 100%; 
-    padding: 12px 20px; 
-    border: none; 
-    background: white; 
-    color: #334155; 
-    text-align: left; 
-    font-size: 0.9em; 
-    font-weight: 500;
-    cursor: pointer; 
-    transition: all 0.2s ease; 
-}
-
-/* Efeito Premium ao passar o mouse: o texto dá um leve pulo pra frente */
-.dropdown-content button:hover { 
-    background: #f8fafc; 
-    color: #2563eb; 
-    padding-left: 25px; 
-}
-
-/* Linha divisória mais sutil */
-.dropdown-content .divisor { 
-    height: 1px; 
-    background: #e2e8f0; 
-    margin: 4px 15px; 
-}
-/* ==========================================================================
-   ÁREA DE BATIDAS E INPUTS
-   ========================================================================== */
-.celula-inputs { 
-    width: 65%; 
-    position: relative; 
-    padding: 10px; /* Voltou ao normal! */
-}
+.celula-inputs { width: 65%; position: relative; padding: 10px; }
 
 .container-batidas { 
-    display: flex; 
-    flex-wrap: wrap; /* Faz quebrar a linha */
-    gap: 8px; /* Espaço entre as caixinhas */
-    justify-content: center; /* Mantém no meio e afasta pros lados */
-    align-items: center;
-    width: 100%;
+    display: flex; flex-wrap: wrap; gap: 8px; 
+    justify-content: center; align-items: center; width: 100%;
 }
 
-input.ponto { width: 50px; text-align: center; font-family: monospace; font-size: 0.9em; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; border-radius: 4px; color: #1e293b; }
+input.ponto { 
+    width: 50px; text-align: center; font-family: monospace; font-size: 0.9em; 
+    font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; 
+    border-radius: 4px; color: #1e293b; 
+}
+
 input.ponto:nth-child(even) { background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; }
 input.ponto:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 2px rgba(2,132,199,0.15); }
 
-/* Ajuste da Engrenagem para ficar sempre no canto direito, independente da altura da linha */
-.dropdown-dia { 
-    position: absolute; 
-    right: 15px; 
-    top: 50%; 
-    transform: translateY(-50%); 
-}
-
 /* ==========================================================================
-   ESTADOS ESPECIAIS (Folgas, Feriados e Alterações)
+   ESTADOS ESPECIAIS (FOLGAS E FERIADOS)
    ========================================================================== */
 .folga { background-color: #fdf2f8 !important; }
 .folga-input { opacity: 0.4; border-color: transparent !important; color: #c2185b !important; }
 .escala-alterada { border-left: 5px solid #f59e0b !important; }
 
-.destaque-vermelho .col-dia { background-color: #fef2f2 !important; border-left: 4px solid #ef4444 !important; }
-.destaque-vermelho .col-dia strong { color: #ef4444 !important; }
-.destaque-vermelho input.ponto { border-color: #fca5a5; }
-
-/* ==========================================================================
-   RODAPÉ E DASHBOARD TOTALIZADOR
-   ========================================================================== */
-#rodape-totalizador { 
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    width: 100%; 
-    background: #0f172a; /* Azul bem escuro (Slate 900) */
-    color: white; 
-    padding: 8px 0; /* Diminuído de 15px para 8px */
-    display: flex; 
-    justify-content: center; 
-    z-index: 2000; 
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-    border-top: 1px solid #1e293b;
-}
-
-.resumo-painel {
-    display: flex;
-    align-items: center;
-    background: transparent; /* Removido o fundo claro */
-    padding: 0 20px;
-    border: none;
-    gap: 0;
-}
-
-.resumo-item {
-    display: flex;
-    flex-direction: column;
-    padding: 0 20px; /* Reduzi um pouco o respiro lateral */
-    position: relative;
-    align-items: center; /* Centraliza o texto e o número */
-}
-
-.resumo-item:last-child { 
-    border-right: none; 
-    padding-right: 0; 
-}
-
-.resumo-item:not(:first-child)::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 20%;
-    height: 60%;
-    width: 1px;
-    background-color: rgba(255, 255, 255, 0.1); /* Linha branca quase invisível */
-}
-
-.resumo-item span {
-    font-size: 0.65rem; /* Menor para economizar espaço */
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #94a3b8; /* Cinza azulado (mais legível no escuro) */
-    margin-bottom: 0px;
-}
-
-.resumo-item strong {
-    font-size: 1.05rem; /* Um pouco menor para ser proporcional */
-    color: #f8fafc;
-    font-family: 'Inter', sans-serif;
-    letter-spacing: -0.5px;
-}
-
-#total-geral-periodo {
-    color: #38bdf8; /* Azul claro brilhante para o total */
-}
-
-.destaque-feriado {
-    border-left: 5px solid #ef4444 !important;
+/* Estilo unificado de Feriado */
+.linha-ponto.destaque-feriado { 
+    border-left: 5px solid #ef4444 !important; 
+    background-color: #fff5f5 !important; 
     transition: all 0.3s ease;
 }
+.linha-ponto.destaque-feriado .txt-data strong { color: #e11d48 !important; }
 
-.flag-icon {
-    font-size: 0.8em;
-    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.2));
-}
-.container-navegacao {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-    background: white;
-    border-top: 1px solid #e2e8f0;
-    margin-top: 10px;
-}
-.btn-nav {
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    background: #f8fafc;
-    cursor: pointer;
-    font-weight: 600;
-}
-.btn-nav:hover { background: #eff6ff; color: #2563eb; }
-/* Coluna da engrenagem */
-.col-acoes-linha {
-    width: 30px;
-    text-align: center;
-    vertical-align: middle;
-    border: none !important; /* Remove borda para parecer "fora" da tabela */
-    background: transparent !important;
-}
+.destaque-vermelho .col-dia { background-color: #fef2f2 !important; border-left: 4px solid #ef4444 !important; }
+.destaque-vermelho .col-dia strong { color: #ef4444 !important; }
 
-.btn-acao-dia {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    opacity: 0.3; /* Fica clarinho por padrão */
-    transition: opacity 0.2s, transform 0.2s;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Quando passa o mouse na linha, a engrenagem brilha */
-tr.linha-ponto:hover .btn-acao-dia {
-    opacity: 1;
-    transform: rotate(45deg);
-}
-
-/* Se quiser esconder as bordas da primeira coluna para dar efeito de "fora" */
-#corpo-tabela td:first-child {
-    border-left: none;
-}
-/* ESTILO EXCLUSIVO DO MENU DA ENGRENAGEM */
-.menu-flutuante {
-    position: absolute;
-    z-index: 9999;
-    background: white;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
-    width: 200px; /* Trava a largura para ficar pequeno */
-    padding: 6px 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.menu-flutuante.escondido {
-    display: none !important;
-}
-
-.menu-flutuante button {
-    background: none;
-    border: none;
-    padding: 8px 16px;
-    text-align: left;
-    width: 100%;
-    cursor: pointer;
-    font-size: 0.85em;
-    color: #334155;
-    transition: background 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.menu-flutuante button:hover {
-    background: #f1f5f9;
-    color: #2563eb;
-}
-
-.menu-section-small {
-    padding: 6px 16px 2px;
-    font-size: 0.65em;
-    color: #94a3b8;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
 /* ==========================================================================
-   SISTEMA DE MODAIS (AFASTAMENTOS E AJUSTES)
+   SISTEMA DE DICOS E TOOLTIPS (?)
    ========================================================================== */
+.data-container { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 5px; }
 
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(15, 23, 42, 0.7); /* Fundo escuro semi-transparente */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000; /* Garante que fique por cima de absolutamente tudo */
-    backdrop-filter: blur(3px); /* Efeito premium de desfoque no fundo */
-}
-
-/* Classe que esconde o modal */
-.modal-overlay.escondido {
-    display: none !important;
-}
-
-.modal-card {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    width: 90%;
-    max-width: 450px;
-    overflow: hidden;
-    animation: modalEntrada 0.3s ease-out; /* Animação suave ao abrir */
-}
-
-@keyframes modalEntrada {
-    from { opacity: 0; transform: translateY(20px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
-    border-bottom: 1px solid #e2e8f0;
-    background: #f8fafc;
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 1.2em;
-    color: #0f172a;
-    font-weight: 600;
-}
-
-.btn-fechar {
-    background: none;
-    border: none;
-    font-size: 1.5em;
-    line-height: 1;
-    cursor: pointer;
-    color: #64748b;
-    transition: color 0.2s;
-    padding: 0;
-}
-
-.btn-fechar:hover {
-    color: #ef4444;
-}
-
-.modal-body {
-    padding: 24px;
-}
-
-.modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid #e2e8f0;
-    background: #f8fafc;
-}
-/* Container que segura as H.E dinâmicas */
-#container-extras-dinamico {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap; /* Se tiver muita regra, ele pula linha em vez de esmagar */
-}
-
-/* Estilo para cada item de extra que o JS cria */
-.extra-dinamico {
-    border-left: none !important; /* Mata a "listra branca" de vez */
-    padding-left: 0 !important;
-    margin-left: 0 !important;
-}
-
-.extra-dinamico span {
-    color: #2563eb; /* Um azul para destacar que é Hora Extra */
-    font-weight: 600;
-}
-
-.extra-dinamico strong {
-    color: #4ade80; /* Verde para as horas extras */
-}
-/* Container da Data e Ícone */
-.data-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 0 5px;
-}
-
-/* O Círculo do (?) */
-.tooltip-atalho {
-    position: relative;
-    display: inline-block;
-    cursor: help;
-}
+.tooltip-atalho { position: relative; display: inline-block; cursor: help; }
 
 .icon-help {
-    background: #e2e8f0;
-    color: #64748b;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: bold;
-    transition: 0.2s;
+    background: #e2e8f0; color: #64748b; width: 16px; height: 16px; 
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+    font-size: 10px; font-weight: bold; transition: 0.2s;
 }
 
-.tooltip-atalho:hover .icon-help {
-    background: #3b82f6;
-    color: white;
-}
+.tooltip-atalho:hover .icon-help { background: #3b82f6; color: white; }
 
-/* O Balão de Dica (Tooltip) */
 .tooltip-atalho .tooltiptext {
-    visibility: hidden;
-    width: 140px;
-    background-color: #1e293b;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 8px;
-    position: absolute;
-    z-index: 10;
-    bottom: 125%; /* Aparece acima do ícone */
-    left: 50%;
-    margin-left: -70px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 11px;
-    line-height: 1.4;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
-    pointer-events: none;
+    visibility: hidden; width: 140px; background-color: #1e293b; color: #fff; 
+    text-align: center; border-radius: 6px; padding: 8px; position: absolute; 
+    z-index: 10; bottom: 125%; left: 50%; margin-left: -70px; 
+    opacity: 0; transition: opacity 0.3s; font-size: 11px; line-height: 1.4;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); pointer-events: none;
 }
 
-/* Setinha do balão */
 .tooltip-atalho .tooltiptext::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #1e293b transparent transparent transparent;
+    content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; 
+    border-width: 5px; border-style: solid; border-color: #1e293b transparent transparent transparent;
 }
 
-/* Mostrar ao passar o mouse */
-.tooltip-atalho:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
+.tooltip-atalho:hover .tooltiptext { visibility: visible; opacity: 1; }
+
+/* ==========================================================================
+   MENUS E MODAIS
+   ========================================================================== */
+.menu-flutuante {
+    position: absolute; z-index: 9999; background: white; border: 1px solid #cbd5e1; 
+    border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); 
+    width: 200px; padding: 6px 0; display: flex; flex-direction: column;
 }
+
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+    background-color: rgba(15, 23, 42, 0.7); display: flex; 
+    justify-content: center; align-items: center; z-index: 10000; 
+    backdrop-filter: blur(3px);
+}
+
+.modal-overlay.escondido, .menu-flutuante.escondido { display: none !important; }
+
+/* ==========================================================================
+   RODAPÉ TOTALIZADOR
+   ========================================================================== */
+#rodape-totalizador { 
+    position: fixed; bottom: 0; left: 0; width: 100%; background: #0f172a; 
+    color: white; padding: 8px 0; display: flex; justify-content: center; 
+    z-index: 2000; box-shadow: 0 -4px 20px rgba(0,0,0,0.3); border-top: 1px solid #1e293b;
+}
+
+.resumo-item { 
+    display: flex; flex-direction: column; padding: 0 20px; 
+    position: relative; align-items: center; 
+}
+
+.resumo-item span { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: #94a3b8; }
+.resumo-item strong { font-size: 1.05rem; color: #f8fafc; font-family: 'Inter', sans-serif; }
+
+#total-geral-periodo { color: #38bdf8; }
+
+/* Navegação */
+.container-navegacao { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 20px; background: white; border-top: 1px solid #e2e8f0; }
+.btn-nav { padding: 10px 20px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; cursor: pointer; font-weight: 600; }
+.btn-nav:hover { background: #eff6ff; color: #2563eb; }
