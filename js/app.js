@@ -226,53 +226,54 @@ async function salvarProgressoAuto() {
 
     let linhas = document.querySelectorAll('.linha-ponto');
     
-    // 1. IMPORTANTE: Usamos o objeto que já existe na memória (para não apagar os outros anos)
+    // Mantém o objeto de batidas existente ou cria um novo
     if (!cartaoAtual.batidas) cartaoAtual.batidas = {};
     
-    // 2. Lê apenas o ano atual que está na tela e atualiza o objeto principal
     linhas.forEach(tr => {
         const dataDia = tr.getAttribute('data-dia');
         const isF = tr.classList.contains('folga');
-        const isFer = tr.classList.contains('destaque-feriado'); // Lembra do Feriado Manual!
-        const h = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
+        const isFer = tr.classList.contains('destaque-feriado');
         
-        const temHora = h.some(v => v && v.length === 5);
+        // Captura todos os horários dos inputs desta linha
+        const h = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value.trim());
         
-        if (temHora || isF || isFer) {
-            // Atualiza ou insere este dia
+        // Verifica se há algo preenchido (horário, folga ou feriado)
+        const temDados = h.some(v => v !== "") || isF || isFer;
+        
+        if (temDados) {
+            // Salva no formato esperado: .h para horários e .f para folga
             cartaoAtual.batidas[dataDia] = {
                 f: isF,
                 fer: isFer,
                 h: h
             };
         } else {
-            // Se o usuário apagou tudo desse dia na tela, remove do banco
+            // Se o dia estiver vazio, remove do objeto para não ocupar espaço
             delete cartaoAtual.batidas[dataDia];
         }
     });
 
-    // 3. Atualiza o progresso baseado no total de dias reais do processo (e não apenas da tela)
+    // Atualização dos metadados do cartão
     const diasPreenchidos = Object.keys(cartaoAtual.batidas).length;
-    
-    // Calcula quantos dias existem no total do contrato
     const dataInicioObj = new Date(configAtual.dataInicio + "T00:00:00");
     const dataFimObj = new Date(configAtual.dataFim + "T00:00:00");
-    const diasTotaisProcesso = Math.ceil((dataFimObj - dataInicioObj) / (1000 * 60 * 60 * 24)) + 1;
+    const diasTotais = Math.ceil((dataFimObj - dataInicioObj) / (1000 * 60 * 60 * 24)) + 1;
 
-    cartaoAtual.progresso = Math.round((diasPreenchidos / diasTotaisProcesso) * 100);
-    if (cartaoAtual.progresso > 100) cartaoAtual.progresso = 100; // Trava de segurança
-    
+    cartaoAtual.progresso = Math.min(Math.round((diasPreenchidos / diasTotais) * 100), 100);
     cartaoAtual.dataEdicao = Date.now();
 
     try {
         const docRef = doc(db, "cartoes", idAtual);
         await updateDoc(docRef, {
-            batidas: cartaoAtual.batidas, // Salva TODOS os anos juntos
-            config: configAtual, // SALVA O AJUSTE DE DATA AQUI!
+            batidas: cartaoAtual.batidas,
             progresso: cartaoAtual.progresso,
             dataEdicao: cartaoAtual.dataEdicao
         });
-        console.log(`✅ Nuvem sincronizada! Progresso: ${cartaoAtual.progresso}%`);
+        
+        // Atualiza a variável global para que o PDF veja as mudanças sem F5
+        window.batidasGlobal = cartaoAtual.batidas;
+        
+        console.log(`✅ Sincronizado! Progresso: ${cartaoAtual.progresso}%`);
     } catch (e) {
         console.error("❌ Erro ao salvar no Firebase:", e);
     }
@@ -350,10 +351,7 @@ async function gerarFolha(cfg) {
             }
             
             let qtdDaLinha = parseInt(cfg.qtdBatidas) || 4; 
-            if (batidasSalvasNoBanco && batidasSalvasNoBanco.h) {
-                qtdDaLinha = batidasSalvasNoBanco.h.length;
-            }
-            
+                        
             let inputsHtml = "";
             for (let i = 0; i < qtdDaLinha; i++) {
                 let val = "";
