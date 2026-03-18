@@ -189,5 +189,45 @@
         </div>
     </div>
 </div>
+<div id="modal-exportar-tecnico" class="modal-overlay escondido" style="z-index: 2000;">
+    <div class="modal-card" style="max-width: 800px; width: 90%;">
+        <div class="modal-header">
+            <h3>⚖️ Configurar Parâmetros do Laudo</h3>
+            <button class="btn-fechar" onclick="fecharModalExportar()">×</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <p style="font-size: 0.85em; color: #64748b; margin-bottom: 20px;">
+                Selecione quais verbas e reflexos deseja apurar no relatório final:
+            </p>
+            
+            <div class="grid-opcoes-tecnicas" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="col-tecnica">
+                    <label class="item-check"><input type="checkbox" id="opt-he-diurna" checked> Horas Extras Diárias (8h)</label>
+                    <label class="item-check"><input type="checkbox" id="opt-he-semanal" checked> Horas Extras Semanais (44h)</label>
+                    <label class="item-check"><input type="checkbox" id="opt-sumula85"> Súmula 85 do TST (Compensação)</label>
+                    <label class="item-check"><input type="checkbox" id="opt-dom-fer"> Domingos e Feriados</label>
+                    <label class="item-check"><input type="checkbox" id="opt-adc-noturno"> Adicional Noturno (20% ou Prorrogado)</label>
+                </div>
+                <div class="col-tecnica">
+                    <label class="item-check"><input type="checkbox" id="opt-art71"> Art. 71 CLT (Intervalo Intrajornada)</label>
+                    <label class="item-check"><input type="checkbox" id="opt-art66"> Art. 66 CLT (Interjornada 11h)</label>
+                    <label class="item-check"><input type="checkbox" id="opt-art67"> Art. 67 CLT (Descanso 24h)</label>
+                    <label class="item-check"><input type="checkbox" id="opt-art384"> Art. 384 CLT (Intervalo Mulher)</label>
+                    <label class="item-check"><input type="checkbox" id="opt-art72"> Art. 72 CLT (Digitador/Mecanografia)</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secundario" onclick="fecharModalExportar()">Cancelar</button>
+            <button class="btn-primario" onclick="processarPDFTecnico()" style="background: #059669;">Gerar Laudo Pericial ➔</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .item-check { display: flex; align-items: center; gap: 10px; font-size: 0.9em; padding: 8px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+    .item-check:hover { background: #f1f5f9; }
+    .item-check input { width: 18px; height: 18px; cursor: pointer; }
+</style>
 </body>
 </html>

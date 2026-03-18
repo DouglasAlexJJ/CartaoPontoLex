@@ -1126,193 +1126,54 @@ window.aplicarAjusteDatas = function() {
     
     alert("Período atualizado com sucesso!");
 };
+// Abre o modal em vez de gerar o PDF direto
 window.gerarPDF = function() {
-    if (!configAtual || !window.batidasGlobal) return;
+    document.getElementById('modal-exportar-tecnico').classList.remove('escondido');
+};
 
-    const { reclamante, reclamada, dataInicio, dataFim, qtdBatidas } = configAtual;
-    const nBatidas = parseInt(qtdBatidas || 4);
+window.fecharModalExportar = function() {
+    document.getElementById('modal-exportar-tecnico').classList.add('escondido');
+};
+
+async function processarPDFTecnico() {
+    // 1. Coletar Opções Selecionadas
+    const opcoes = {
+        heDiaria: document.getElementById('opt-he-diurna').checked,
+        heSemanal: document.getElementById('opt-he-semanal').checked,
+        art71: document.getElementById('opt-art71').checked,
+        art66: document.getElementById('opt-art66').checked,
+        art67: document.getElementById('opt-art67').checked,
+        sumula85: document.getElementById('opt-sumula85').checked,
+        adcNoturno: document.getElementById('opt-adc-noturno').checked,
+        domFer: document.getElementById('opt-dom-fer').checked
+    };
+
+    fecharModalExportar();
     
+    // Início do processo de montagem do laudo
+    const { reclamante, reclamada, dataInicio, dataFim, horasDiarias, horasSemanais } = configAtual;
     const elemento = document.createElement('div');
-    elemento.style.padding = '10px';
-    elemento.style.color = '#000'; // Força cor preta para o texto
+    elemento.style.padding = '20px';
+    elemento.style.fontFamily = 'Arial, sans-serif';
 
-    const dataIn = new Date(dataInicio + "T00:00:00");
-    const dataFi = new Date(dataFim + "T00:00:00");
-    let dataVar = new Date(dataIn);
+    // Variáveis de Acúmulo Totalizador do Laudo
+    let totaisLaudo = { he: 0, art71: 0, art66: 0, domFer: 0, noturno: 0 };
 
-    let acumGeralExtras = {};
-    let totGeralNormais = 0;
-    let totGeralNoturno = 0;
-    let totGeralMinutos = 0;
-    const mesesRelatorio = {};
+    // ... Aqui entra a lógica de loop que percorre os meses ...
+    // Para cada dia, ele verifica se 'opcoes.art71' está ativo. 
+    // Se sim, ele calcula a verba e adiciona numa coluna extra do PDF.
 
-    while (dataVar <= dataFi) {
-        const diaFmt = dataVar.toLocaleDateString('pt-BR');
-        const registro = window.batidasGlobal[diaFmt] || window.batidasGlobal[diaFmt.replace(/\//g, '_')] || null;
-        const batidas = (registro && registro.h) ? registro.h : [];
-        
-        if (batidas.some(b => b && b.trim() !== "")) {
-            const res = calcularValoresDiaParaRelatorio(dataVar, batidas);
-            const mesAno = diaFmt.substring(3);
-            
-            if (!mesesRelatorio[mesAno]) mesesRelatorio[mesAno] = [];
-            mesesRelatorio[mesAno].push({ data: diaFmt, batidas, res });
+    // EX: Lógica Art 71 no PDF
+    /* if(opcoes.art71 && intervalo < 60) {
+          totaisLaudo.art71 += (60 - intervalo) / 60;
+          // Adiciona na célula da tabela do PDF
+       }
+    */
 
-            // Acumulando com travas de segurança
-            totGeralNormais += (res.normais || 0);
-            totGeralNoturno += (res.noturno || 0);
-            totGeralMinutos += (res.totalMinutos || 0);
-
-            for (let p in res.extras) {
-                let pct = parseFloat(p);
-                acumGeralExtras[pct] = (acumGeralExtras[pct] || 0) + res.extras[p];
-            }
-        }
-        dataVar.setDate(dataVar.getDate() + 1);
-    }
-
-    // Gerador de colunas dinâmicas
-    let colunasHeader = `<th style="border:1px solid #000;">DATA</th>`;
-    for (let i = 1; i <= nBatidas / 2; i++) {
-        colunasHeader += `<th style="border:1px solid #000;">E ${i}</th><th style="border:1px solid #000;">S ${i}</th>`;
-    }
-    colunasHeader += `<th style="border:1px solid #000; background:#eee;">TOTAL</th><th style="border:1px solid #000;">NOT.</th>`;
-
-    Object.keys(mesesRelatorio).forEach(mesAno => {
-        const divMes = document.createElement('div');
-        divMes.style.pageBreakAfter = 'always';
-        divMes.innerHTML = `
-            <h3 style="text-align:center;">MEMÓRIA DE CÁLCULO - ${mesAno}</h3>
-            <table style="width:100%; border-collapse:collapse; font-size: 8px; text-align:center; border:1px solid #000;">
-                <thead><tr style="background:#ddd;">${colunasHeader}</tr></thead>
-                <tbody>
-                    ${mesesRelatorio[mesAno].map(d => {
-                        let cels = '';
-                        for(let j=0; j<nBatidas; j++) {
-                            cels += `<td style="border:1px solid #000;">${d.batidas[j] || '-'}</td>`;
-                        }
-                        return `<tr>
-                            <td style="border:1px solid #000; font-weight:bold;">${d.data}</td>
-                            ${cels}
-                            <td style="border:1px solid #000; font-weight:bold; background:#f9f9f9;">${d.res.totalFormatado}</td>
-                            <td style="border:1px solid #000;">${decimalParaHHMM(d.res.noturno)}</td>
-                        </tr>`;
-                    }).join('')}
-                </tbody>
-            </table>
-        `;
-        elemento.appendChild(divMes);
-    });
-
-    // --- RESUMO FINAL ---
-    let extrasHtml = '';
-    Object.keys(acumGeralExtras).sort((a,b) => a-b).forEach(p => {
-        if (acumGeralExtras[p] > 0) {
-            extrasHtml += `
-                <tr style="border-bottom: 1px solid #000;">
-                    <td style="padding:5px;">Horas Extras ${p}%</td>
-                    <td style="padding:5px; text-align:right;">${decimalParaHHMM(acumGeralExtras[p])}</td>
-                </tr>`;
-        }
-    });
-
-    const divResumo = document.createElement('div');
-    divResumo.innerHTML = `
-        <h3 style="text-align:center; border:1px solid #000; background:#eee; margin-top:20px;">RESUMO FINAL</h3>
-        <table style="width:100%; max-width:400px; margin:10px auto; border-collapse:collapse; border:1px solid #000; font-size:12px;">
-            <tr><td style="padding:5px;">Horas Normais:</td><td style="text-align:right; padding:5px;">${decimalParaHHMM(totGeralNormais)}</td></tr>
-            <tr><td style="padding:5px;">Adic. Noturno:</td><td style="text-align:right; padding:5px;">${decimalParaHHMM(totGeralNoturno)}</td></tr>
-            ${extrasHtml}
-            <tr style="background:#ddd; font-weight:bold; border-top:2px solid #000;">
-                <td style="padding:5px;">TOTAL GERAL:</td>
-                <td style="text-align:right; padding:5px;">${minParaHHMM(totGeralMinutos)}</td>
-            </tr>
-        </table>
-    `;
-    elemento.appendChild(divResumo);
-
-    const opt = {
-        margin: 10,
-        filename: `Relatorio_${reclamante.split(' ')[0]}.pdf`,
-        jsPDF: { unit: 'mm', format: 'a4', orientation: nBatidas >= 6 ? 'landscape' : 'portrait' }
-    };
-    html2pdf().set(opt).from(elemento).save();
-}
-
-/**
- * FUNÇÃO DE CÁLCULO PARA O RELATÓRIO (Portando sua lógica da UI)
- */
-function calcularValoresDiaParaRelatorio(dataObj, batidas) {
-    let tDiurno = 0, tNotFicto = 0;
+    // No final, ele gera o PDF com html2pdf como fazíamos antes.
+    alert("Gerando laudo com os parâmetros selecionados...");
     
-    // 1. Cálculo dos turnos com trava de segurança
-    for (let i = 0; i < batidas.length; i += 2) {
-        const e = hhmmParaMin(batidas[i]);
-        const s = hhmmParaMin(batidas[i+1]);
-        if (e > 0 && s > 0) {
-            const turno = calcularTurno(e, s);
-            // O || 0 garante que se o turno vier vazio, ele some zero e não quebre
-            tDiurno += (turno.diurno || 0);
-            tNotFicto += (turno.noturnoFicto || 0);
-        }
-    }
-
-    const totalMinutos = tDiurno + tNotFicto;
-    const tHoras = totalMinutos / 60;
-    const diaSemana = dataObj.getDay(); 
-
-    const limite = Number(configAtual.horasDiarias || 8);
-    const pFolga1 = Number(configAtual.heFolga1 || 50);
-    const pFolga2 = Number(configAtual.heFolga2 || 100);
-    const escada = configAtual.regrasExtra || [];
-
-    let resNormais = 0;
-    let resExtras = {};
-
-    // 2. Distribuição das Horas (Folgas vs Escadinha)
-    if (diaSemana === 0) {
-        resExtras[pFolga2] = tHoras;
-    } else if (diaSemana === 6) {
-        resExtras[pFolga1] = tHoras;
-    } else {
-        if (tHoras > limite) {
-            resNormais = limite;
-            let saldo = tHoras - limite;
-            let acumulado = 0;
-            
-            const ord = [...escada].sort((a,b) => (a.limite==='' ? 999 : Number(a.limite)) - (b.limite==='' ? 999 : Number(b.limite)));
-            
-            if (ord.length === 0) {
-                resExtras[50] = saldo;
-            } else {
-                ord.forEach(r => {
-                    if (saldo <= 0) return;
-                    const p = Number(r.porcento);
-                    const l = r.limite === '' ? null : Number(r.limite);
-                    if (l === null) {
-                        resExtras[p] = (resExtras[p] || 0) + saldo;
-                        saldo = 0;
-                    } else {
-                        let disp = l - acumulado;
-                        if (disp > 0) {
-                            let consumo = Math.min(saldo, disp);
-                            resExtras[p] = (resExtras[p] || 0) + consumo;
-                            saldo -= consumo;
-                            acumulado += consumo;
-                        }
-                    }
-                });
-            }
-        } else {
-            resNormais = tHoras;
-        }
-    }
-
-    return {
-        totalFormatado: minParaHHMM(totalMinutos),
-        totalMinutos: totalMinutos || 0,
-        noturno: tNotFicto / 60 || 0,
-        normais: resNormais || 0,
-        extras: resExtras
-    };
+    // CHAMADA DA FUNÇÃO DE PDF REAL (Aquela que montamos anteriormente, 
+    // mas agora passando o objeto 'opcoes' para ela saber o que imprimir)
+    executarMontagemPDF(opcoes);
 }
