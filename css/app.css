@@ -420,3 +420,77 @@ tr.linha-ponto:hover .btn-acao-dia {
 .extra-dinamico strong {
     color: #4ade80; /* Verde para as horas extras */
 }
+/* Container da Data e Ícone */
+.data-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 5px;
+}
+
+/* O Círculo do (?) */
+.tooltip-atalho {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.icon-help {
+    background: #e2e8f0;
+    color: #64748b;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.tooltip-atalho:hover .icon-help {
+    background: #3b82f6;
+    color: white;
+}
+
+/* O Balão de Dica (Tooltip) */
+.tooltip-atalho .tooltiptext {
+    visibility: hidden;
+    width: 140px;
+    background-color: #1e293b;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 10;
+    bottom: 125%; /* Aparece acima do ícone */
+    left: 50%;
+    margin-left: -70px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 11px;
+    line-height: 1.4;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+    pointer-events: none;
+}
+
+/* Setinha do balão */
+.tooltip-atalho .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #1e293b transparent transparent transparent;
+}
+
+/* Mostrar ao passar o mouse */
+.tooltip-atalho:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
