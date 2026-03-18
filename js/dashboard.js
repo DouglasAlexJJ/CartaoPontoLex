@@ -414,20 +414,28 @@ window.editarCartao = function(id) {
         if (cidSelect) cidSelect.value = config.cidade || '';
     }, 800);
 
+
     // 6. MOSTRA APENAS O MODAL DO CARTÃO
     // Garante que outros modais estejam fechados para não "abrir tudo"
+    fecharTodosModais();
     document.getElementById('modal-perfil').classList.add('escondido');
     document.getElementById('modal-novo').classList.remove('escondido');
 };
 
 // Gestão de Equipe
 window.abrirModalColaboradores = function() {
-    const modal = document.getElementById('modal-colaboradores');
-    if (modal) {
-        modal.classList.remove('escondido');
-        if (typeof carregarMembrosEquipe === 'function') carregarMembrosEquipe();
-    }
+    fecharTodosModais();
+    document.getElementById('modal-colaboradores').classList.remove('escondido');
+    if (typeof carregarMembrosEquipe === 'function') carregarMembrosEquipe();
 };
+
+function fecharTodosModais() {
+    const modais = ['modal-novo', 'modal-perfil', 'modal-colaboradores', 'modal-onboarding'];
+    modais.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('escondido');
+    });
+}
 
 async function carregarMembrosEquipe() {
     const container = document.getElementById('lista-membros-equipe');
@@ -525,68 +533,34 @@ window.fecharModalColaboradores = () => document.getElementById('modal-colaborad
 window.abrirModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.remove('escondido');
 window.fecharModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.add('escondido');
 window.abrirModalNovo = function() {
-    const modal = document.getElementById('modal-novo');
-    if (!modal) return;
-
-    modal.classList.remove('escondido');
+    // Fecha outros para não sobrepor
+    fecharTodosModais();
     
-    // Ajusta os textos para modo "Criação"
     document.getElementById('titulo-modal-cartao').innerText = "➕ Novo Cartão Ponto";
     document.getElementById('btn-salvar-cartao').innerText = "Gerar Cartão ➔";
+    document.getElementById('cartao-edit-id').value = ""; // Limpa ID de edição
     
-    // Zera o ID oculto
-    document.getElementById('cartao-edit-id').value = "";
-    
-    // Limpa os campos de texto principais
+    // Limpa os campos
     document.getElementById('reclamante').value = '';
     document.getElementById('reclamada').value = '';
     document.getElementById('dataInicio').value = '';
     document.getElementById('dataFim').value = '';
     
-    // Reseta escala e localização
-    document.getElementById('escala').value = 'seg-sex';
-    document.getElementById('novo-cartao-uf').value = '';
-    document.getElementById('novo-cartao-cidade').innerHTML = '<option value="">Selecione a Cidade</option>';
-    document.getElementById('novo-cartao-cidade').disabled = true;
-
-    // Reseta opções de preenchimento
-    document.getElementById('checkBatidas').checked = false;
-    document.getElementById('intervaloFixo').checked = false;
-    
-    // Executa os toggles para esconder os inputs extras
-    window.toggleFolgaInicial();
-    window.toggleIntervaloFixo();
-    window.toggleBatidas();
+    document.getElementById('modal-novo').classList.remove('escondido');
 };
 window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
 window.abrirModalPerfil = function() {
-    if(!dadosUsuarioGlobal) {
-        alert("Erro: Dados do usuário não carregados. Tente atualizar a página.");
-        return;
-    }
+    fecharTodosModais();
     
-    // Preenche os campos do modal de perfil
-    const fields = {
-        'edit-perfil-tratamento': dadosUsuarioGlobal.tratamento || "",
-        'edit-perfil-nome': dadosUsuarioGlobal.nome || "",
-        'edit-perfil-oab': dadosUsuarioGlobal.oab || "",
-        'edit-perfil-empresa': dadosUsuarioGlobal.empresa || ""
-    };
+    if(!dadosUsuarioGlobal) return;
 
-    for (let id in fields) {
-        const el = document.getElementById(id);
-        if (el) el.value = fields[id];
-    }
+    document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
+    document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
+    document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
+    document.getElementById('edit-perfil-empresa').value = dadosUsuarioGlobal.empresa || "";
 
-    // Trava o campo empresa se for colaborador
-    const campoEmpresa = document.getElementById('edit-perfil-empresa');
-    if (campoEmpresa) {
-        campoEmpresa.disabled = (dadosUsuarioGlobal.tipoConta === 'colaborador');
-        campoEmpresa.style.backgroundColor = (dadosUsuarioGlobal.tipoConta === 'colaborador') ? "#f1f5f9" : "#ffffff";
-    }
-
-    // CHAMA O SELETOR DE AVATAR DO PERFIL (Certifique-se que o nome da função está correto)
-    if (typeof window.renderizarSeletorAvatarPerfil === 'function') {
+    // Carrega os avatares (Emojis) do perfil
+    if (window.renderizarSeletorAvatarPerfil) {
         window.renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
     }
 
