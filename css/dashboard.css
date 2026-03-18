@@ -102,12 +102,62 @@
 
 .grid-recentes { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
 
-.card-recente { 
-    background: white; border: 1px solid #e2e8f0; border-radius: 10px; 
-    padding: 20px; cursor: pointer; transition: 0.2s; 
+.card-recente {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 160px; /* Garante um tamanho mínimo uniforme */
+    position: relative;
 }
 .card-recente:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
 .card-recente.vazio { border: 2px dashed #cbd5e1; background: transparent; color: #94a3b8; }
+.card-recente h4 { margin: 0 0 10px 0; color: #0f172a; font-size: 1.05em; }
+.card-empresa { margin: 10px 0; font-size: 0.85em; color: #64748b; flex-grow: 1; }
+.card-footer-recente {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto; /* Empurra para o fundo do card */
+    padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+}
+.card-acoes-wrapper {
+    display: flex;
+    gap: 8px;
+}
+.btn-card-acao {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9em;
+}
+.btn-card-acao.edit:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+.btn-card-acao.delete:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+/* Esconde as ações da Lixeira se não quiser o mesmo estilo lá */
+.card-apagado .card-acoes-wrapper {
+    display: flex;
+}
 
 /* BADGES DE PROGRESSO */
 .badge-status { padding: 4px 8px; border-radius: 12px; font-size: 0.7em; font-weight: bold; }

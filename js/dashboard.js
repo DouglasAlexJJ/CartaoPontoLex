@@ -196,22 +196,27 @@ function renderizarGridRecentes(ativos, podeGerenciar) {
         const corBadge = cartao.progresso === 100 ? 'progresso-alto' : (cartao.progresso > 30 ? 'progresso-medio' : 'progresso-baixo');
         const dataStr = new Date(cartao.dataEdicao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
         
-        // --- BOTÕES DE AÇÃO: EDITAR E EXCLUIR ---
-        const btnEdit = `<button class="btn-editar" style="background:none; border:none; font-size: 1.1em; cursor:pointer;" onclick="event.stopPropagation(); editarCartao('${cartao.id}')" title="Editar Parâmetros">✏️</button>`;
-        const btnDelete = podeGerenciar ? `<button class="btn-deletar" style="margin-left: 5px;" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')" title="Mover para Lixeira">🗑️</button>` : '';
+        // --- BOTÕES DE AÇÃO ---
+        const btnEdit = `<button class="btn-card-acao edit" onclick="event.stopPropagation(); editarCartao('${cartao.id}')" title="Editar Parâmetros">✏️</button>`;
+        const btnDelete = podeGerenciar ? `<button class="btn-card-acao delete" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')" title="Mover para Lixeira">🗑️</button>` : '';
 
         return `
             <div class="card-recente" onclick="abrirCartao('${cartao.id}')">
                 <div class="card-recente-header">
                     <h4>${cartao.config.reclamante}</h4>
-                    <div style="display: flex; align-items: center;">
+                </div>
+                
+                <span class="badge-status ${corBadge}">${cartao.progresso}% Concluído</span>
+                
+                <p class="card-empresa"><strong>Empresa:</strong> ${cartao.config.reclamada || 'Não informada'}</p>
+                
+                <div class="card-footer-recente">
+                    <small class="data-edicao">Editado em: ${dataStr}</small>
+                    <div class="card-acoes-wrapper">
                         ${btnEdit}
                         ${btnDelete}
                     </div>
                 </div>
-                <span class="badge-status ${corBadge}" style="display:inline-block; margin-bottom:10px;">${cartao.progresso}% Concluído</span>
-                <p><strong>Empresa:</strong> ${cartao.config.reclamada || 'Não informada'}</p>
-                <small class="data-edicao">Última edição: ${dataStr}</small>
             </div>
         `;
     }).join('');
@@ -235,7 +240,12 @@ function renderizarGridRecentes(ativos, podeGerenciar) {
         `;
     }
 
-    gridRecentes.innerHTML = html;
+    gridRecentes.innerHTML = html + (dadosUsuarioGlobal.tipoConta !== 'pessoal' ? `
+        <div class="card-recente vazio" onclick="abrirModalNovo()">
+            <span class="icone-vazio">➕</span>
+            <p>Novo Cartão</p>
+        </div>
+    ` : '');
 }
 
 function renderizarLixeira(apagados, podeGerenciar) {
