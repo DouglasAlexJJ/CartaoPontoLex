@@ -613,65 +613,67 @@ function pularLinha(trAtual) {
 }
 
 function calcularLinha(tr) {
+    if (!configAtual) return;
+
     const ins = tr.querySelectorAll('.ponto');
-    const dataString = tr.getAttribute('data-dia');
+    const dataString = tr.getAttribute('data-dia'); 
     const isFeriado = tr.classList.contains('destaque-feriado') || tr.classList.contains('destaque-vermelho');
     
     const [dia, mes, ano] = dataString.split('/');
     const dataObj = new Date(`${ano}-${mes}-${dia}T00:00:00`);
     const diaSemana = dataObj.getDay(); 
 
-    let totalTrabalhadoMin = 0;
-    let totalIntervaloMin = 0;
+    let totalDiurno = 0;
+    let totalNoturnoFicto = 0;
+    let totalIntervaloMinutos = 0;
 
-    // Cálculo do tempo trabalhado e intervalos
+    // 1. Calcula Horas Trabalhadas e Intervalo (Art. 71)
     for (let i = 0; i < ins.length; i += 2) {
         const e = hhmmParaMin(ins[i]?.value);
         const s = hhmmParaMin(ins[i+1]?.value);
-        
         if (e > 0 && s > 0) {
-            totalTrabalhadoMin += (s - e);
-            
-            // Intervalo (Saída atual vs Próxima Entrada)
-            const proximaE = hhmmParaMin(ins[i+2]?.value);
-            if (proximaE > 0) {
-                totalIntervaloMin += (proximaE - s);
+            const turno = calcularTurno(e, s);
+            totalDiurno += turno.diurno;
+            totalNoturnoFicto += turno.noturnoFicto;
+
+            // Calcula o intervalo entre este turno e o próximo
+            const proximaEntrada = hhmmParaMin(ins[i+2]?.value);
+            if (proximaEntrada > 0) {
+                totalIntervaloMinutos += (proximaEntrada - s);
             }
         }
     }
 
-    const horasTrabalhadasDec = totalTrabalhadoMin / 60;
-    const limiteDiario = parseFloat(configAtual.horasDiarias) || 8;
+    let tempoTotalHoras = (totalDiurno + totalNoturnoFicto) / 60;
+    let limiteDiario = parseFloat(configAtual.horasDiarias) || 8;
     
     let extraDiaria = 0;
-    let art71 = 0;
+    let violacaoArt71 = 0;
 
-    // Art. 71 - Intrajornada
-    if (horasTrabalhadasDec > 6 && totalIntervaloMin < 60) {
-        art71 = (60 - totalIntervaloMin) / 60;
-    } else if (horasTrabalhadasDec > 4 && horasTrabalhadasDec <= 6 && totalIntervaloMin < 15) {
-        art71 = (15 - totalIntervaloMin) / 60;
+    // --- LÓGICA ARTIGO 71 (INTERVALO) ---
+    if (tempoTotalHoras > 6 && totalIntervaloMinutos < 60) {
+        violacaoArt71 = (60 - totalIntervaloMinutos) / 60; // Saldo que faltou para 1h
+    } else if (tempoTotalHoras > 4 && tempoTotalHoras <= 6 && totalIntervaloMinutos < 15) {
+        violacaoArt71 = (15 - totalIntervaloMinutos) / 60; // Saldo que faltou para 15min
     }
 
-    // Extra Diária (Só se não for Domingo/Feriado)
-    const isDF = (isFeriado || diaSemana === 0);
-    if (!isDF && horasTrabalhadasDec > limiteDiario) {
-        extraDiaria = horasTrabalhadasDec - limiteDiario;
+    // --- LÓGICA EXTRA DIÁRIA (>8h) ---
+    // Domingos (0) e Feriados não geram extra diária aqui, pois são apurados no total bruto
+    if (diaSemana !== 0 && !isFeriado) {
+        if (tempoTotalHoras > limiteDiario) {
+            extraDiaria = tempoTotalHoras - limiteDiario;
+        }
     }
 
-    // Atualiza o visual da linha
-    const campoTotalLinha = tr.querySelector('.total-dia');
-    if (campoTotalLinha) campoTotalLinha.innerText = minParaHHMM(totalTrabalhadoMin);
-    
-    // Salva os dados brutos na linha para o totalizador ler
-    tr.dataset.totalBruto = horasTrabalhadasDec.toFixed(4);
+    // Salvamento nos Datasets da linha (para o rodapé ler)
+    tr.querySelector('.total-dia').innerText = minParaHHMM(Math.round(tempoTotalHoras * 60));
+    tr.dataset.totalBruto = tempoTotalHoras.toFixed(4);
     tr.dataset.extraDiaria = extraDiaria.toFixed(4);
-    tr.dataset.art71 = art71.toFixed(4);
-    tr.dataset.isDF = isDF ? "sim" : "nao";
-    tr.dataset.isSab = (diaSemana === 6) ? "sim" : "nao";
+    tr.dataset.art71 = violacaoArt71.toFixed(4);
+    tr.dataset.isDomingoFeriado = (isFeriado || diaSemana === 0) ? "sim" : "nao";
+    tr.dataset.isSabado = (diaSemana === 6) ? "sim" : "nao";
 
-    // CHAMA O TOTALIZADOR DO RODAPÉ
-    atualizarTotalGeral();
+    if (typeof atualizarTotalGeral === 'function') atualizarTotalGeral();
 }
 
 function hhmmParaMin(t) {
@@ -683,16 +685,15 @@ function hhmmParaMin(t) {
 function minParaHHMM(t) { return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; }
 
 function atualizarTotalGeral() {
-    let totTrabalhado = 0;
-    let totDiaria = 0;
-    let totSemanal = 0;
-    let totDF = 0;
+    let totGeralTrabalhado = 0;
+    let totExtraDiaria = 0;
+    let totExtraSemanal = 0;
+    let totDomFeriado = 0;
     let totArt71 = 0;
-    let totArt66 = 0;
+    let totArt66 = 0; // Interjornada
     
-    let acumuladorSemanal = 0;
-    const limiteSemanal = parseFloat(configAtual.horasSemanais) || 44;
-    const limiteDiario = parseFloat(configAtual.horasDiarias) || 8;
+    let acumuladorSemanalNormais = 0;
+    let limiteSemanal = parseFloat(configAtual.horasSemanais) || 44;
 
     const linhas = Array.from(document.querySelectorAll('.linha-ponto'));
 
@@ -700,35 +701,34 @@ function atualizarTotalGeral() {
         const bruto = parseFloat(tr.dataset.totalBruto || 0);
         const diaria = parseFloat(tr.dataset.extraDiaria || 0);
         const art71 = parseFloat(tr.dataset.art71 || 0);
-        const isDF = tr.dataset.isDF === "sim";
-        const isSab = tr.dataset.isSab === "sim";
+        const isDF = tr.dataset.isDomingoFeriado === "sim";
+        const isSab = tr.dataset.isSabado === "sim";
 
-        totTrabalhado += bruto;
+        totGeralTrabalhado += bruto;
         totArt71 += art71;
 
         if (isDF) {
-            totDF += bruto;
+            totDomFeriado += bruto; // Domingos e Feriados entram brutos
         } else {
-            totDiaria += diaria;
-            // Para a semanal, somamos o que é "normal" (até o limite diário)
-            acumuladorSemanal += (bruto - diaria);
+            totExtraDiaria += diaria;
+            // Somamos apenas as horas "normais" do dia (até 8h) para o limite semanal
+            acumuladorSemanalNormais += (bruto - diaria);
         }
 
-        // Fechamento da Semana no Sábado
+        // --- LÓGICA 44H SEMANAIS (FECHA NO SÁBADO) ---
         if (isSab) {
-            if (acumuladorSemanal > limiteSemanal) {
-                totSemanal += (acumuladorSemanal - limiteSemanal);
+            if (acumuladorSemanalNormais > limiteSemanal) {
+                totExtraSemanal += (acumuladorSemanalNormais - limiteSemanal);
             }
-            acumuladorSemanal = 0; // Reseta para a próxima semana
+            acumuladorSemanalNormais = 0; // Reseta para a próxima semana
         }
 
-        // Art. 66 (Interjornada - 11h)
-        const proxTr = linhas[index + 1];
-        if (proxTr) {
+        // --- LÓGICA ARTIGO 66 (INTERJORNADA 11H) ---
+        const proxLinha = linhas[index + 1];
+        if (proxLinha) {
             const inputsHoje = tr.querySelectorAll('.ponto');
-            const inputsAmanha = proxTr.querySelectorAll('.ponto');
+            const inputsAmanha = proxLinha.querySelectorAll('.ponto');
             
-            // Pega a última saída preenchida de hoje
             let ultimaSaida = 0;
             for(let i=inputsHoje.length-1; i>=0; i--) {
                 if(hhmmParaMin(inputsHoje[i].value) > 0) {
@@ -736,33 +736,29 @@ function atualizarTotalGeral() {
                     break;
                 }
             }
-            
-            // Pega a primeira entrada de amanhã
             const primeiraEntrada = hhmmParaMin(inputsAmanha[0]?.value);
 
             if (ultimaSaida > 0 && primeiraEntrada > 0) {
                 let descanso = (1440 - ultimaSaida) + primeiraEntrada;
-                if (descanso < 660) { // 660min = 11h
+                if (descanso < 660) { // 660 min = 11h
                     totArt66 += (660 - descanso) / 60;
                 }
             }
         }
     });
 
-    // Atualiza os IDs do novo HTML
-    const setTxt = (id, val) => {
+    // Atualiza os novos IDs do Rodapé que criamos no HTML
+    const setTexto = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.innerText = decimalParaHHMM(val);
     };
 
-    setTxt('total-geral-periodo', totTrabalhado);
-    setTxt('total-extra-diaria', totDiaria);
-    setTxt('total-extra-semanal', totSemanal);
-    setTxt('total-dom-feriado', totDF);
-    setTxt('total-art71', totArt71);
-    setTxt('total-art66', totArt66);
-    
-    console.log("Totais atualizados!", { totTrabalhado, totDiaria });
+    setTexto('total-geral-periodo', totGeralTrabalhado);
+    setTexto('total-extra-diaria', totExtraDiaria);
+    setTexto('total-extra-semanal', totExtraSemanal);
+    setTexto('total-dom-feriado', totDomFeriado);
+    setTexto('total-art71', totArt71);
+    setTexto('total-art66', totArt66);
 }
 
 function ehFeriadoNacional(data) {

@@ -32,7 +32,7 @@
         </button>
         
         <div id="menu-config-app" class="dropdown-content escondido">
-            <button class="seu-estilo-original" onclick="gerarPDF()">
+            <button class="seu-estilo-original" onclick="abrirModalExportar()">
                 📄 Exportar PDF
             </button>
             <div class="divisor"></div>
@@ -76,39 +76,41 @@
         </div>
     </main>
 
-    <footer id="rodape-totalizador">
-    <div class="resumo-painel">
-        <div class="resumo-item">
-            <span>Total Trabalhado</span>
-            <strong id="total-geral-periodo">00:00</strong>
-        </div>
+    <footer id="rodape-totalizador" style="background: #0f172a; color: white; padding: 12px 30px; position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: center; border-top: 1px solid #1e293b;">
+        <div style="display: flex; gap: 25px; align-items: center; flex-wrap: wrap; justify-content: center;">
+            
+            <div class="resumo-item" style="text-align: center;">
+                <span style="font-size: 0.7em; color: #94a3b8; text-transform: uppercase; display: block;">Trabalhado</span>
+                <strong id="total-geral-periodo" style="font-size: 1.2em;">00:00</strong>
+            </div>
 
-        <div class="resumo-item">
-            <span>H.E. Diária (>8h)</span>
-            <strong id="total-extra-diaria" style="color: #38bdf8;">00:00</strong>
-        </div>
+            <div class="resumo-item" style="text-align: center;">
+                <span style="font-size: 0.7em; color: #38bdf8; text-transform: uppercase; display: block;">H.E. Diária (>8h)</span>
+                <strong id="total-extra-diaria" style="font-size: 1.2em; color: #38bdf8;">00:00</strong>
+            </div>
 
-        <div class="resumo-item">
-            <span>H.E. Semanal (>44h)</span>
-            <strong id="total-extra-semanal" style="color: #38bdf8;">00:00</strong>
-        </div>
+            <div class="resumo-item" style="text-align: center;">
+                <span style="font-size: 0.7em; color: #38bdf8; text-transform: uppercase; display: block;">H.E. Semanal (>44h)</span>
+                <strong id="total-extra-semanal" style="font-size: 1.2em; color: #38bdf8;">00:00</strong>
+            </div>
 
-        <div class="resumo-item">
-            <span>Dom / Feriados</span>
-            <strong id="total-dom-feriado" style="color: #f87171;">00:00</strong>
-        </div>
+            <div class="resumo-item" style="text-align: center;">
+                <span style="font-size: 0.7em; color: #f87171; text-transform: uppercase; display: block;">Dom / Fer</span>
+                <strong id="total-dom-feriado" style="font-size: 1.2em; color: #f87171;">00:00</strong>
+            </div>
 
-        <div class="resumo-item">
-            <span>Art. 71 (Intra)</span>
-            <strong id="total-art71" style="color: #fbbf24;">00:00</strong>
-        </div>
+            <div class="resumo-item" style="text-align: center; border-left: 1px solid #334155; padding-left: 20px;">
+                <span style="font-size: 0.7em; color: #fbbf24; text-transform: uppercase; display: block;">Art. 71 (Almoço)</span>
+                <strong id="total-art71" style="font-size: 1.2em; color: #fbbf24;">00:00</strong>
+            </div>
 
-        <div class="resumo-item">
-            <span>Art. 66 (Inter)</span>
-            <strong id="total-art66" style="color: #fbbf24;">00:00</strong>
+            <div class="resumo-item" style="text-align: center;">
+                <span style="font-size: 0.7em; color: #fbbf24; text-transform: uppercase; display: block;">Art. 66 (Inter)</span>
+                <strong id="total-art66" style="font-size: 1.2em; color: #fbbf24;">00:00</strong>
+            </div>
+
         </div>
-    </div>
-</footer>
+    </footer>
     <script type="module" src="js/app.js"></script>
 
 <div id="modal-ajuste-datas" class="modal-overlay escondido">
@@ -189,5 +191,42 @@
         </div>
     </div>
 </div>
+<div id="modal-exportar-tecnico" class="modal-overlay escondido" style="z-index: 2000;">
+        <div class="modal-card" style="max-width: 600px; width: 90%; background: white; border-radius: 12px; overflow: hidden;">
+            <div class="modal-header" style="padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: #0f172a;">⚖️ Parâmetros do Laudo Pericial</h3>
+                <button class="btn-fechar" onclick="fecharModalExportar()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            
+            <div class="modal-body" style="padding: 20px; max-height: 65vh; overflow-y: auto;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9em; cursor: pointer;">
+                        <input type="checkbox" id="opt-he-diurna" checked> Horas Extras Diárias (>8h)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9em; cursor: pointer;">
+                        <input type="checkbox" id="opt-he-semanal" checked> Horas Extras Semanais (>44h)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9em; cursor: pointer;">
+                        <input type="checkbox" id="opt-dom-fer" checked> Domingos e Feriados em Dobro
+                    </label>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9em; cursor: pointer;">
+                        <input type="checkbox" id="opt-art71" checked> Art. 71 CLT (Diferença de Intervalo)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9em; cursor: pointer;">
+                        <input type="checkbox" id="opt-art66" checked> Art. 66 CLT (Interjornada - Faltante)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9em; cursor: pointer;">
+                        <input type="checkbox" id="opt-art67" checked> Art. 67 CLT (Descanso Semanal 24h)
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 15px 20px; background: #f8fafc; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-secundario" onclick="fecharModalExportar()" style="padding: 10px 20px; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer;">Cancelar</button>
+                <button class="btn-primario" onclick="processarPDFTecnico()" style="padding: 10px 20px; border-radius: 6px; background: #059669; color: white; border: none; cursor: pointer; font-weight: 600;">Gerar Laudo PDF ➔</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

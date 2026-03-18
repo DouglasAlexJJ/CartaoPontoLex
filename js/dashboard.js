@@ -380,7 +380,7 @@ window.editarCartao = function(id) {
     // Mostra ou esconde o campo de folga dependendo da escala
     if (typeof toggleFolgaInicial === 'function') toggleFolgaInicial();
 
-    // 4. Intervalos e Batidas
+    // 4. Intervalos e Batidas (ISSO FICA!)
     document.getElementById('padraoE').value = config.padraoE || '12:00';
     document.getElementById('padraoS').value = config.padraoS || '13:00';
     
@@ -399,33 +399,12 @@ window.editarCartao = function(id) {
     }
     if (typeof toggleBatidas === 'function') toggleBatidas();
 
-    // 5. Parâmetros Sindicais (Onde a mágica acontece)
-    document.getElementById('config-adc-noturno').value = config.adcNoturno || '20';
-    document.getElementById('config-he-folga1').value = config.heFolga1 || '50';
-    document.getElementById('config-he-folga2').value = config.heFolga2 || '100';
-    
-    const containerRegras = document.getElementById('container-regras-extras');
-    containerRegras.innerHTML = ""; // Limpa a tabela
-
-    if (config.regrasExtra && config.regrasExtra.length > 0) {
-        // Se já tiver regra gravada, escreve todas elas na tela
-        config.regrasExtra.forEach(regra => {
-            window.adicionarRegraExtra(regra.limite, regra.porcento);
-        });
-    } else {
-        // Se for um cartão velho que não tinha regra, coloca 50% como padrão
-        window.adicionarRegraExtra('', '50'); 
-    }
-
-    // 6. UF e Cidade Inteligente (Espera a API do IBGE carregar)
+    // 5. UF e Cidade (ISSO FICA!)
     const ufSelect = document.getElementById('novo-cartao-uf');
     ufSelect.value = config.uf || '';
     
     if (config.uf) {
-        // "Engana" o navegador dizendo que o usuário escolheu o estado para ele puxar as cidades
         ufSelect.dispatchEvent(new Event('change'));
-        
-        // Aguarda 800ms para a BrasilAPI devolver as cidades e então seleciona
         setTimeout(() => {
             document.getElementById('novo-cartao-cidade').value = config.cidade || '';
         }, 800);
@@ -434,7 +413,7 @@ window.editarCartao = function(id) {
         document.getElementById('novo-cartao-cidade').disabled = true;
     }
 
-    // 7. Abre o modal!
+    // 6. ABRE O MODAL (ISSO É O FINAL DA FUNÇÃO)
     document.getElementById('modal-novo').classList.remove('escondido');
 };
 
@@ -546,23 +525,27 @@ window.abrirModalNovo = function() {
     document.getElementById('titulo-modal-cartao').innerText = "➕ Novo Cartão Ponto";
     document.getElementById('btn-salvar-cartao').innerText = "Gerar Cartão ➔";
     
-    // Zera o ID oculto (Isso diz ao sistema: "É um cartão novo!")
+    // Zera o ID oculto
     document.getElementById('cartao-edit-id').value = "";
     
-    // Limpa os campos de texto principais para não trazer lixo de outro cartão
+    // Limpa os campos de texto principais
     document.getElementById('reclamante').value = '';
     document.getElementById('reclamada').value = '';
     document.getElementById('dataInicio').value = '';
     document.getElementById('dataFim').value = '';
     
-    // Reseta as regras sindicais
-    document.getElementById('config-adc-noturno').value = '20';
-    document.getElementById('config-he-folga1').value = '50';
-    document.getElementById('config-he-folga2').value = '100';
-    document.getElementById('container-regras-extras').innerHTML = "";
-    
-    // Injeta a regra padrão de "Tudo a 50%" para começar
-    window.adicionarRegraExtra('', '50'); 
+    // Reseta selects e checkboxes básicos
+    document.getElementById('escala').value = 'seg-sex';
+    document.getElementById('novo-cartao-uf').value = '';
+    document.getElementById('novo-cartao-cidade').innerHTML = '<option value="">Selecione a Cidade</option>';
+    document.getElementById('novo-cartao-cidade').disabled = true;
+    document.getElementById('checkBatidas').checked = false;
+    document.getElementById('intervaloFixo').checked = false;
+
+    // Chama os toggles para esconder os containers de batidas e intervalos
+    window.toggleFolgaInicial();
+    window.toggleIntervaloFixo();
+    window.toggleBatidas();
 };
 window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
 window.abrirModalPerfil = function() {
@@ -711,7 +694,7 @@ window.salvarEIniciar = async function() {
     const horasDiarias = parseFloat(document.getElementById('horasDiarias').value) || 8;
     const horasSemanais = parseFloat(document.getElementById('horasSemanais').value) || 44;
     
-    // --- 2. MONTANDO A CONFIGURAÇÃO (Limpando campos removidos) ---
+    // 3. MONTANDO A CONFIGURAÇÃO (LIMPA)
     const config = {
         reclamante: reclamante,
         reclamada: document.getElementById('reclamada').value.trim(),
@@ -726,10 +709,8 @@ window.salvarEIniciar = async function() {
         trabPers: trabPers,
         folgaPers: folgaPers,
         uf: ufSelecionada,
-        cidade: cidadeSelecionada,
-        // Novos campos
-        horasDiarias: horasDiarias,
-        horasSemanais: horasSemanais
+        cidade: cidadeSelecionada
+        // Removidos: adcNoturno, heFolga1, heFolga2, regrasExtra
     };
 
     try {
