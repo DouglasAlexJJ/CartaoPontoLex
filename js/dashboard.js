@@ -130,7 +130,7 @@ function iniciarOnboarding(user) {
     if (modalOnboarding) modalOnboarding.classList.remove('escondido');
 }
 
-const avataresProfissionais = ["⚖️", "👨‍💼", "👩‍💼", "👨‍⚖️", "👩‍⚖️", "🖋️", "💼", "🏢", "🧐", "📊", "🎓", "💻"];
+const avataresProfissionais = ["⚖️", "👨‍💼", "👩‍💼", "👨‍⚖️", "👩‍⚖️", "🖋️", "💼", "🏢", "🖩", "📊", "🎓", "💻"];
 
 window.renderizarSeletorAvatarPerfil = function(selecionado = "⚖️") {
     const container = document.getElementById('seletor-avatar-perfil');
