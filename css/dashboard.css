@@ -1,549 +1,169 @@
 /* ==========================================================================
-   CSS DO DASHBOARD - CartaoPontoLex
+   1. LAYOUT GERAL E ESTRUTURA
    ========================================================================== */
-.dashboard-layout { display: flex; height: calc(100vh - 70px); overflow: hidden; }
+.dashboard-layout { 
+    display: flex; 
+    height: calc(100vh - 70px); 
+    overflow: hidden; 
+}
 
-/* SIDEBAR - ATUALIZADA */
+.dashboard-main { 
+    flex: 1; 
+    padding: 40px; 
+    overflow-y: auto; 
+    background: #f8fafc; 
+}
+
+.dashboard-header h2 { margin-top: 0; color: #0f172a; font-size: 1.8em; }
+.dashboard-header p { color: #64748b; margin-bottom: 30px; }
+
+/* ==========================================================================
+   2. SIDEBAR (PERFIL E NAVEGAÇÃO)
+   ========================================================================== */
 .sidebar { 
-    width: 300px; /* Aumentado de 260px para 300px */
+    width: 300px; 
     background: white; 
     border-right: 1px solid #e2e8f0; 
     display: flex; 
     flex-direction: column; 
-    transition: width 0.3s ease; /* Transição suave se mudar de tamanho */
+    transition: width 0.3s ease; 
 }
 
 .sidebar-header { 
-    padding: 25px 20px; /* Aumentei um pouco o respiro vertical */
+    padding: 25px 20px; 
     border-bottom: 1px solid #f1f5f9; 
-    display: flex; 
-    align-items: center; 
-    justify-content: space-between; 
 }
 
 .perfil-usuario { 
     display: flex; 
     align-items: center; 
     gap: 12px; 
-    max-width: 100%; /* Garante que não estoure a sidebar */
 }
 
 .avatar { 
-    font-size: 1.8em; /* Aumentado para acompanhar o novo tamanho */
+    font-size: 1.8em; 
     background: #e0f2fe; 
-    padding: 8px; 
+    width: 50px; 
+    height: 50px; 
     border-radius: 50%; 
-    min-width: 50px; /* Garante que o círculo não amasse */
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.info-perfil {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    overflow: visible; /* Garante que o texto expandido apareça */
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
 }
 
 .info-perfil strong { 
-    display: block; 
+    display: flex; 
+    align-items: center; 
+    flex-wrap: wrap;
     color: #0f172a; 
     font-size: 1.1em; 
     font-weight: 700;
-    /* Alterações para permitir duas linhas */
-    white-space: normal;      /* Permite a quebra de linha natural */
-    word-wrap: break-word;    /* Força a quebra de palavras muito longas se necessário */
-    line-height: 1.2;         /* Ajusta o espaçamento entre as linhas para não ficarem coladas */
-    max-width: 180px;         /* Limita a largura para forçar o texto a descer */
-    margin-bottom: 4px;       /* Pequeno espaço antes do "Plano Premium" */
+    line-height: 1.2; 
+    max-width: 180px; 
 }
 
-.info-perfil small { 
-    color: #64748b; 
-    font-size: 0.85em; /* Aumentado de 0.75em para 0.85em */
-}
+.info-perfil small { color: #64748b; font-size: 0.85em; }
 
+/* ETIQUETAS DE CARGO */
+.badge-cargo {
+    font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;
+    margin-left: 8px; text-transform: uppercase; font-weight: 800;
+}
+.badge-titular { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.badge-gestor { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+
+/* MENU DA SIDEBAR */
 .sidebar-content { padding: 20px; }
-
-.sidebar-title { 
-    font-size: 0.8em; 
-    font-weight: 600;
-    text-transform: uppercase; 
-    color: #94a3b8; 
-    margin-bottom: 15px;
-    letter-spacing: 0.05em;
+.lista-menu { list-style: none; padding: 0; margin: 10px 0; }
+.lista-menu li { 
+    padding: 10px 12px; border-radius: 8px; color: #475569; 
+    cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 10px; 
 }
+.lista-menu li:hover { background: #f1f5f9; color: #2563eb; }
 
-/* ÁREA PRINCIPAL */
-.dashboard-main { flex: 1; padding: 40px; overflow-y: auto; background: #f8fafc; }
-.dashboard-header h2 { margin-top: 0; color: #0f172a; font-size: 1.8em; }
-.dashboard-header p { color: #64748b; margin-bottom: 30px; }
+.btn-logout {
+    background: white; border: 1px solid #e2e8f0; color: #64748b;
+    padding: 6px 12px; border-radius: 6px; font-size: 0.8em; font-weight: 600;
+    cursor: pointer; margin-top: 10px; transition: 0.2s;
+}
+.btn-logout:hover { background: #fef2f2; color: #ef4444; border-color: #fee2e2; }
 
-/* BOTÕES GIGANTES PONTILHADOS */
+/* ==========================================================================
+   3. BOTÕES GIGANTES E GRIDS
+   ========================================================================== */
 .acoes-principais { display: flex; gap: 20px; margin-bottom: 40px; }
-.btn-gigante { flex: 1; background: white; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; color: #334155; }
-.btn-gigante:hover { border-color: #0284c7; background: #f0f9ff; transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(2, 132, 199, 0.1); }
+.btn-gigante { 
+    flex: 1; background: white; border: 2px dashed #cbd5e1; border-radius: 12px; 
+    padding: 30px; display: flex; flex-direction: column; align-items: center; 
+    cursor: pointer; transition: 0.3s; 
+}
+.btn-gigante:hover { border-color: #0284c7; background: #f0f9ff; transform: translateY(-3px); }
 .icone-gigante { font-size: 2.5em; margin-bottom: 15px; }
-.btn-gigante strong { font-size: 1.2em; margin-bottom: 5px; color: #0f172a; }
-.btn-gigante small { color: #64748b; }
 
-/* CARDS RECENTES */
-.recentes-section h3 { margin-bottom: 20px; color: #0f172a; }
 .grid-recentes { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-.card-recente { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.card-recente:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-color: #cbd5e1; transform: translateY(-2px); }
-.card-recente-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-.card-recente h4 { margin: 0; color: #0f172a; font-size: 1.1em; }
-.card-recente p { margin: 5px 0; font-size: 0.85em; color: #475569; }
-.data-edicao { color: #94a3b8; font-size: 0.75em; }
 
-/* BADGES CORES */
+.card-recente { 
+    background: white; border: 1px solid #e2e8f0; border-radius: 10px; 
+    padding: 20px; cursor: pointer; transition: 0.2s; 
+}
+.card-recente:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+.card-recente.vazio { border: 2px dashed #cbd5e1; background: transparent; color: #94a3b8; }
+
+/* BADGES DE PROGRESSO */
 .badge-status { padding: 4px 8px; border-radius: 12px; font-size: 0.7em; font-weight: bold; }
 .progresso-baixo { background: #fef2f2; color: #ef4444; }
 .progresso-medio { background: #fffbeb; color: #f59e0b; }
 .progresso-alto { background: #ecfdf5; color: #10b981; }
-.card-recente.vazio { display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #cbd5e1; background: transparent; text-align: center; color: #94a3b8; }
-.icone-vazio { font-size: 2em; opacity: 0.5; margin-bottom: 10px; }
 
-/* MODAL DE CRIAÇÃO (Visual Premium) */
-.btn-logout {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    color: #64748b;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.8em;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s ease;
-    width: fit-content; /* Garante que ele não cresça */
-    margin-top: 10px;
-}
-.btn-logout:hover {
-    background: #fef2f2; /* Vermelho quase branco */
-    color: #ef4444;      /* Texto vermelho erro */
-    border-color: #fee2e2;
-    transform: translateY(-1px);
-}
-.btn-logout svg {
-    width: 14px;
-    height: 14px;
-}
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(3px); }
-.modal-card { background: white; width: 90%; max-width: 550px; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-.modal-header { padding: 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; align-items: center; }
-.modal-header h3 { margin: 0; font-size: 1.2em; color: #0f172a; }
-.btn-fechar { background: none; border: none; font-size: 1.5em; cursor: pointer; color: #64748b; transition: 0.2s; }
-.btn-fechar:hover { color: #ef4444; transform: scale(1.1); }
-.modal-body { padding: 25px; }
-.form-group { margin-bottom: 15px; display: flex; flex-direction: column; flex: 1; }
-.form-row { display: flex; gap: 15px; }
-.modal-body label { font-size: 0.85em; font-weight: 600; color: #475569; margin-bottom: 6px; }
-.obrigatorio { color: #ef4444; }
-.modal-body input[type="text"], .modal-body input[type="date"], .modal-body select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; font-size: 0.95em; }
-.modal-body input:focus, .modal-body select:focus { border-color: #0284c7; outline: none; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
-.almoco-inputs { display: flex; align-items: center; gap: 10px; }
-.almoco-inputs input { width: 80px !important; text-align: center; }
-.check-group { justify-content: flex-end; padding-bottom: 10px; }
-.toggle-checkbox { display: flex; align-items: center; gap: 8px; font-weight: normal !important; cursor: pointer; }
-.modal-footer { padding: 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; border-radius: 0 0 12px 12px; }
-.escondido { display: none !important; }
 /* ==========================================================================
-   BOTÕES E SESSÃO DA LIXEIRA (LGPD)
+   4. MODAIS E FORMULÁRIOS PREMIUM
    ========================================================================== */
-.btn-deletar {
-    background: none; border: none; font-size: 1.1em; cursor: pointer;
-    opacity: 0.4; transition: 0.2s; padding: 5px; border-radius: 4px;
+.modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(15,23,42,0.7); display: flex; align-items: center; 
+    justify-content: center; z-index: 9999; backdrop-filter: blur(3px); 
 }
-.btn-deletar:hover {
-    opacity: 1; background: #fee2e2; color: #ef4444; transform: scale(1.1);
-}
-.btn-restaurar {
-    background: #ecfdf5; border: 1px solid #10b981; color: #10b981;
-    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: bold;
-}
-.btn-restaurar:hover { background: #10b981; color: white; }
+.modal-card { background: white; width: 90%; max-width: 550px; border-radius: 12px; overflow: hidden; }
+.modal-header { padding: 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; align-items: center; }
+.modal-body { padding: 25px; }
 
-.sessao-lixeira {
-    margin-top: 50px; padding-top: 20px; border-top: 2px dashed #e2e8f0;
-}
-.sessao-lixeira h3 { color: #64748b; font-size: 1.1em; display: flex; align-items: center; gap: 8px; }
-.card-apagado { opacity: 0.7; filter: grayscale(100%); transition: 0.3s; }
-.card-apagado:hover { filter: grayscale(0%); opacity: 1; }
-/* Estilo Premium para Inputs e Selects do Onboarding */
 .input-premium {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-size: 1em;
-    color: #1e293b;
-    background-color: #f8fafc;
-    transition: all 0.2s ease;
-    outline: none;
-    box-sizing: border-box;
+    width: 100%; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 8px;
+    background: #f8fafc; transition: all 0.2s; outline: none; box-sizing: border-box;
+}
+.input-premium:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+
+/* SEÇÕES DE NÚMEROS/PERÍCIA */
+.secao-pericia { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-top: 20px; }
+.titulo-secao-moderno { display: flex; align-items: center; gap: 10px; color: #1e293b; font-size: 1.1em; font-weight: 700; margin-bottom: 15px; }
+.grid-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; }
+.input-numero-moderno {
+    width: 100%; padding: 12px; border: 2px solid #f1f5f9; border-radius: 8px;
+    background: #f8fafc; color: #1e293b; font-weight: 700; text-align: center;
 }
 
-.input-premium:focus {
-    background-color: #ffffff;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-}
-/* BOTÕES DA LIXEIRA */
+/* ==========================================================================
+   5. LIXEIRA E LGPD
+   ========================================================================== */
+.sessao-lixeira { margin-top: 50px; padding-top: 20px; border-top: 2px dashed #e2e8f0; }
+.card-apagado { opacity: 0.7; filter: grayscale(100%); border: 1px dashed #cbd5e1 !important; }
+.card-apagado:hover { filter: grayscale(0%); opacity: 1; }
+
 .btn-restaurar {
-    background: #dcfce7;
-    border: 1px solid #bbf7d0;
-    color: #166534;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 0.75em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.2s;
+    background: #dcfce7; border: 1px solid #bbf7d0; color: #166534;
+    padding: 6px 10px; border-radius: 6px; font-weight: 600; cursor: pointer;
 }
-
-.btn-restaurar:hover {
-    background: #22c55e;
-    color: white;
-}
+.btn-restaurar:hover { background: #22c55e; color: white; }
 
 .btn-excluir-definitivo {
-    background: #fee2e2;
-    border: 1px solid #fecaca;
-    color: #ef4444;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 0.75em;
-    cursor: pointer;
-    transition: 0.2s;
+    background: #fee2e2; border: 1px solid #fecaca; color: #ef4444;
+    padding: 6px 10px; border-radius: 6px; cursor: pointer;
 }
+.btn-excluir-definitivo:hover { background: #ef4444; color: white; }
 
-.btn-excluir-definitivo:hover {
-    background: #ef4444;
-    color: white;
-    transform: translateY(-2px);
+/* Animações */
+@keyframes modalEntrada {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
-
-.card-apagado {
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1 !important;
-    position: relative;
-}
-
-/* Ajuste específico para o Select (Dropdown) */
-select.input-premium {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px;
-    padding-right: 40px;
-    cursor: pointer;
-}
-
-/* Animação de entrada do modal */
-#modal-onboarding .modal-card {
-    animation: zoomIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes zoomIn {
-    from { opacity: 0; transform: scale(0.95) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-}
-.lista-menu {
-    list-style: none;
-    padding: 0;
-    margin: 10px 0;
-}
-.lista-menu li {
-    padding: 10px 12px;
-    border-radius: 8px;
-    color: #475569;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.lista-menu li:hover {
-    background: #f1f5f9;
-    color: #2563eb;
-}
-.divisor {
-    height: 1px;
-    background: #e2e8f0;
-    margin: 15px 0;
-}
-/* ETIQUETAS DE CARGO NO PERFIL */
-.badge-cargo {
-    font-size: 0.65rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: 8px;
-    text-transform: uppercase;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    vertical-align: middle;
-}
-
-/* Cor para o Dono da Assinatura (Titular) */
-.badge-titular {
-    background-color: #fef3c7; /* Amarelo muito claro */
-    color: #92400e;            /* Dourado escuro / Castanho */
-    border: 1px solid #fde68a;
-}
-
-/* Cor para o Gestor */
-.badge-gestor {
-    background-color: #e0f2fe; /* Azul muito claro */
-    color: #075985;            /* Azul escuro */
-    border: 1px solid #bae6fd;
-}
-
-/* Estilo para garantir que o nome e a badge fiquem alinhados */
-#sidebar-nome-exibicao {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-}
-/* ==========================================================================
-   ESTILOS DOS PARÂMETROS SINDICAIS E REGRAS
-   ========================================================================== */
-
-/* O card azul clarinho que envolve tudo */
-.card-sindical {
-    background: #f0f9ff;
-    padding: 20px;
-    border-radius: 10px;
-    border: 1px solid #bae6fd;
-    margin-top: 15px;
-}
-
-/* O cabeçalho onde fica o botão de adicionar */
-.header-sindical {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #bae6fd;
-}
-
-/* A caixinha branca de cada regra gerada */
-.regra-item {
-    display: flex;
-    align-items: center;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    padding: 12px 16px;
-    border-radius: 8px;
-    gap: 12px;
-    margin-bottom: 10px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    transition: all 0.2s;
-}
-
-.regra-item:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-}
-
-/* Os textos entre os inputs */
-.regra-item span {
-    font-size: 0.9em;
-    color: #334155;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-/* Os campos numéricos turbinados */
-.regra-item input[type="number"] {
-    width: 80px;
-    text-align: center;
-    font-size: 1.05em;
-    font-weight: 600;
-    color: #0f172a;
-    padding: 8px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    background: #f8fafc;
-    transition: all 0.2s;
-}
-
-.regra-item input[type="number"]:focus {
-    background: #ffffff;
-    border-color: #3b82f6;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-
-/* Botão de remover mais discreto mas elegante */
-.btn-remover-regra {
-    background: white;
-    color: #ef4444;
-    border: 1px solid #fca5a5;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.85em;
-    font-weight: 600;
-    cursor: pointer;
-    margin-left: auto; /* Joga o botão todo para a direita */
-    transition: all 0.2s;
-}
-
-.btn-remover-regra:hover {
-    background: #fef2f2;
-    border-color: #ef4444;
-}
-/* ==========================================================================
-   CAIXA DE CONTROLE TOPO (ADC. NOTURNO E FOLGAS)
-   ========================================================================== */
-
-.box-sindical-topo {
-    display: flex;
-    gap: 15px;
-    background: #ffffff;
-    padding: 16px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    margin-bottom: 15px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.box-sindical-topo .form-group {
-    margin: 0;
-    flex: 1;
-    text-align: center;
-}
-
-.box-sindical-topo label {
-    font-size: 0.8em !important;
-    color: #475569;
-    margin-bottom: 8px;
-    display: block;
-    white-space: nowrap;
-}
-
-/* O container que segura o input e o ícone de % */
-.input-wrapper-porcento {
-    position: relative;
-    display: block;
-    width: 100%;
-}
-
-/* O campo numérico grandão e centralizado */
-.input-sindical {
-    width: 100%;
-    text-align: center;
-    font-size: 1.1em;
-    font-weight: 600;
-    color: #0f172a;
-    padding: 10px 25px 10px 10px; /* Espaço extra na direita para o % */
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    background: #f8fafc;
-    transition: all 0.2s;
-    box-sizing: border-box;
-}
-
-.input-sindical:focus {
-    background: #ffffff;
-    border-color: #3b82f6;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-
-/* O símbolo de % flutuando dentro do input */
-.input-wrapper-porcento::after {
-    content: '%';
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #94a3b8;
-    font-weight: 700;
-    font-size: 0.9em;
-    pointer-events: none; /* Para não atrapalhar o clique */
-}
-/* Estilização Premium para os Modais de Números */
-.secao-pericia {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 20px;
-    margin-top: 20px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-.titulo-secao-moderno {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #1e293b;
-    font-size: 1.1em;
-    font-weight: 700;
-    margin-bottom: 15px;
-}
-
-.grid-numeros {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 20px;
-}
-
-.campo-numero-premium {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.campo-numero-premium label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-}
-
-.input-numero-moderno {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #f1f5f9;
-    border-radius: 8px;
-    background: #f8fafc;
-    color: #1e293b;
-    font-weight: 700;
-    font-size: 1.1em;
-    text-align: center;
-    transition: all 0.2s ease;
-}
-
-.input-numero-moderno:focus {
-    border-color: #3b82f6;
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-    outline: none;
-}
-
-.alerta-informativo {
-    display: flex;
-    gap: 12px;
-    background: #eff6ff;
-    border-left: 4px solid #3b82f6;
-    padding: 15px;
-    border-radius: 4px 8px 8px 4px;
-    margin-top: 15px;
-}
-
-.alerta-informativo p {
-    margin: 0;
-    font-size: 0.85em;
-    color: #1e40af;
-    line-height: 1.5;
-}
+.modal-card { animation: modalEntrada 0.3s ease-out; }
