@@ -49,6 +49,7 @@
     display: flex; 
     align-items: center; 
     justify-content: center; 
+    flex-shrink: 0; /* Impede o avatar de amassar */
 }
 
 .info-perfil strong { 
@@ -217,3 +218,34 @@
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .modal-card { animation: modalEntrada 0.3s ease-out; }
+.avatar-grid-selector {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 5px;
+    scrollbar-width: thin;
+}
+.avatar-opcao {
+    min-width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.avatar-opcao:hover {
+    transform: scale(1.1);
+    background: #f1f5f9;
+}
+
+.avatar-opcao.ativo {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}

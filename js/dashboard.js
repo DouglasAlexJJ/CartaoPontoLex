@@ -95,7 +95,9 @@ function configurarInterfacePorPerfil() {
 function atualizarNomeSidebar(perfil) {
     const forteNome = document.getElementById('sidebar-nome-exibicao');
     const statusPlano = document.getElementById('sidebar-status-conta');
+    const avatarImg = document.getElementById('sidebar-avatar');
     if (!forteNome) return;
+    if (avatarImg) avatarImg.innerText = perfil.avatar || "⚖️";
 
     const nomeBase = perfil.tratamento ? `${perfil.tratamento} ${perfil.nome}` : perfil.nome;
     let etiquetaHtml = '';
@@ -127,6 +129,27 @@ function iniciarOnboarding(user) {
     const modalOnboarding = document.getElementById('modal-onboarding');
     if (modalOnboarding) modalOnboarding.classList.remove('escondido');
 }
+
+const avataresProfissionais = ["⚖️", "👨‍💼", "👩‍💼", "👨‍⚖️", "👩‍⚖️", "🖋️", "💼", "🏢", "🧐", "📊", "🎓", "💻"];
+
+window.renderizarSeletorAvatarPerfil = function(selecionado = "⚖️") {
+    const container = document.getElementById('seletor-avatar-perfil');
+    if (!container) return;
+
+    container.innerHTML = avataresProfissionais.map(emoji => `
+        <div class="avatar-opcao ${emoji === selecionado ? 'ativo' : ''}" 
+             onclick="selecionarAvatarPerfil('${emoji}', this)">
+            ${emoji}
+        </div>
+    `).join('');
+    document.getElementById('edit-perfil-avatar').value = selecionado;
+};
+
+window.selecionarAvatarPerfil = function(emoji, elemento) {
+    document.querySelectorAll('#seletor-avatar-perfil .avatar-opcao').forEach(el => el.classList.remove('ativo'));
+    elemento.classList.add('ativo');
+    document.getElementById('edit-perfil-avatar').value = emoji;
+};
 
 /* ==========================================================================
    3. GESTÃO DE DADOS (DASHBOARD)
@@ -545,6 +568,7 @@ window.abrirModalPerfil = function() {
         campoEmpresa.style.backgroundColor = "#ffffff";
     }
     document.getElementById('modal-perfil').classList.remove('escondido');
+    renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
 };
 window.fecharModalPerfil = () => document.getElementById('modal-perfil').classList.add('escondido');
 window.toggleFolgaInicial = () => {
@@ -625,6 +649,7 @@ window.salvarEdicaoPerfil = async function() {
 
     const novosDados = {
         ...dadosUsuarioGlobal,
+        avatar: document.getElementById('edit-perfil-avatar').value, // NOVO
         tratamento: document.getElementById('edit-perfil-tratamento').value,
         nome: document.getElementById('edit-perfil-nome').value.trim(),
         oab: document.getElementById('edit-perfil-oab').value.trim(),
