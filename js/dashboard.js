@@ -533,33 +533,26 @@ window.fecharModalColaboradores = () => document.getElementById('modal-colaborad
 window.abrirModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.remove('escondido');
 window.fecharModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.add('escondido');
 window.abrirModalNovo = function() {
-    // Fecha outros para não sobrepor
-    fecharTodosModais();
-    
+    fecharTodosModais(); // Limpa a tela antes
     document.getElementById('titulo-modal-cartao').innerText = "➕ Novo Cartão Ponto";
     document.getElementById('btn-salvar-cartao').innerText = "Gerar Cartão ➔";
-    document.getElementById('cartao-edit-id').value = ""; // Limpa ID de edição
+    document.getElementById('cartao-edit-id').value = "";
     
-    // Limpa os campos
-    document.getElementById('reclamante').value = '';
-    document.getElementById('reclamada').value = '';
-    document.getElementById('dataInicio').value = '';
-    document.getElementById('dataFim').value = '';
+    // Reseta o seletor de avatar para o padrão
+    if (window.renderizarSeletorAvatares) window.renderizarSeletorAvatares("👤");
     
     document.getElementById('modal-novo').classList.remove('escondido');
 };
 window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
 window.abrirModalPerfil = function() {
-    fecharTodosModais();
-    
     if(!dadosUsuarioGlobal) return;
+    fecharTodosModais(); // Limpa a tela antes
 
     document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
     document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
     document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
     document.getElementById('edit-perfil-empresa').value = dadosUsuarioGlobal.empresa || "";
 
-    // Carrega os avatares (Emojis) do perfil
     if (window.renderizarSeletorAvatarPerfil) {
         window.renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
     }
