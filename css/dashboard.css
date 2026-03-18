@@ -471,3 +471,79 @@ select.input-premium {
     font-size: 0.9em;
     pointer-events: none; /* Para não atrapalhar o clique */
 }
+/* Estilização Premium para os Modais de Números */
+.secao-pericia {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.titulo-secao-moderno {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1e293b;
+    font-size: 1.1em;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.grid-numeros {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 20px;
+}
+
+.campo-numero-premium {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.campo-numero-premium label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.input-numero-moderno {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #f1f5f9;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #1e293b;
+    font-weight: 700;
+    font-size: 1.1em;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.input-numero-moderno:focus {
+    border-color: #3b82f6;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+.alerta-informativo {
+    display: flex;
+    gap: 12px;
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 15px;
+    border-radius: 4px 8px 8px 4px;
+    margin-top: 15px;
+}
+
+.alerta-informativo p {
+    margin: 0;
+    font-size: 0.85em;
+    color: #1e40af;
+    line-height: 1.5;
+}
