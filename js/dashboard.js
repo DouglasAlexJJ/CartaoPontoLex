@@ -364,33 +364,33 @@ window.restaurarCartao = async function(id) {
 window.fazerLogout = () => auth.signOut().then(() => window.location.href = "index.html");
 
 window.editarCartao = function(id) {
+    // 1. Localiza o cartão nos dados salvos
     const cartao = salvosNuvem.find(c => c.id === id);
     if (!cartao) return;
 
     const config = cartao.config;
 
-    // 1. Configura o Modal
+    // 2. Prepara o Modal (modal-novo)
     document.getElementById('titulo-modal-cartao').innerText = "✏️ Editar Parâmetros";
     document.getElementById('btn-salvar-cartao').innerText = "Salvar Alterações";
     document.getElementById('cartao-edit-id').value = id;
 
-    // 2. Preenche Identificação e Período
+    // 3. Preenche os campos básicos
     document.getElementById('reclamante').value = config.reclamante || '';
     document.getElementById('reclamada').value = config.reclamada || '';
     document.getElementById('dataInicio').value = config.dataInicio || '';
     document.getElementById('dataFim').value = config.dataFim || '';
     document.getElementById('escala').value = config.escala || 'seg-sex';
-    document.getElementById('dataFolgaInicial').value = config.dataFolgaInicial || '';
     
-    if (typeof toggleFolgaInicial === 'function') toggleFolgaInicial();
+    // Toggles de interface
+    if (window.toggleFolgaInicial) window.toggleFolgaInicial();
 
-    // 3. Preenche Intervalos e Batidas
+    // 4. Batidas e Intervalos
     document.getElementById('padraoE').value = config.padraoE || '12:00';
     document.getElementById('padraoS').value = config.padraoS || '13:00';
+    document.getElementById('intervaloFixo').checked = !!config.intervaloFixo;
     
-    const checkIntervalo = document.getElementById('intervaloFixo');
-    checkIntervalo.checked = !!config.intervaloFixo;
-    if (typeof toggleIntervaloFixo === 'function') toggleIntervaloFixo();
+    if (window.toggleIntervaloFixo) window.toggleIntervaloFixo();
 
     const checkBatidas = document.getElementById('checkBatidas');
     const inputQtdBatidas = document.getElementById('qtdBatidas');
@@ -401,26 +401,32 @@ window.editarCartao = function(id) {
         checkBatidas.checked = false;
         inputQtdBatidas.value = 4;
     }
-    if (typeof toggleBatidas === 'function') toggleBatidas();
+    
+    if (window.toggleBatidas) window.toggleBatidas();
 
-    // 4. UF e Cidade
+    // 5. Localização
     const ufSelect = document.getElementById('novo-cartao-uf');
     ufSelect.value = config.uf || '';
-    
-    if (config.uf) {
-        ufSelect.dispatchEvent(new Event('change'));
-        setTimeout(() => {
-            document.getElementById('novo-cartao-cidade').value = config.cidade || '';
-        }, 800);
-    }
+    ufSelect.dispatchEvent(new Event('change'));
 
+    setTimeout(() => {
+        const cidSelect = document.getElementById('novo-cartao-cidade');
+        if (cidSelect) cidSelect.value = config.cidade || '';
+    }, 800);
+
+    // 6. MOSTRA APENAS O MODAL DO CARTÃO
+    // Garante que outros modais estejam fechados para não "abrir tudo"
+    document.getElementById('modal-perfil').classList.add('escondido');
     document.getElementById('modal-novo').classList.remove('escondido');
 };
 
 // Gestão de Equipe
-window.abrirModalColaboradores = async function() {
-    document.getElementById('modal-colaboradores').classList.remove('escondido');
-    carregarMembrosEquipe();
+window.abrirModalColaboradores = function() {
+    const modal = document.getElementById('modal-colaboradores');
+    if (modal) {
+        modal.classList.remove('escondido');
+        if (typeof carregarMembrosEquipe === 'function') carregarMembrosEquipe();
+    }
 };
 
 async function carregarMembrosEquipe() {
@@ -554,21 +560,37 @@ window.abrirModalNovo = function() {
 };
 window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
 window.abrirModalPerfil = function() {
-    if(!dadosUsuarioGlobal) return;
-    document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
-    document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
-    document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
-    const campoEmpresa = document.getElementById('edit-perfil-empresa');
-    campoEmpresa.value = dadosUsuarioGlobal.empresa || "";
-    if (dadosUsuarioGlobal.tipoConta === 'colaborador') {
-        campoEmpresa.disabled = true;
-        campoEmpresa.style.backgroundColor = "#f1f5f9";
-    } else {
-        campoEmpresa.disabled = false;
-        campoEmpresa.style.backgroundColor = "#ffffff";
+    if(!dadosUsuarioGlobal) {
+        alert("Erro: Dados do usuário não carregados. Tente atualizar a página.");
+        return;
     }
+    
+    // Preenche os campos do modal de perfil
+    const fields = {
+        'edit-perfil-tratamento': dadosUsuarioGlobal.tratamento || "",
+        'edit-perfil-nome': dadosUsuarioGlobal.nome || "",
+        'edit-perfil-oab': dadosUsuarioGlobal.oab || "",
+        'edit-perfil-empresa': dadosUsuarioGlobal.empresa || ""
+    };
+
+    for (let id in fields) {
+        const el = document.getElementById(id);
+        if (el) el.value = fields[id];
+    }
+
+    // Trava o campo empresa se for colaborador
+    const campoEmpresa = document.getElementById('edit-perfil-empresa');
+    if (campoEmpresa) {
+        campoEmpresa.disabled = (dadosUsuarioGlobal.tipoConta === 'colaborador');
+        campoEmpresa.style.backgroundColor = (dadosUsuarioGlobal.tipoConta === 'colaborador') ? "#f1f5f9" : "#ffffff";
+    }
+
+    // CHAMA O SELETOR DE AVATAR DO PERFIL (Certifique-se que o nome da função está correto)
+    if (typeof window.renderizarSeletorAvatarPerfil === 'function') {
+        window.renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
+    }
+
     document.getElementById('modal-perfil').classList.remove('escondido');
-    renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
 };
 window.fecharModalPerfil = () => document.getElementById('modal-perfil').classList.add('escondido');
 window.toggleFolgaInicial = () => {
