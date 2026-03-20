@@ -289,7 +289,7 @@ async function gerarFolha(cfg) {
         anoVisualizacaoAtual = new Date(cfg.dataInicio + "T00:00:00").getFullYear();
     }
 
-    // Atualiza o label do ano no rodapé
+    // Atualiza o label do ano no rodapé (se você já tiver o span/div lá)
     const labelAno = document.getElementById('label-ano-atual');
     if (labelAno) labelAno.innerText = anoVisualizacaoAtual;
 
@@ -365,7 +365,7 @@ async function gerarFolha(cfg) {
                 inputsHtml += `<input type="text" class="ponto ${ehFolga ? 'folga-input' : ''}" maxlength="5" value="${val}" placeholder="--" oninput="salvarComAtraso()">`;
             }
 
-            // --- HTML DA LINHA COM O ÍCONE DE AJUDA (?) ---
+            // ATUALIZADO: Incluindo a coluna da engrenagem (⚙️) antes da data
             tr.innerHTML = `
                 <td style="width: 40px; text-align: center; border: none;">
                     <button type="button" class="btn-config-dia" onclick="abrirMenuLinha(event, this.closest('tr'))" title="Opções do Dia">
@@ -373,15 +373,7 @@ async function gerarFolha(cfg) {
                     </button>
                 </td>
                 <td class="col-dia">
-                    <div class="data-container">
-                        <div class="txt-data">
-                            <strong>${diasSemana[numDia]}</strong>${ehFeriado ? ' 🚩' : ''}<br>${dataFormatada}
-                        </div>
-                        <div class="tooltip-atalho">
-                            <span class="icon-help">?</span>
-                            <span class="tooltiptext">💡 Atalhos:<br><b>+</b> ou <b>-</b> (Colunas)<br><b>*</b> (Feriado)</span>
-                        </div>
-                    </div>
+                    <strong>${diasSemana[numDia]}</strong>${ehFeriado ? ' 🚩' : ''}<br>${dataFormatada}
                 </td>
                 <td class="celula-inputs">
                     <div class="container-batidas">${inputsHtml}</div>
@@ -396,7 +388,7 @@ async function gerarFolha(cfg) {
         dataAtual.setDate(dataAtual.getDate() + 1);
     }
     
-    // Navegação de anos
+    // Mostra/Esconde botões de navegação conforme o limite do processo
     const btnAnterior = document.getElementById('btn-ano-anterior');
     const btnProximo = document.getElementById('btn-ano-proximo');
     
@@ -408,6 +400,8 @@ async function gerarFolha(cfg) {
     }
 
     document.querySelectorAll('.linha-ponto').forEach(tr => calcularLinha(tr));
+    
+    // Próximo passo: vamos corrigir sua configurarEventos para lidar com o Enter
     configurarEventos();
 }
 
