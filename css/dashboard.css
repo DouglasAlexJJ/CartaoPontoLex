@@ -319,34 +319,3 @@
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); /* Halo azul suave de foco */
     outline: none;               /* Remove a borda preta padrão do navegador */
 }
-/* ==========================================================================
-   CSS NUCLEAR: FORÇAR A EXIBIÇÃO DOS MODAIS
-   (Colocado no final para sobrescrever qualquer outra regra)
-   ========================================================================== */
-
-/* 1. Base do Modal: Invisível por padrão */
-.modal-overlay {
-    display: none !important; 
-    position: fixed !important;
-    top: 0 !important; 
-    left: 0 !important;
-    width: 100vw !important; 
-    height: 100vh !important;
-    background: rgba(15, 23, 42, 0.8) !important;
-    z-index: 99999 !important; /* Um número absurdamente alto */
-    justify-content: center !important;
-    align-items: center !important;
-}
-
-/* 2. O Gatilho: Quando o JS tira o .escondido, ele OBRIGATORIAMENTE aparece */
-.modal-overlay:not(.escondido) {
-    display: flex !important;
-}
-
-/* Garante que o conteúdo de dentro não fique transparente */
-.modal-card {
-    opacity: 1 !important;
-    visibility: visible !important;
-    position: relative !important;
-    z-index: 100000 !important;
-}
