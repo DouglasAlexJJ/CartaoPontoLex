@@ -249,11 +249,3 @@
     background: #eff6ff;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
-/* Garante que modais abram de forma limpa */
-.modal-overlay:not(.escondido) {
-    display: flex !important;
-}
-
-#modal-perfil { z-index: 10010; }
-#modal-novo { z-index: 10005; }
-#modal-colaboradores { z-index: 10008; }
