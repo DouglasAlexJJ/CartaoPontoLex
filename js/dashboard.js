@@ -5,16 +5,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-/* ==========================================================================
-   1. ESTADO GLOBAL
-   ========================================================================== */
-
+// Estado Global
 let usuarioAtual = null;
 let dadosUsuarioGlobal = null;
 let salvosNuvem = [];
 
 /* ==========================================================================
-   2. MONITORAMENTO DE AUTENTICAÇÃO
+   1. MONITORAMENTO DE AUTENTICAÇÃO
    ========================================================================== */
 
 onAuthStateChanged(auth, async (user) => {
@@ -41,8 +38,35 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 /* ==========================================================================
-   3. CONFIGURAÇÃO DA INTERFACE E DASHBOARD
+   2. CONFIGURAÇÃO DA INTERFACE
    ========================================================================== */
+
+window.adicionarRegraExtra = function(limite = '', porcentagem = '50') {
+    const container = document.getElementById('container-regras-extras');
+    if (!container) return;
+
+    const div = document.createElement('div');
+    // Usamos a classe CSS que criamos para alinhar tudo perfeitamente
+    div.className = 'regra-item'; 
+
+    div.innerHTML = `
+        <span>Até a</span>
+        
+        <input type="number" class="regra-limite" placeholder="Ex: 6" value="${limite}" title="Deixe vazio para 'Daí em diante'">
+        
+        <span>ª H.E é</span>
+        
+        <input type="number" class="regra-porcento" value="${porcentagem}">
+        
+        <span>%</span>
+        
+        <button type="button" onclick="this.parentElement.remove()" class="btn-remover-regra">
+            🗑️ Remover
+        </button>
+    `;
+    
+    container.appendChild(div);
+};
 
 function configurarInterfacePorPerfil() {
     if (!dadosUsuarioGlobal) return;
@@ -116,6 +140,25 @@ function atualizarNomeSidebar(perfil) {
     }
 }
 
+function iniciarOnboarding(user) {
+    const inviteId = sessionStorage.getItem('inviteId');
+    const formGroupEmpresa = document.getElementById('perfil-empresa')?.closest('.form-group');
+    
+    if (inviteId && formGroupEmpresa) {
+        formGroupEmpresa.style.display = 'none';
+    }
+    
+    const inputNome = document.getElementById('perfil-nome');
+    if (inputNome) inputNome.value = user.displayName || "";
+    
+    const modalOnboarding = document.getElementById('modal-onboarding');
+    if (modalOnboarding) modalOnboarding.classList.remove('escondido');
+}
+
+/* ==========================================================================
+   3. GESTÃO DE DADOS (DASHBOARD)
+   ========================================================================== */
+
 async function carregarDashboard() {
     if (!usuarioAtual || !dadosUsuarioGlobal) return;
 
@@ -123,6 +166,7 @@ async function carregarDashboard() {
     const ehDonoOuGestor = (tipoConta === 'admin' || tipoConta === 'gestor');
 
     try {
+        // Define a query baseada no vínculo
         const uidBusca = (tipoConta === 'admin') ? usuarioAtual.uid : adminId;
         const q = query(collection(db, "cartoes"), where("userId", "==", uidBusca));
         const querySnapshot = await getDocs(q);
@@ -179,6 +223,7 @@ function renderizarGridRecentes(ativos, podeGerenciar) {
         const corBadge = cartao.progresso === 100 ? 'progresso-alto' : (cartao.progresso > 30 ? 'progresso-medio' : 'progresso-baixo');
         const dataStr = new Date(cartao.dataEdicao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
         
+        // --- BOTÕES DE AÇÃO: EDITAR E EXCLUIR ---
         const btnEdit = `<button class="btn-editar" style="background:none; border:none; font-size: 1.1em; cursor:pointer;" onclick="event.stopPropagation(); editarCartao('${cartao.id}')" title="Editar Parâmetros">✏️</button>`;
         const btnDelete = podeGerenciar ? `<button class="btn-deletar" style="margin-left: 5px;" onclick="event.stopPropagation(); moverParaLixeira('${cartao.id}')" title="Mover para Lixeira">🗑️</button>` : '';
 
@@ -198,6 +243,7 @@ function renderizarGridRecentes(ativos, podeGerenciar) {
         `;
     }).join('');
 
+    // Card de ação (Novo ou Upgrade)
     if (dadosUsuarioGlobal.tipoConta !== 'pessoal') {
         html += `
             <div class="card-recente vazio" onclick="abrirModalNovo()">
@@ -224,6 +270,7 @@ function renderizarLixeira(apagados, podeGerenciar) {
     const lixeiraExistente = document.getElementById('area-lixeira');
     if (lixeiraExistente) lixeiraExistente.remove();
 
+    // Só mostra se houver itens apagados e o usuário puder gerenciar
     if (apagados.length > 0 && podeGerenciar && dashboardMain) {
         const agora = Date.now();
         let lixeiraHtml = `
@@ -239,10 +286,13 @@ function renderizarLixeira(apagados, podeGerenciar) {
             lixeiraHtml += `
                 <div class="card-recente card-apagado" data-id="${cartao.id}">
                     <div class="card-recente-header">
-                        <h4 style="text-decoration: line-through;">${cartao.config.reclamante}</h4>
-                        <button class="btn-restaurar" onclick="restaurarDaLixeira('${cartao.id}')" title="Restaurar">🔄</button>
+                        <h4 style="text-decoration: line-through; color: #94a3b8;">${cartao.config.reclamante}</h4>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn-restaurar" onclick="restaurarCartao('${cartao.id}')">♻️ Restaurar</button>
+                            <button class="btn-excluir-definitivo" onclick="excluirCartaoDefinitivo('${cartao.id}')" title="Excluir Permanentemente">🗑️</button>
+                        </div>
                     </div>
-                    <p>Expira em: <strong>${diasRestantes} dias</strong></p>
+                    <p style="color: #ef4444; font-size: 0.8em; font-weight: bold; margin-top: 5px;">Exclui em ${diasRestantes} dias</p>
                 </div>
             `;
         });
@@ -251,26 +301,75 @@ function renderizarLixeira(apagados, podeGerenciar) {
         dashboardMain.insertAdjacentHTML('beforeend', lixeiraHtml);
     }
 }
+window.excluirCartaoDefinitivo = async (id) => {
+    const confirmacao = confirm("❗ PERIGO: Esta ação é irreversível. O cartão e todas as batidas serão apagados do banco de dados para sempre. Deseja continuar?");
+    
+    if (confirmacao) {
+        try {
+            const docRef = doc(db, "cartoes", id);
+            await deleteDoc(docRef);
+            
+            console.log("Cartão excluído definitivamente.");
+            
+            // Feedback visual: remove o card com animação
+            const el = document.querySelector(`[data-id="${id}"]`);
+            if(el) {
+                el.style.transform = "scale(0.8)";
+                el.style.opacity = "0";
+                setTimeout(() => carregarDashboard(), 300);
+            } else {
+                carregarDashboard();
+            }
+        } catch (error) {
+            console.error("Erro ao excluir definitivo:", error);
+            alert("Erro ao excluir o cartão. Verifique suas permissões.");
+        }
+    }
+};
 
 /* ==========================================================================
-   4. GESTÃO DE CARTÕES (CRUD)
+   4. AÇÕES DO USUÁRIO (WINDOW SCOPE)
    ========================================================================== */
 
-window.abrirCartao = (id) => {
+window.abrirCartao = function(id) {
     localStorage.setItem('cartaoAtualId', id);
     window.location.href = "app.html";
 };
 
+window.moverParaLixeira = async function(id) {
+    if (dadosUsuarioGlobal.tipoConta === 'colaborador') {
+        alert("Acesso negado: Somente Administradores ou Gestores podem excluir cartões.");
+        return;
+    }
+    if (!confirm("Mover para a lixeira? O arquivo será excluído permanentemente em 30 dias.")) return;
+    try {
+        await updateDoc(doc(db, "cartoes", id.toString()), { deletedAt: Date.now() });
+        carregarDashboard();
+    } catch (e) { console.error(e); }
+};
+
+window.restaurarCartao = async function(id) {
+    try {
+        await updateDoc(doc(db, "cartoes", id.toString()), { deletedAt: null });
+        carregarDashboard();
+    } catch (e) { console.error(e); }
+};
+
+window.fazerLogout = () => auth.signOut().then(() => window.location.href = "index.html");
+
 window.editarCartao = function(id) {
+    // 1. Busca o cartão inteiro na memória que acabou de ser baixado do Firebase
     const cartao = salvosNuvem.find(c => c.id === id);
     if (!cartao) return;
 
     const config = cartao.config;
 
+    // 2. Muda a cara do modal para modo "Edição"
     document.getElementById('titulo-modal-cartao').innerText = "✏️ Editar Parâmetros";
     document.getElementById('btn-salvar-cartao').innerText = "Salvar Alterações";
     document.getElementById('cartao-edit-id').value = id;
 
+    // 3. Preenche os campos principais
     document.getElementById('reclamante').value = config.reclamante || '';
     document.getElementById('reclamada').value = config.reclamada || '';
     document.getElementById('dataInicio').value = config.dataInicio || '';
@@ -278,6 +377,10 @@ window.editarCartao = function(id) {
     document.getElementById('escala').value = config.escala || 'seg-sex';
     document.getElementById('dataFolgaInicial').value = config.dataFolgaInicial || '';
     
+    // Mostra ou esconde o campo de folga dependendo da escala
+    if (typeof toggleFolgaInicial === 'function') toggleFolgaInicial();
+
+    // 4. Intervalos e Batidas
     document.getElementById('padraoE').value = config.padraoE || '12:00';
     document.getElementById('padraoS').value = config.padraoS || '13:00';
     
@@ -296,11 +399,33 @@ window.editarCartao = function(id) {
     }
     if (typeof toggleBatidas === 'function') toggleBatidas();
 
+    // 5. Parâmetros Sindicais (Onde a mágica acontece)
+    document.getElementById('config-adc-noturno').value = config.adcNoturno || '20';
+    document.getElementById('config-he-folga1').value = config.heFolga1 || '50';
+    document.getElementById('config-he-folga2').value = config.heFolga2 || '100';
+    
+    const containerRegras = document.getElementById('container-regras-extras');
+    containerRegras.innerHTML = ""; // Limpa a tabela
+
+    if (config.regrasExtra && config.regrasExtra.length > 0) {
+        // Se já tiver regra gravada, escreve todas elas na tela
+        config.regrasExtra.forEach(regra => {
+            window.adicionarRegraExtra(regra.limite, regra.porcento);
+        });
+    } else {
+        // Se for um cartão velho que não tinha regra, coloca 50% como padrão
+        window.adicionarRegraExtra('', '50'); 
+    }
+
+    // 6. UF e Cidade Inteligente (Espera a API do IBGE carregar)
     const ufSelect = document.getElementById('novo-cartao-uf');
     ufSelect.value = config.uf || '';
     
     if (config.uf) {
+        // "Engana" o navegador dizendo que o usuário escolheu o estado para ele puxar as cidades
         ufSelect.dispatchEvent(new Event('change'));
+        
+        // Aguarda 800ms para a BrasilAPI devolver as cidades e então seleciona
         setTimeout(() => {
             document.getElementById('novo-cartao-cidade').value = config.cidade || '';
         }, 800);
@@ -309,95 +434,168 @@ window.editarCartao = function(id) {
         document.getElementById('novo-cartao-cidade').disabled = true;
     }
 
+    // 7. Abre o modal!
     document.getElementById('modal-novo').classList.remove('escondido');
 };
 
-window.moverParaLixeira = async (id) => {
-    if (!confirm("Deseja mover este cartão para a lixeira?")) return;
-    try {
-        await updateDoc(doc(db, "cartoes", id), { deletedAt: Date.now() });
-        carregarDashboard();
-    } catch (e) { console.error(e); }
+// Gestão de Equipe
+window.abrirModalColaboradores = async function() {
+    document.getElementById('modal-colaboradores').classList.remove('escondido');
+    carregarMembrosEquipe();
 };
 
-window.restaurarDaLixeira = async (id) => {
-    try {
-        await updateDoc(doc(db, "cartoes", id), { deletedAt: null });
-        carregarDashboard();
-    } catch (e) { console.error(e); }
-};
-
-window.salvarEIniciar = async function() {
-    const reclamante = document.getElementById('reclamante').value.trim();
-    const dataIn = document.getElementById('dataInicio').value;
-    const dataFim = document.getElementById('dataFim').value;
-    const escala = document.getElementById('escala').value;
-    const uf = document.getElementById('novo-cartao-uf').value;
-    const cidade = document.getElementById('novo-cartao-cidade').value;
-    const editId = document.getElementById('cartao-edit-id').value;
-
-    if (!reclamante || !dataIn || !dataFim) {
-        alert("Preencha os campos obrigatórios!");
-        return;
-    }
-
-    const config = {
-        reclamante,
-        reclamada: document.getElementById('reclamada').value.trim(),
-        dataInicio: dataIn,
-        dataFim: dataFim,
-        escala,
-        uf,
-        cidade,
-        qtdBatidas: document.getElementById('checkBatidas').checked ? parseInt(document.getElementById('qtdBatidas').value) : 4,
-        intervaloFixo: document.getElementById('intervaloFixo').checked,
-        padraoE: document.getElementById('padraoE').value,
-        padraoS: document.getElementById('padraoS').value,
-        dataFolgaInicial: document.getElementById('dataFolgaInicial')?.value || ""
-    };
+async function carregarMembrosEquipe() {
+    const container = document.getElementById('lista-membros-equipe');
+    if (!container) return;
 
     try {
-        if (editId) {
-            await updateDoc(doc(db, "cartoes", editId), { config, dataEdicao: Date.now() });
-            alert("Cartão atualizado!");
-            carregarDashboard();
-            window.fecharModalNovo();
-        } else {
-            const idNovo = Date.now().toString();
-            await setDoc(doc(db, "cartoes", idNovo), {
-                id: idNovo,
-                userId: usuarioAtual.uid,
-                config: config,
-                batidas: {},
-                dataEdicao: Date.now()
-            });
-            localStorage.setItem('cartaoAtualId', idNovo);
-            window.location.href = "app.html";
+        const meuAdminId = dadosUsuarioGlobal.tipoConta === 'admin' ? usuarioAtual.uid : dadosUsuarioGlobal.adminId;
+        const q = query(collection(db, "usuarios"), where("adminId", "==", meuAdminId));
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+            container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px;">Nenhum colaborador vinculado ainda.</p>';
+            return;
         }
-    } catch (e) {
-        console.error(e);
-        alert("Erro ao salvar.");
+
+        container.innerHTML = '';
+        snap.forEach((membroDoc) => {
+            const membro = membroDoc.data();
+            if (membro.uid === usuarioAtual.uid) return;
+            
+            const ehGestor = membro.tipoConta === 'gestor';
+            const euSouAdmin = dadosUsuarioGlobal.tipoConta === 'admin';
+
+            container.innerHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; background: #fff;">
+                    <div>
+                        <strong style="display: block; font-size: 0.95em;">
+                            ${membro.nome} ${ehGestor ? '<span style="color:#2563eb; font-size:0.7em;">(GESTOR)</span>' : ''}
+                        </strong>
+                        <small style="color: #64748b;">${membro.email}</small>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        ${euSouAdmin ? `
+                            <button onclick="alterarCargoMembro('${membro.uid}', '${ehGestor ? 'colaborador' : 'gestor'}')" 
+                                    style="background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
+                                ${ehGestor ? '⬇ Rebaixar' : '⬆ Tornar Gestor'}
+                            </button>
+                        ` : ''}
+                        <button onclick="desvincularMembro('${membro.uid}')" 
+                                style="background: #fff1f2; color: #ef4444; border: 1px solid #fecdd3; padding: 5px 8px; border-radius: 4px; font-size: 0.7em; cursor: pointer;">
+                            Remover
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (e) { console.error(e); }
+}
+
+window.alterarCargoMembro = async function(uid, novoCargo) {
+    if (dadosUsuarioGlobal.tipoConta !== 'admin') return alert("Apenas o titular pode alterar cargos.");
+    if (confirm(`Deseja alterar o cargo deste membro?`)) {
+        await updateDoc(doc(db, "usuarios", uid), { tipoConta: novoCargo });
+        carregarMembrosEquipe();
     }
+};
+
+window.desvincularMembro = async function(uid) {
+    if (confirm("Remover este colaborador da equipe?")) {
+        await updateDoc(doc(db, "usuarios", uid), { adminId: null, tipoConta: 'pessoal', empresa: "Conta Pessoal" });
+        carregarMembrosEquipe();
+    }
+};
+
+window.processarConviteManual = async function() {
+    const inputVal = document.getElementById('input-link-convite').value.trim();
+    if (!inputVal) return alert("Cole o link de convite.");
+
+    let idAdmin = inputVal.includes('invite=') ? inputVal.split('invite=')[1].split('&')[0] : inputVal;
+    const btn = document.querySelector('#modal-entrar-equipe .btn-primario');
+    btn.disabled = true;
+
+    try {
+        const adminDoc = await getDoc(doc(db, "usuarios", idAdmin));
+        if (adminDoc.exists()) {
+            const d = adminDoc.data();
+            if (confirm(`Vincular ao escritório: ${d.empresa}?`)) {
+                await updateDoc(doc(db, "usuarios", usuarioAtual.uid), { tipoConta: 'colaborador', adminId: idAdmin, empresa: d.empresa });
+                location.reload();
+            }
+        } else { alert("Convite inválido."); }
+    } catch (e) { console.error(e); }
+    btn.disabled = false;
+};
+
+// Utilitários
+window.copiarLinkConvite = () => {
+    const input = document.getElementById('link-convite-texto');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    alert("Link copiado!");
+};
+
+window.fecharModalColaboradores = () => document.getElementById('modal-colaboradores').classList.add('escondido');
+window.abrirModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.remove('escondido');
+window.fecharModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.add('escondido');
+window.abrirModalNovo = function() {
+    document.getElementById('modal-novo').classList.remove('escondido');
+    
+    // Ajusta os textos para modo "Criação"
+    document.getElementById('titulo-modal-cartao').innerText = "➕ Novo Cartão Ponto";
+    document.getElementById('btn-salvar-cartao').innerText = "Gerar Cartão ➔";
+    
+    // Zera o ID oculto (Isso diz ao sistema: "É um cartão novo!")
+    document.getElementById('cartao-edit-id').value = "";
+    
+    // Limpa os campos de texto principais para não trazer lixo de outro cartão
+    document.getElementById('reclamante').value = '';
+    document.getElementById('reclamada').value = '';
+    document.getElementById('dataInicio').value = '';
+    document.getElementById('dataFim').value = '';
+    
+    // Reseta as regras sindicais
+    document.getElementById('config-adc-noturno').value = '20';
+    document.getElementById('config-he-folga1').value = '50';
+    document.getElementById('config-he-folga2').value = '100';
+    document.getElementById('container-regras-extras').innerHTML = "";
+    
+    // Injeta a regra padrão de "Tudo a 50%" para começar
+    window.adicionarRegraExtra('', '50'); 
+};
+window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
+window.abrirModalPerfil = function() {
+    if(!dadosUsuarioGlobal) return;
+    document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
+    document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
+    document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
+    const campoEmpresa = document.getElementById('edit-perfil-empresa');
+    campoEmpresa.value = dadosUsuarioGlobal.empresa || "";
+    if (dadosUsuarioGlobal.tipoConta === 'colaborador') {
+        campoEmpresa.disabled = true;
+        campoEmpresa.style.backgroundColor = "#f1f5f9";
+    } else {
+        campoEmpresa.disabled = false;
+        campoEmpresa.style.backgroundColor = "#ffffff";
+    }
+    document.getElementById('modal-perfil').classList.remove('escondido');
+};
+window.fecharModalPerfil = () => document.getElementById('modal-perfil').classList.add('escondido');
+window.toggleFolgaInicial = () => {
+    const esc = document.getElementById('escala').value;
+    document.getElementById('container-folga-inicial').style.display = (esc === "6x2" || esc === "personalizada") ? "block" : "none";
+};
+window.toggleIntervaloFixo = () => {
+    document.getElementById('container-intervalo').style.display = document.getElementById('intervaloFixo').checked ? "block" : "none";
+};
+window.toggleBatidas = () => {
+    document.getElementById('container-batidas-input').style.display = document.getElementById('checkBatidas').checked ? "block" : "none";
 };
 
 /* ==========================================================================
-   5. GESTÃO DE PERFIL E EQUIPE
+   5. LÓGICA DE ONBOARDING E CRIAÇÃO DE PERFIL
    ========================================================================== */
-
-window.iniciarOnboarding = (user) => {
-    const inviteId = sessionStorage.getItem('inviteId');
-    const formGroupEmpresa = document.getElementById('perfil-empresa')?.closest('.form-group');
-    
-    if (inviteId && formGroupEmpresa) {
-        formGroupEmpresa.style.display = 'none';
-    }
-    
-    const inputNome = document.getElementById('perfil-nome');
-    if (inputNome) inputNome.value = user.displayName || "";
-    
-    const modalOnboarding = document.getElementById('modal-onboarding');
-    if (modalOnboarding) modalOnboarding.classList.remove('escondido');
-};
 
 window.salvarPerfilInicial = async function() {
     const nome = document.getElementById('perfil-nome').value.trim();
@@ -481,102 +679,108 @@ window.salvarEdicaoPerfil = async function() {
     btn.innerText = "Atualizar Dados";
 };
 
-/* ==========================================================================
-   6. MODAIS E UTILITÁRIOS
-   ========================================================================== */
-
-window.abrirModalNovo = function() {
-    document.getElementById('modal-novo').classList.remove('escondido');
-    document.getElementById('titulo-modal-cartao').innerText = "➕ Novo Cartão Ponto";
-    document.getElementById('btn-salvar-cartao').innerText = "Gerar Cartão ➔";
-    document.getElementById('cartao-edit-id').value = "";
+window.salvarEIniciar = async function() {
+    const reclamante = document.getElementById('reclamante').value.trim();
+    const dataIn = document.getElementById('dataInicio').value;
+    const dataFim = document.getElementById('dataFim').value;
+    const escala = document.getElementById('escala').value;
     
-    document.getElementById('reclamante').value = '';
-    document.getElementById('reclamada').value = '';
-    document.getElementById('dataInicio').value = '';
-    document.getElementById('dataFim').value = '';
-};
+    // Capturando Cidade e UF
+    const ufSelecionada = document.getElementById('novo-cartao-uf').value;
+    const cidadeSelecionada = document.getElementById('novo-cartao-cidade').value;
+    
+    // Capturando se é edição ou novo
+    const editId = document.getElementById('cartao-edit-id').value;
 
-window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
-
-window.abrirModalPerfil = function() {
-    if(!dadosUsuarioGlobal) return;
-    document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
-    document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
-    document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
-    const campoEmpresa = document.getElementById('edit-perfil-empresa');
-    campoEmpresa.value = dadosUsuarioGlobal.empresa || "";
-    if (dadosUsuarioGlobal.tipoConta === 'colaborador') {
-        campoEmpresa.disabled = true;
-        campoEmpresa.style.backgroundColor = "#f1f5f9";
-    } else {
-        campoEmpresa.disabled = false;
-        campoEmpresa.style.backgroundColor = "#ffffff";
+    if (!reclamante || !dataIn || !dataFim) {
+        alert("Preencha Reclamante, Data de Início e Fim!");
+        return;
     }
-    document.getElementById('modal-perfil').classList.remove('escondido');
-};
 
-window.fecharModalPerfil = () => document.getElementById('modal-perfil').classList.add('escondido');
+    const donoDoCartaoId = (dadosUsuarioGlobal.tipoConta === 'colaborador') 
+                            ? dadosUsuarioGlobal.adminId 
+                            : usuarioAtual.uid;
 
-window.abrirModalColaboradores = async () => {
-    if (!dadosUsuarioGlobal) return;
-    const uidBusca = (dadosUsuarioGlobal.tipoConta === 'admin') ? usuarioAtual.uid : dadosUsuarioGlobal.adminId;
+    let trabPers = 6, folgaPers = 2;
+    if (escala === "personalizada" && !editId) { 
+        trabPers = parseInt(prompt("Dias de TRABALHO?", "5")) || 5;
+        folgaPers = parseInt(prompt("Dias de FOLGA?", "1")) || 1;
+    }
+
+    // --- 1. NOVOS PARÂMETROS DE AUDITORIA (Substituindo os sindicais) ---
+    const horasDiarias = parseFloat(document.getElementById('horasDiarias').value) || 8;
+    const horasSemanais = parseFloat(document.getElementById('horasSemanais').value) || 44;
     
+    // --- 2. MONTANDO A CONFIGURAÇÃO (Limpando campos removidos) ---
+    const config = {
+        reclamante: reclamante,
+        reclamada: document.getElementById('reclamada').value.trim(),
+        dataInicio: dataIn,
+        dataFim: dataFim,
+        escala: escala,
+        dataFolgaInicial: document.getElementById('dataFolgaInicial').value,
+        padraoE: document.getElementById('padraoE').value,
+        padraoS: document.getElementById('padraoS').value,
+        intervaloFixo: document.getElementById('intervaloFixo').checked,
+        qtdBatidas: document.getElementById('checkBatidas').checked ? (parseInt(document.getElementById('qtdBatidas').value) || 4) : 4,
+        trabPers: trabPers,
+        folgaPers: folgaPers,
+        uf: ufSelecionada,
+        cidade: cidadeSelecionada,
+        // Novos campos
+        horasDiarias: horasDiarias,
+        horasSemanais: horasSemanais
+    };
+
     try {
-        const q = query(collection(db, "usuarios"), where("adminId", "==", uidBusca));
-        const querySnapshot = await getDocs(q);
-        const lista = document.getElementById('lista-colaboradores-corpo');
-        if (!lista) return;
+        if (editId) {
+            // MODO EDIÇÃO
+            const docRef = doc(db, "cartoes", editId);
+            await updateDoc(docRef, {
+                config: config,
+                cidade: cidadeSelecionada,
+                uf: ufSelecionada,
+                dataEdicao: Date.now()
+            });
+            
+            alert("✅ Cartão atualizado com sucesso!");
+            fecharModalNovo();
+            window.location.reload(); 
 
-        lista.innerHTML = '';
-        querySnapshot.forEach(docSnap => {
-            const colab = docSnap.data();
-            lista.innerHTML += `
-                <tr>
-                    <td>${colab.nome}</td>
-                    <td>${colab.email}</td>
-                    <td><span class="badge-cargo">${colab.tipoConta}</span></td>
-                </tr>
-            `;
-        });
-        document.getElementById('modal-colaboradores').classList.remove('escondido');
-    } catch (e) { console.error(e); }
-};
+        } else {
+            // MODO CRIAÇÃO
+            const novoCartao = {
+                id: Date.now().toString(), 
+                userId: donoDoCartaoId,
+                criadoPor: usuarioAtual.email,
+                dataEdicao: Date.now(),
+                progresso: 0,
+                config: config,
+                cidade: cidadeSelecionada,
+                uf: ufSelecionada,
+                batidas: {} 
+            };
 
-window.fecharModalColaboradores = () => document.getElementById('modal-colaboradores').classList.add('escondido');
-window.abrirModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.remove('escondido');
-window.fecharModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.add('escondido');
-
-window.copiarLinkConvite = () => {
-    const input = document.getElementById('link-convite-texto');
-    input.select();
-    document.execCommand('copy');
-    alert("Link copiado!");
-};
-
-window.fazerLogout = () => auth.signOut().then(() => window.location.href = "index.html");
-
-window.toggleFolgaInicial = () => {
-    const esc = document.getElementById('escala').value;
-    document.getElementById('container-folga-inicial').style.display = (esc === "6x2" || esc === "personalizada") ? "block" : "none";
-};
-
-window.toggleIntervaloFixo = () => {
-    document.getElementById('container-intervalo').style.display = document.getElementById('intervaloFixo').checked ? "block" : "none";
-};
-
-window.toggleBatidas = () => {
-    document.getElementById('container-batidas-input').style.display = document.getElementById('checkBatidas').checked ? "block" : "none";
+            await setDoc(doc(db, "cartoes", novoCartao.id), novoCartao);
+            localStorage.setItem('cartaoAtualId', novoCartao.id);
+            window.location.href = "app.html";
+        }
+    } catch (e) {
+        console.error("Erro ao salvar no Firestore:", e);
+        alert("Erro ao processar o cartão. Verifique sua conexão.");
+    }
 };
 
 function configurarBuscaCidades() {
     const selectUF = document.getElementById('novo-cartao-uf');
     const selectCidade = document.getElementById('novo-cartao-cidade');
 
+    // Se o elemento não existir (ex: modal fechado), o código para aqui sem dar erro
     if (!selectUF || !selectCidade) return;
 
     selectUF.addEventListener('change', async () => {
         const uf = selectUF.value;
+        
         if (!uf) {
             selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
             selectCidade.disabled = true;
@@ -586,9 +790,12 @@ function configurarBuscaCidades() {
         try {
             selectCidade.innerHTML = '<option>Carregando cidades...</option>';
             selectCidade.disabled = false;
+
+            // Faz a chamada para a Brasil API
             const response = await fetch(`https://brasilapi.com.br/api/ibge/municipios/v1/${uf}`);
             const cidades = await response.json();
 
+            // Limpa o select e adiciona as cidades vindas da API
             selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>';
             cidades.forEach(cidade => {
                 const option = document.createElement('option');
@@ -596,6 +803,7 @@ function configurarBuscaCidades() {
                 option.textContent = cidade.nome;
                 selectCidade.appendChild(option);
             });
+            
         } catch (error) {
             console.error("Erro ao buscar cidades:", error);
             selectCidade.innerHTML = '<option value="">Erro ao carregar cidades</option>';
@@ -603,4 +811,5 @@ function configurarBuscaCidades() {
     });
 }
 
+// Chame a função para ela começar a observar os campos
 configurarBuscaCidades();
