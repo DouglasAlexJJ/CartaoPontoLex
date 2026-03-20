@@ -519,10 +519,7 @@ window.fecharModalColaboradores = () => document.getElementById('modal-colaborad
 window.abrirModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.remove('escondido');
 window.fecharModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').classList.add('escondido');
 window.abrirModalNovo = function() {
-    const modal = document.getElementById('modal-novo');
-    if (!modal) return;
-
-    modal.classList.remove('escondido');
+    document.getElementById('modal-novo').classList.remove('escondido');
     
     // Ajusta os textos para modo "Criação"
     document.getElementById('titulo-modal-cartao').innerText = "➕ Novo Cartão Ponto";
@@ -537,17 +534,15 @@ window.abrirModalNovo = function() {
     document.getElementById('dataInicio').value = '';
     document.getElementById('dataFim').value = '';
     
-    // Reseta escala e localização
+    // Reseta selects e checkboxes básicos
     document.getElementById('escala').value = 'seg-sex';
     document.getElementById('novo-cartao-uf').value = '';
     document.getElementById('novo-cartao-cidade').innerHTML = '<option value="">Selecione a Cidade</option>';
     document.getElementById('novo-cartao-cidade').disabled = true;
-
-    // Reseta opções de preenchimento
     document.getElementById('checkBatidas').checked = false;
     document.getElementById('intervaloFixo').checked = false;
-    
-    // Executa os toggles para esconder os inputs extras
+
+    // Chama os toggles para esconder os containers de batidas e intervalos
     window.toggleFolgaInicial();
     window.toggleIntervaloFixo();
     window.toggleBatidas();
