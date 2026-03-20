@@ -424,34 +424,36 @@ window.editarCartao = function(id) {
 
 // Gestão de Equipe
 window.abrirModalColaboradores = function() {
-    console.log("👉 Botão 'Gerenciar Equipe' clicado!");
-    window.fecharTodosModais();
-    
-    const modal = document.getElementById('modal-colaboradores');
-    if (modal) {
-        modal.classList.remove('escondido');
-        console.log("✅ Modal de Equipe aberto na tela.");
-        
-        if (typeof carregarMembrosEquipe === 'function') {
-            carregarMembrosEquipe();
-        } else if (typeof window.carregarMembrosEquipe === 'function') {
-            window.carregarMembrosEquipe();
-        } else {
-            console.warn("⚠️ Aviso: Função carregarMembrosEquipe não encontrada.");
-        }
-    } else {
-        console.error("❌ Erro: A div id='modal-colaboradores' não existe no HTML.");
+    forcarAberturaModal('modal-colaboradores');
+    if (typeof carregarMembrosEquipe === 'function') {
+        carregarMembrosEquipe();
+    } else if (typeof window.carregarMembrosEquipe === 'function') {
+        window.carregarMembrosEquipe();
     }
 };
 
 window.fecharTodosModais = function() {
-    console.log("Limpando a tela (fechando modais)...");
     const modais = ['modal-novo', 'modal-perfil', 'modal-colaboradores', 'modal-onboarding'];
     modais.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.classList.add('escondido');
+        if (el) {
+            el.classList.add('escondido');
+            el.style.setProperty('display', 'none', 'important'); // Oculta à força
+        }
     });
 };
+
+function forcarAberturaModal(idModal) {
+    window.fecharTodosModais();
+    const modal = document.getElementById(idModal);
+    if (modal) {
+        modal.classList.remove('escondido');
+        modal.style.setProperty('display', 'flex', 'important'); // Mostra à força
+        modal.style.setProperty('z-index', '999999', 'important'); // Joga pra frente à força
+        modal.style.setProperty('visibility', 'visible', 'important');
+        modal.style.setProperty('opacity', '1', 'important');
+    }
+}
 
 async function carregarMembrosEquipe() {
     const container = document.getElementById('lista-membros-equipe');
@@ -559,36 +561,26 @@ window.abrirModalNovo = function() {
     
     document.getElementById('modal-novo').classList.remove('escondido');
 };
+window.fecharModalNovo = () => window.fecharTodosModais();
+window.fecharModalPerfil = () => window.fecharTodosModais();
+window.fecharModalColaboradores = () => window.fecharTodosModais();
+window.fecharModalEntrarEquipe = () => document.getElementById('modal-entrar-equipe').style.setProperty('display', 'none', 'important');
 window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
 window.abrirModalPerfil = function() {
-    console.log("👉 Botão 'Meu Perfil' clicado!");
-    window.fecharTodosModais();
+    if(!dadosUsuarioGlobal) return;
     
-    // SUSPEITO Nº 1: Os dados ainda não carregaram do Firebase
-    if(!dadosUsuarioGlobal) {
-        alert("Aguarde um segundo, estamos carregando seus dados do servidor...");
-        console.error("❌ Erro: dadosUsuarioGlobal está vazio/null.");
-        return; 
+    // Preenche os dados
+    document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
+    document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
+    document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
+    document.getElementById('edit-perfil-empresa').value = dadosUsuarioGlobal.empresa || "";
+
+    if (typeof window.renderizarSeletorAvatarPerfil === 'function') {
+        window.renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
     }
 
-    try {
-        document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
-        document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
-        document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
-        document.getElementById('edit-perfil-empresa').value = dadosUsuarioGlobal.empresa || "";
-
-        if (typeof window.renderizarSeletorAvatarPerfil === 'function') {
-            window.renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
-        } else {
-            console.warn("⚠️ Aviso: Função de renderizar avatar não foi encontrada.");
-        }
-
-        document.getElementById('modal-perfil').classList.remove('escondido');
-        console.log("✅ Modal de Perfil aberto com sucesso!");
-        
-    } catch (erro) {
-        console.error("❌ Erro ao tentar preencher os dados do perfil:", erro);
-    }
+    // Chama o abridor forçado
+    forcarAberturaModal('modal-perfil');
 };
 window.fecharModalPerfil = () => document.getElementById('modal-perfil').classList.add('escondido');
 window.toggleFolgaInicial = () => {
