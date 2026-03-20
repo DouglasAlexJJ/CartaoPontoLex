@@ -41,6 +41,33 @@ onAuthStateChanged(auth, async (user) => {
    2. CONFIGURAÇÃO DA INTERFACE
    ========================================================================== */
 
+window.adicionarRegraExtra = function(limite = '', porcentagem = '50') {
+    const container = document.getElementById('container-regras-extras');
+    if (!container) return;
+
+    const div = document.createElement('div');
+    // Usamos a classe CSS que criamos para alinhar tudo perfeitamente
+    div.className = 'regra-item'; 
+
+    div.innerHTML = `
+        <span>Até a</span>
+        
+        <input type="number" class="regra-limite" placeholder="Ex: 6" value="${limite}" title="Deixe vazio para 'Daí em diante'">
+        
+        <span>ª H.E é</span>
+        
+        <input type="number" class="regra-porcento" value="${porcentagem}">
+        
+        <span>%</span>
+        
+        <button type="button" onclick="this.parentElement.remove()" class="btn-remover-regra">
+            🗑️ Remover
+        </button>
+    `;
+    
+    container.appendChild(div);
+};
+
 function configurarInterfacePorPerfil() {
     if (!dadosUsuarioGlobal) return;
 
@@ -331,17 +358,18 @@ window.restaurarCartao = async function(id) {
 window.fazerLogout = () => auth.signOut().then(() => window.location.href = "index.html");
 
 window.editarCartao = function(id) {
+    // 1. Busca o cartão inteiro na memória que acabou de ser baixado do Firebase
     const cartao = salvosNuvem.find(c => c.id === id);
     if (!cartao) return;
 
     const config = cartao.config;
 
-    // 1. Configura o Modal
+    // 2. Muda a cara do modal para modo "Edição"
     document.getElementById('titulo-modal-cartao').innerText = "✏️ Editar Parâmetros";
     document.getElementById('btn-salvar-cartao').innerText = "Salvar Alterações";
     document.getElementById('cartao-edit-id').value = id;
 
-    // 2. Preenche Identificação e Período
+    // 3. Preenche os campos principais
     document.getElementById('reclamante').value = config.reclamante || '';
     document.getElementById('reclamada').value = config.reclamada || '';
     document.getElementById('dataInicio').value = config.dataInicio || '';
@@ -349,9 +377,10 @@ window.editarCartao = function(id) {
     document.getElementById('escala').value = config.escala || 'seg-sex';
     document.getElementById('dataFolgaInicial').value = config.dataFolgaInicial || '';
     
+    // Mostra ou esconde o campo de folga dependendo da escala
     if (typeof toggleFolgaInicial === 'function') toggleFolgaInicial();
 
-    // 3. Preenche Intervalos e Batidas
+    // 4. Intervalos e Batidas (ISSO FICA!)
     document.getElementById('padraoE').value = config.padraoE || '12:00';
     document.getElementById('padraoS').value = config.padraoS || '13:00';
     
@@ -370,7 +399,7 @@ window.editarCartao = function(id) {
     }
     if (typeof toggleBatidas === 'function') toggleBatidas();
 
-    // 4. UF e Cidade
+    // 5. UF e Cidade (ISSO FICA!)
     const ufSelect = document.getElementById('novo-cartao-uf');
     ufSelect.value = config.uf || '';
     
@@ -379,8 +408,12 @@ window.editarCartao = function(id) {
         setTimeout(() => {
             document.getElementById('novo-cartao-cidade').value = config.cidade || '';
         }, 800);
+    } else {
+        document.getElementById('novo-cartao-cidade').innerHTML = '<option value="">Selecione a Cidade</option>';
+        document.getElementById('novo-cartao-cidade').disabled = true;
     }
 
+    // 6. ABRE O MODAL (ISSO É O FINAL DA FUNÇÃO)
     document.getElementById('modal-novo').classList.remove('escondido');
 };
 
@@ -639,8 +672,12 @@ window.salvarEIniciar = async function() {
     const dataIn = document.getElementById('dataInicio').value;
     const dataFim = document.getElementById('dataFim').value;
     const escala = document.getElementById('escala').value;
+    
+    // Capturando Cidade e UF
     const ufSelecionada = document.getElementById('novo-cartao-uf').value;
     const cidadeSelecionada = document.getElementById('novo-cartao-cidade').value;
+    
+    // Capturando se é edição ou novo
     const editId = document.getElementById('cartao-edit-id').value;
 
     if (!reclamante || !dataIn || !dataFim) {
@@ -658,7 +695,11 @@ window.salvarEIniciar = async function() {
         folgaPers = parseInt(prompt("Dias de FOLGA?", "1")) || 1;
     }
 
-    // MONTANDO A CONFIGURAÇÃO LIMPA (Sem os parâmetros que agora estão no PDF)
+    // --- 1. NOVOS PARÂMETROS DE AUDITORIA (Substituindo os sindicais) ---
+    const horasDiarias = parseFloat(document.getElementById('horasDiarias').value) || 8;
+    const horasSemanais = parseFloat(document.getElementById('horasSemanais').value) || 44;
+    
+    // 3. MONTANDO A CONFIGURAÇÃO (LIMPA)
     const config = {
         reclamante: reclamante,
         reclamada: document.getElementById('reclamada').value.trim(),
@@ -674,23 +715,28 @@ window.salvarEIniciar = async function() {
         folgaPers: folgaPers,
         uf: ufSelecionada,
         cidade: cidadeSelecionada
+        // Removidos: adcNoturno, heFolga1, heFolga2, regrasExtra
     };
 
     try {
         if (editId) {
-            await updateDoc(doc(db, "cartoes", editId), {
+            // MODO EDIÇÃO
+            const docRef = doc(db, "cartoes", editId);
+            await updateDoc(docRef, {
                 config: config,
                 cidade: cidadeSelecionada,
                 uf: ufSelecionada,
                 dataEdicao: Date.now()
             });
-            alert("✅ Cartão atualizado!");
+            
+            alert("✅ Cartão atualizado com sucesso!");
             fecharModalNovo();
             window.location.reload(); 
+
         } else {
-            const idNovo = Date.now().toString();
+            // MODO CRIAÇÃO
             const novoCartao = {
-                id: idNovo, 
+                id: Date.now().toString(), 
                 userId: donoDoCartaoId,
                 criadoPor: usuarioAtual.email,
                 dataEdicao: Date.now(),
@@ -700,13 +746,14 @@ window.salvarEIniciar = async function() {
                 uf: ufSelecionada,
                 batidas: {} 
             };
-            await setDoc(doc(db, "cartoes", idNovo), novoCartao);
-            localStorage.setItem('cartaoAtualId', idNovo);
+
+            await setDoc(doc(db, "cartoes", novoCartao.id), novoCartao);
+            localStorage.setItem('cartaoAtualId', novoCartao.id);
             window.location.href = "app.html";
         }
     } catch (e) {
-        console.error("Erro ao salvar:", e);
-        alert("Erro ao processar o cartão.");
+        console.error("Erro ao salvar no Firestore:", e);
+        alert("Erro ao processar o cartão. Verifique sua conexão.");
     }
 };
 
