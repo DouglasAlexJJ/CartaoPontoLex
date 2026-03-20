@@ -460,93 +460,56 @@ window.mudarAno = async function(direcao, focarNoPrimeiro = false) {
 };
 
 function configurarEventos() {
-    const inputs = Array.from(document.querySelectorAll('.ponto'));
+    const inputs = document.querySelectorAll('.ponto');
     
-    inputs.forEach((input, index) => {
-        input.onfocus = () => input.select();
-        
-        input.onkeypress = (e) => { 
-            if (!/[0-9*]/.test(e.key)) e.preventDefault(); 
-        };
-        
-        input.oninput = (e) => {
-            if (e.inputType === 'deleteContentBackward') return;
-            let val = input.value.replace(':', '');
-            
-            if (val.includes('*')) {
-                input.value = input.value.replace('*', '');
-                return;
-            }
-
-            if (val.length >= 2) {
-                let h = val.substring(0, 2);
-                if (parseInt(h) > 23) h = "23";
-                input.value = h + ":" + val.substring(2);
-            }
-            
-            if (input.value.length === 5) {
-                let [h, m] = input.value.split(':');
-                if (parseInt(m) > 59) input.value = h + ":59";
-                
-                if (typeof calcularLinha === 'function') calcularLinha(input.closest('tr'));
-                
-                // --- MÁGICA: SE FOR O ÚLTIMO CAMPO DA PÁGINA (DIA 31/12) ---
-                if (index === inputs.length - 1) {
-                    window.verificarPuloDeAno();
-                } else {
-                    if (typeof pularCampoInteligente === 'function') {
-                        pularCampoInteligente(input, index, 1);
-                    }
-                }
-            }
-        };
-
-        input.onkeydown = (e) => {
-            const tr = input.closest('tr');
-
-            // Atalhos + e - para gerenciar batidas
-            if (e.key === '+' && typeof window.gerenciarBatidas === 'function') {
-                e.preventDefault(); 
-                window.gerenciarBatidas(input, 2); 
-                setTimeout(() => {
-                    const todosInputs = tr.querySelectorAll('.ponto');
-                    const novo = todosInputs[todosInputs.length - 2];
-                    if (novo) novo.focus();
-                }, 10);
-                return;
-            }
-
-            if (e.key === '-' && typeof window.gerenciarBatidas === 'function') {
-                e.preventDefault(); 
-                window.gerenciarBatidas(input, -2);
-                return;
-            }
-
-            // Teclas de navegação (Enter e Tab)
-            if (e.key === 'Tab' || e.key === 'Enter') {
-                e.preventDefault();
-                if (typeof completarHora === 'function') completarHora(input);
-
-                const voltando = e.shiftKey; // Pressionou Shift + Tab para voltar
-
-                // --- MÁGICA: ENTER OU TAB NO ÚLTIMO CAMPO ---
-                if (!voltando && index === inputs.length - 1 && (e.key === 'Enter' || e.key === 'Tab')) {
-                    window.verificarPuloDeAno();
-                } else {
-                    if (e.key === 'Tab' && typeof pularCampoInteligente === 'function') {
-                        pularCampoInteligente(input, index, voltando ? -1 : 1);
-                    } else if (e.key === 'Enter' && typeof pularLinha === 'function') {
-                        pularLinha(tr);
-                    }
-                }
-            }
-        };
-
-        input.onblur = () => {
-            if (typeof completarHora === 'function') completarHora(input);
-            if (typeof window.salvarComAtraso === 'function') window.salvarComAtraso();
-        };
+    inputs.forEach(input => {
+        // Removemos qualquer listener antigo para não duplicar o comando
+        input.removeEventListener('keydown', lidarComAtalhos);
+        input.addEventListener('keydown', lidarComAtalhos);
     });
+}
+
+// Função isolada para processar os atalhos (*, + e -)
+function lidarComAtalhos(e) {
+    const input = e.target;
+    const tr = input.closest('tr');
+    if (!tr) return;
+
+    // ATALHO: * (Alternar Feriado/Domingo Manual)
+    if (e.key === '*' || e.code === 'NumpadMultiply') {
+        e.preventDefault(); // Não deixa o * aparecer no campo
+        
+        // Inverte a classe de feriado
+        const virouFeriado = tr.classList.toggle('destaque-feriado');
+        
+        // Muda a cor de fundo visualmente na hora
+        if (virouFeriado) {
+            tr.style.backgroundColor = "#fff5f5";
+        } else {
+            tr.style.backgroundColor = "";
+        }
+
+        // Avisa o sistema que este dia agora é tratado como feriado/domingo
+        tr.dataset.isDomingoFeriado = virouFeriado ? "sim" : "nao";
+        
+        // Recalcula e Salva
+        calcularLinha(tr);
+        if (typeof salvarComAtraso === 'function') salvarComAtraso();
+        
+        console.log("🚩 Feriado manual alternado para:", virouFeriado);
+    }
+
+    // ATALHO: + (Aumentar Batidas na linha)
+    if (e.key === '+') {
+        e.preventDefault();
+        // Lógica para adicionar coluna (se necessário implementar)
+    }
+
+    // ATALHO: - (Diminuir Batidas na linha)
+    if (e.key === '-') {
+        e.preventDefault();
+        // Lógica para remover coluna (se necessário implementar)
+    }
 }
 
 function completarHora(input) {
