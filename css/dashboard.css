@@ -169,12 +169,30 @@
 /* ==========================================================================
    4. MODAIS E FORMULÁRIOS PREMIUM
    ========================================================================== */
-.modal-overlay { 
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(15,23,42,0.7); display: flex; align-items: center; 
-    justify-content: center; z-index: 9999; backdrop-filter: blur(3px); 
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.75); /* Fundo escuro semi-transparente */
+    display: flex; /* É ISSO AQUI que faz o modal aparecer na tela! */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Garante que fique por cima de tudo */
+    backdrop-filter: blur(3px); /* Efeito de desfoque no fundo */
 }
-.modal-card { background: white; width: 90%; max-width: 550px; border-radius: 12px; overflow: hidden; }
+.modal-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    /* O max-width será sobrescrito pelo estilo inline do seu HTML (ex: max-width: 650px) */
+    display: flex;
+    flex-direction: column;
+    animation: modalEntrada 0.3s ease-out; /* Animação de entrada */
+    overflow: hidden;
+}
 .modal-header { padding: 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; align-items: center; }
 .modal-body { padding: 25px; }
 
@@ -217,7 +235,6 @@
     from { opacity: 0; transform: translateY(20px) scale(0.95); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.modal-card { animation: modalEntrada 0.3s ease-out; }
 .avatar-grid-selector {
     display: flex;
     gap: 10px;
@@ -257,3 +274,79 @@
 #modal-perfil { z-index: 10010; }
 #modal-novo { z-index: 10005; }
 #modal-colaboradores { z-index: 10008; }
+/* ==========================================================================
+   VISUAL PREMIUM UNIFICADO (HTML > CSS)
+   Aplica o padrão "Opções de Preenchimento" a todos os inputs do modal
+   ========================================================================== */
+
+/* 1. Define o estilo base para todos os campos do modal (.input-moderno) */
+.modal-body .input-moderno {
+    width: 100%;                  /* Ocupa toda a largura disponível */
+    padding: 12px 14px;          /* Mais respiro interno */
+    border: 2px solid #f1f5f9;   /* Borda clara e elegante */
+    border-radius: 8px;          /* Bordas arredondadas padrão premium */
+    background-color: #f8fafc;   /* Fundo cinza suave (Slate 50) */
+    color: #1e293b;               /* Texto Slate 800 */
+    font-family: inherit;         /* Usa a fonte padrão do sistema */
+    font-size: 0.95em;           /* Levemente menor para caber melhor */
+    font-weight: 500;             /* Texto com peso médio */
+    transition: all 0.2s ease;   /* Transição suave de cor e sombra */
+    box-sizing: border-box;       /* Garante que o padding não estoure a largura */
+}
+
+/* 2. Centraliza o texto especificamente nos campos de número e datas (Visual Premium) */
+.modal-body input[type="number"].input-moderno,
+.modal-body input[type="date"].input-moderno {
+    text-align: center;
+    font-weight: 700;             /* Mais negrito para números e datas */
+}
+
+/* 3. Estilo para o campo select (Escala Base) */
+.modal-body select.input-moderno {
+    appearance: none;             /* Remove seta padrão do navegador */
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    padding-right: 40px;          /* Espaço para a nova seta */
+}
+
+/* 4. Efeito de Realce (O "Pulo do Gato" Premium) ao clicar/focar no campo */
+.modal-body .input-moderno:focus {
+    background-color: #ffffff;   /* Fundo fica branco */
+    border-color: #3b82f6;       /* Borda fica azul (Blue 500) */
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); /* Halo azul suave de foco */
+    outline: none;               /* Remove a borda preta padrão do navegador */
+}
+/* ==========================================================================
+   CSS NUCLEAR: FORÇAR A EXIBIÇÃO DOS MODAIS
+   (Colocado no final para sobrescrever qualquer outra regra)
+   ========================================================================== */
+
+/* 1. Base do Modal: Invisível por padrão */
+.modal-overlay {
+    display: none !important; 
+    position: fixed !important;
+    top: 0 !important; 
+    left: 0 !important;
+    width: 100vw !important; 
+    height: 100vh !important;
+    background: rgba(15, 23, 42, 0.8) !important;
+    z-index: 99999 !important; /* Um número absurdamente alto */
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* 2. O Gatilho: Quando o JS tira o .escondido, ele OBRIGATORIAMENTE aparece */
+.modal-overlay:not(.escondido) {
+    display: flex !important;
+}
+
+/* Garante que o conteúdo de dentro não fique transparente */
+.modal-card {
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 100000 !important;
+}
