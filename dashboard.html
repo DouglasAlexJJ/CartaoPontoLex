@@ -170,62 +170,36 @@
                     </div>
                 </div>
 
-                <div class="secao-pericia" style="margin-top: 20px;">
-    <div class="titulo-secao-moderno">
-        <span style="font-size: 1.2em;">🛠️</span>
-        Opções de Preenchimento
-    </div>
-
-    <div id="container-folga-inicial" class="campo-numero-premium" style="display:none; margin-bottom: 20px;">
-        <label>Início do Ciclo (1ª Folga)</label>
-        <input type="date" id="dataFolgaInicial" class="input-moderno" style="width: 100%;">
-    </div>
-
-    <div class="grid-numeros">
-        <div class="campo-numero-premium">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                <input type="checkbox" id="checkBatidas" onchange="toggleBatidas()"> 
-                Nº de Batidas
-            </label>
-            <div id="container-batidas-input" style="display:none; margin-top: 5px;">
-                <input type="number" id="qtdBatidas" value="4" min="2" class="input-numero-moderno">
-            </div>
-        </div>
-
-        <div class="campo-numero-premium">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                <input type="checkbox" id="intervaloFixo" onchange="toggleIntervaloFixo()"> 
-                Intervalo Fixo
-            </label>
-            <div id="container-intervalo" style="display:none; margin-top: 5px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="text" id="padraoE" class="input-numero-moderno" value="12:00" maxlength="5" style="font-size: 0.9em; padding: 8px;"> 
-                    <span style="font-size: 0.7em; color: #64748b; font-weight: bold;">➔</span>
-                    <input type="text" id="padraoS" class="input-numero-moderno" value="13:00" maxlength="5" style="font-size: 0.9em; padding: 8px;">
+                <div id="container-folga-inicial" class="form-group" style="display:none;">
+                    <label>Data da 1ª Folga (Para ciclos):</label>
+                    <input type="date" id="dataFolgaInicial" class="input-moderno">
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="secao-pericia" style="border-top: 4px solid #3b82f6;">
-    <div class="titulo-secao-moderno">
-        <span style="font-size: 1.2em;">⚖️</span>
-        Parâmetros de Auditoria (CLT)
-    </div>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 15px;">
+                    <label style="font-weight: 600; color: #0f172a; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="checkBatidas" onchange="toggleBatidas()"> 
+                        Definir Quantidade de Batidas (Padrão: 4)
+                    </label>
+                    <div id="container-batidas-input" style="display:none; margin-top: 10px; padding-left: 24px;">
+                        <label style="font-size: 0.85em; margin-bottom: 5px; display: block; color: #475569;">Número de batidas por dia:</label>
+                        <input type="number" id="qtdBatidas" value="4" min="2" style="width: 100px; text-align: center;" class="input-moderno">
+                    </div>
 
-    <div class="grid-numeros">
-        <div class="campo-numero-premium">
-            <label>Limite Diário</label>
-            <input type="number" id="horasDiarias" class="input-numero-moderno" value="8">
-        </div>
-        
-        <div class="campo-numero-premium">
-            <label>Limite Semanal</label>
-            <input type="number" id="horasSemanais" class="input-numero-moderno" value="44">
-        </div>
-    </div>
-</div>
+                    <div class="divisor" style="margin: 15px 0;"></div>
+
+                    <label style="font-weight: 600; color: #0f172a; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="intervaloFixo" onchange="toggleIntervaloFixo()"> 
+                        Intervalo Fixo (Auto-Jump)
+                    </label>
+                    <div id="container-intervalo" style="display:none; margin-top: 10px; padding-left: 24px;">
+                        <label style="font-size: 0.85em; margin-bottom: 5px; display: block; color: #475569;">Horário de Intervalo Padrão:</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="text" id="padraoE" class="input-moderno" value="12:00" maxlength="5" style="width: 70px; text-align: center;"> 
+                            <span style="font-size: 0.85em; color: #64748b;">até</span>
+                            <input type="text" id="padraoS" class="input-moderno" value="13:00" maxlength="5" style="width: 70px; text-align: center;">
+                        </div>
+                    </div>
+                </div>
 
                 <div class="divisor" style="margin: 25px 0 15px; border-top: 1px solid #e2e8f0;"></div>
                 <h4 style="margin: 0 0 15px 0; color: #0f172a; font-size: 1.1em;">📋 Configuração de Jornada</h4>
