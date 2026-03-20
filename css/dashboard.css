@@ -169,12 +169,30 @@
 /* ==========================================================================
    4. MODAIS E FORMULÁRIOS PREMIUM
    ========================================================================== */
-.modal-overlay { 
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(15,23,42,0.7); display: flex; align-items: center; 
-    justify-content: center; z-index: 9999; backdrop-filter: blur(3px); 
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(15, 23, 42, 0.75); /* Fundo escuro semi-transparente */
+    display: flex; /* É ISSO AQUI que faz o modal aparecer na tela! */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Garante que fique por cima de tudo */
+    backdrop-filter: blur(3px); /* Efeito de desfoque no fundo */
 }
-.modal-card { background: white; width: 90%; max-width: 550px; border-radius: 12px; overflow: hidden; }
+.modal-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    /* O max-width será sobrescrito pelo estilo inline do seu HTML (ex: max-width: 650px) */
+    display: flex;
+    flex-direction: column;
+    animation: modalEntrada 0.3s ease-out; /* Animação de entrada */
+    overflow: hidden;
+}
 .modal-header { padding: 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; align-items: center; }
 .modal-body { padding: 25px; }
 
@@ -217,7 +235,6 @@
     from { opacity: 0; transform: translateY(20px) scale(0.95); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.modal-card { animation: modalEntrada 0.3s ease-out; }
 .avatar-grid-selector {
     display: flex;
     gap: 10px;
