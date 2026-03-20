@@ -274,3 +274,48 @@
 #modal-perfil { z-index: 10010; }
 #modal-novo { z-index: 10005; }
 #modal-colaboradores { z-index: 10008; }
+/* ==========================================================================
+   VISUAL PREMIUM UNIFICADO (HTML > CSS)
+   Aplica o padrão "Opções de Preenchimento" a todos os inputs do modal
+   ========================================================================== */
+
+/* 1. Define o estilo base para todos os campos do modal (.input-moderno) */
+.modal-body .input-moderno {
+    width: 100%;                  /* Ocupa toda a largura disponível */
+    padding: 12px 14px;          /* Mais respiro interno */
+    border: 2px solid #f1f5f9;   /* Borda clara e elegante */
+    border-radius: 8px;          /* Bordas arredondadas padrão premium */
+    background-color: #f8fafc;   /* Fundo cinza suave (Slate 50) */
+    color: #1e293b;               /* Texto Slate 800 */
+    font-family: inherit;         /* Usa a fonte padrão do sistema */
+    font-size: 0.95em;           /* Levemente menor para caber melhor */
+    font-weight: 500;             /* Texto com peso médio */
+    transition: all 0.2s ease;   /* Transição suave de cor e sombra */
+    box-sizing: border-box;       /* Garante que o padding não estoure a largura */
+}
+
+/* 2. Centraliza o texto especificamente nos campos de número e datas (Visual Premium) */
+.modal-body input[type="number"].input-moderno,
+.modal-body input[type="date"].input-moderno {
+    text-align: center;
+    font-weight: 700;             /* Mais negrito para números e datas */
+}
+
+/* 3. Estilo para o campo select (Escala Base) */
+.modal-body select.input-moderno {
+    appearance: none;             /* Remove seta padrão do navegador */
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    padding-right: 40px;          /* Espaço para a nova seta */
+}
+
+/* 4. Efeito de Realce (O "Pulo do Gato" Premium) ao clicar/focar no campo */
+.modal-body .input-moderno:focus {
+    background-color: #ffffff;   /* Fundo fica branco */
+    border-color: #3b82f6;       /* Borda fica azul (Blue 500) */
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); /* Halo azul suave de foco */
+    outline: none;               /* Remove a borda preta padrão do navegador */
+}
