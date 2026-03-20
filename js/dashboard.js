@@ -424,34 +424,18 @@ window.editarCartao = function(id) {
 
 // Gestão de Equipe
 window.abrirModalColaboradores = function() {
-    console.log("👉 Botão 'Gerenciar Equipe' clicado!");
-    window.fecharTodosModais();
-    
-    const modal = document.getElementById('modal-colaboradores');
-    if (modal) {
-        modal.classList.remove('escondido');
-        console.log("✅ Modal de Equipe aberto na tela.");
-        
-        if (typeof carregarMembrosEquipe === 'function') {
-            carregarMembrosEquipe();
-        } else if (typeof window.carregarMembrosEquipe === 'function') {
-            window.carregarMembrosEquipe();
-        } else {
-            console.warn("⚠️ Aviso: Função carregarMembrosEquipe não encontrada.");
-        }
-    } else {
-        console.error("❌ Erro: A div id='modal-colaboradores' não existe no HTML.");
-    }
+    fecharTodosModais();
+    document.getElementById('modal-colaboradores').classList.remove('escondido');
+    if (typeof carregarMembrosEquipe === 'function') carregarMembrosEquipe();
 };
 
-window.fecharTodosModais = function() {
-    console.log("Limpando a tela (fechando modais)...");
+function fecharTodosModais() {
     const modais = ['modal-novo', 'modal-perfil', 'modal-colaboradores', 'modal-onboarding'];
     modais.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('escondido');
     });
-};
+}
 
 async function carregarMembrosEquipe() {
     const container = document.getElementById('lista-membros-equipe');
@@ -561,34 +545,19 @@ window.abrirModalNovo = function() {
 };
 window.fecharModalNovo = () => document.getElementById('modal-novo').classList.add('escondido');
 window.abrirModalPerfil = function() {
-    console.log("👉 Botão 'Meu Perfil' clicado!");
-    window.fecharTodosModais();
-    
-    // SUSPEITO Nº 1: Os dados ainda não carregaram do Firebase
-    if(!dadosUsuarioGlobal) {
-        alert("Aguarde um segundo, estamos carregando seus dados do servidor...");
-        console.error("❌ Erro: dadosUsuarioGlobal está vazio/null.");
-        return; 
+    if(!dadosUsuarioGlobal) return;
+    fecharTodosModais(); // Limpa a tela antes
+
+    document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
+    document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
+    document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
+    document.getElementById('edit-perfil-empresa').value = dadosUsuarioGlobal.empresa || "";
+
+    if (window.renderizarSeletorAvatarPerfil) {
+        window.renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
     }
 
-    try {
-        document.getElementById('edit-perfil-tratamento').value = dadosUsuarioGlobal.tratamento || "";
-        document.getElementById('edit-perfil-nome').value = dadosUsuarioGlobal.nome || "";
-        document.getElementById('edit-perfil-oab').value = dadosUsuarioGlobal.oab || "";
-        document.getElementById('edit-perfil-empresa').value = dadosUsuarioGlobal.empresa || "";
-
-        if (typeof window.renderizarSeletorAvatarPerfil === 'function') {
-            window.renderizarSeletorAvatarPerfil(dadosUsuarioGlobal.avatar || "⚖️");
-        } else {
-            console.warn("⚠️ Aviso: Função de renderizar avatar não foi encontrada.");
-        }
-
-        document.getElementById('modal-perfil').classList.remove('escondido');
-        console.log("✅ Modal de Perfil aberto com sucesso!");
-        
-    } catch (erro) {
-        console.error("❌ Erro ao tentar preencher os dados do perfil:", erro);
-    }
+    document.getElementById('modal-perfil').classList.remove('escondido');
 };
 window.fecharModalPerfil = () => document.getElementById('modal-perfil').classList.add('escondido');
 window.toggleFolgaInicial = () => {
