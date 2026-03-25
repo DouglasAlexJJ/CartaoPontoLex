@@ -687,7 +687,7 @@ function calcularIntervaloDiferenciado(entrada, saida) {
 
     // Aplicação da Hora Ficta Noturna (Art. 73, §1º da CLT)
     // 60 min de relógio = 52.5 min de trabalho (Multiplicador de 1.142857)
-    const minNoturnosReduzidos = Math.floor(minNoturnos * 1.142857);
+    const minNoturnosReduzidos = Math.floor(minNoturnos * (8 / 7));
 
     return {
         diurno: minDiurnos,
@@ -907,33 +907,51 @@ function calcularViolacaoIntrajornada(intervaloRealizado, totalTrabalhado) {
  */
 function gerarLaudoTecnico(batidasObj, config) {
     let relatorio = {
-        dias: [],
-        semanas: [],
+        dias: [], semanas: [],
         totais: {
-            horasNormaisMin: 0,
-            heDiariasMin: 0,
-            heSemanaisMin: 0,
-            adicionalNoturnoMin: 0,
-            artigo66Min: 0,
-            artigo71DiferencaMin: 0,
-            artigo71FixoMin: 0
+            horasNormaisMin: 0, heDiariasMin: 0, heSemanaisMin: 0,
+            adicionalNoturnoMin: 0, artigo66Min: 0, artigo71DiferencaMin: 0, artigo71FixoMin: 0
         }
     };
 
-    if (!batidasObj) return relatorio; // Trava de segurança caso o cartão esteja vazio
+    if (!config || !config.dataInicio || !config.dataFim) return relatorio;
 
-    // Ordenar as datas cronologicamente para garantir que a semana é lida na ordem certa
-    const datas = Object.keys(batidasObj).sort();
+    // 1. Gera o calendário COMPLETO do período (ex: 01/01 a 31/01)
+    let dataAtual = new Date(config.dataInicio + "T00:00:00");
+    let dataFinal = new Date(config.dataFim + "T00:00:00");
+    
+    let calendarioCompleto = [];
+    
+    while (dataAtual <= dataFinal) {
+        let ano = dataAtual.getFullYear();
+        let mes = String(dataAtual.getMonth() + 1).padStart(2, '0');
+        let dia = String(dataAtual.getDate()).padStart(2, '0');
+        
+        // Montamos a data no formato BR (DD/MM/YYYY) e EUA (YYYY-MM-DD)
+        let dataBR = `${dia}/${mes}/${ano}`;
+        let dataEUA = `${ano}-${mes}-${dia}`;
+        
+        // Tenta achar os dados daquele dia no banco (seja qual for o formato salvo)
+        let dadosDoDia = {};
+        if (batidasObj && batidasObj[dataBR]) dadosDoDia = batidasObj[dataBR];
+        else if (batidasObj && batidasObj[dataEUA]) dadosDoDia = batidasObj[dataEUA];
+
+        calendarioCompleto.push({
+            dataParaImprimir: dataBR, // Vai sair bonito no PDF
+            dados: dadosDoDia,
+            dataDate: new Date(`${ano}-${mes}-${dia}T00:00:00`) // Para saber quando é Domingo
+        });
+        
+        dataAtual.setDate(dataAtual.getDate() + 1); // Vai para o próximo dia
+    }
     
     let semanaAtual = [];
     let ultimaSaidaAnterior = null;
     let saiuDeMadrugadaAnterior = false;
 
-    datas.forEach((data, index) => {
-        // CORREÇÃO AQUI: O Firebase salva como { f: folga, fer: feriado, h: [horas] }
-        // Nós vamos extrair apenas o array "h" (ou criar um array vazio se não existir)
-        let dadosDoDia = batidasObj[data] || {};
-        let batidasDia = Array.isArray(dadosDoDia.h) ? dadosDoDia.h : []; 
+    // 2. Agora processamos TODOS os dias, um por um
+    calendarioCompleto.forEach((diaItem, index) => {
+        let batidasDia = Array.isArray(diaItem.dados.h) ? diaItem.dados.h : []; 
         
         let minutosTrabalhadosDia = 0;
         let diurnoDia = 0;
@@ -942,7 +960,7 @@ function gerarLaudoTecnico(batidasObj, config) {
         let primeiraEntradaHoje = batidasDia.find(b => b && b.length === 5) || null;
         let saiuDeMadrugadaHoje = false;
 
-        // 1. Apurar horas trabalhadas (Diurno/Noturno)
+        // Apurar horas trabalhadas
         for (let i = 0; i < batidasDia.length; i += 2) {
             let ent = batidasDia[i];
             let sai = batidasDia[i + 1];
@@ -953,27 +971,22 @@ function gerarLaudoTecnico(batidasObj, config) {
                 minutosTrabalhadosDia += calc.totalTrabalhado;
                 
                 ultimaSaidaHoje = sai;
-                // Verifica se o turno atravessou a meia-noite
-                if (hhmmParaMin(sai) < hhmmParaMin(ent)) {
-                    saiuDeMadrugadaHoje = true;
-                }
+                if (hhmmParaMin(sai) < hhmmParaMin(ent)) saiuDeMadrugadaHoje = true;
             }
         }
 
-        // 2. Apurar Artigo 71 (Intrajornada)
+        // Apurar Artigos 71 e 66
         let art71 = apurarArtigo71(batidasDia, minutosTrabalhadosDia);
-
-        // 3. Apurar Artigo 66 (Interjornada)
         let art66Minutos = 0;
         if (ultimaSaidaAnterior && primeiraEntradaHoje) {
             art66Minutos = apurarArtigo66(ultimaSaidaAnterior, primeiraEntradaHoje, saiuDeMadrugadaAnterior);
         }
 
-        // Monta o resumo diário
+        // Resumo diário
         let objDia = {
-            data: data,
-            isFolga: dadosDoDia.f || false, // Guardamos se é folga
-            isFeriado: dadosDoDia.fer || false, // Guardamos se é feriado
+            data: diaItem.dataParaImprimir,
+            isFolga: diaItem.dados.f || false,
+            isFeriado: diaItem.dados.fer || false,
             batidas: batidasDia,
             totalTrabalhadoMin: minutosTrabalhadosDia,
             noturnoMin: noturnoDia,
@@ -984,39 +997,35 @@ function gerarLaudoTecnico(batidasObj, config) {
         relatorio.dias.push(objDia);
         semanaAtual.push(objDia);
 
-        // Soma os totais gerais (que não dependem do fecho da semana)
+        // Soma os totais gerais
         relatorio.totais.adicionalNoturnoMin += noturnoDia;
         relatorio.totais.artigo66Min += art66Minutos;
         relatorio.totais.artigo71DiferencaMin += art71.violadosDiferenca;
         relatorio.totais.artigo71FixoMin += art71.violadosFixo;
 
-        // Prepara a memória para o dia seguinte (para o Art. 66)
         if (ultimaSaidaHoje) {
             ultimaSaidaAnterior = ultimaSaidaHoje;
             saiuDeMadrugadaAnterior = saiuDeMadrugadaHoje;
         } else {
-            ultimaSaidaAnterior = null; // Folga quebra o ciclo
+            ultimaSaidaAnterior = null;
             saiuDeMadrugadaAnterior = false;
         }
 
-        // 4. Fecho da Semana (Ao Domingo ou no último dia do mês)
-        // No JavaScript, Date.getDay() retorna 0 para Domingo
-        let dataObj = new Date(data + "T00:00:00"); 
-        let diaSemana = dataObj.getDay(); 
+        // Fecho da Semana (Verifica se é Domingo ou último dia do laudo)
+        let diaSemana = diaItem.dataDate.getDay(); 
 
-        if (diaSemana === 0 || index === datas.length - 1) {
+        if (diaSemana === 0 || index === calendarioCompleto.length - 1) {
             let limiteDiarioMin = (parseFloat(config.horasDiarias) || 8) * 60;
             let limiteSemanalMin = (parseFloat(config.horasSemanais) || 44) * 60;
             
             let calcSemana = apurarHorasExtrasSemana(semanaAtual, limiteDiarioMin, limiteSemanalMin);
             relatorio.semanas.push(calcSemana);
 
-            // Soma os totais da semana ao total geral do laudo
             relatorio.totais.heDiariasMin += calcSemana.heDiarias;
             relatorio.totais.heSemanaisMin += calcSemana.heSemanais;
             relatorio.totais.horasNormaisMin += (calcSemana.totalTrabalhadoSemana - calcSemana.totalHe);
 
-            semanaAtual = []; // Limpa para a próxima semana
+            semanaAtual = []; 
         }
     });
 
@@ -1443,14 +1452,17 @@ window.processarPDFTecnico = async function() {
 // -------------------------------------------------------------------------
 
 window.executarMontagemPDF = function(opcoes, laudo) {
-    // 1. Cria um "papel virtual" (uma div em branco na memória)
     const papelVirtual = document.createElement('div');
     papelVirtual.style.padding = '20px';
     papelVirtual.style.fontFamily = 'Arial, sans-serif';
     papelVirtual.style.color = '#333';
 
-    // 2. Monta o Cabeçalho do Relatório
+    // Adicionamos um estilo para garantir que as linhas não sejam cortadas pela metade na troca de página
     let html = `
+        <style>
+            tr { page-break-inside: avoid; }
+            .resumo-box { page-break-inside: avoid; margin-top: 30px; border: 1px solid #ccc; padding: 15px; background-color: #fafafa; }
+        </style>
         <div style="text-align: center; margin-bottom: 20px;">
             <h2 style="margin: 0;">Laudo Técnico de Apuração de Horas</h2>
             <p style="margin: 5px 0;"><strong>Reclamante:</strong> ${configAtual.reclamante || 'Não informado'}</p>
@@ -1470,12 +1482,8 @@ window.executarMontagemPDF = function(opcoes, laudo) {
             <tbody>
     `;
 
-    // 3. Monta as linhas da tabela dia após dia
     laudo.dias.forEach(dia => {
-        // Junta as batidas com " - " para ficar bonito no PDF
         let batidasStr = dia.batidas.filter(b => b && b.length === 5).join(' - ') || 'Folga / Sem batidas';
-        
-        // Se escolheu Art 71, mostra a diferença (pode ser ajustado para 'Fixo' se preferir)
         let valorArt71 = minParaHHMM(dia.art71.violadosDiferenca);
 
         html += `
@@ -1495,9 +1503,9 @@ window.executarMontagemPDF = function(opcoes, laudo) {
         </table>
     `;
 
-    // 4. Monta o Resumo Totalizador no final do documento
+    // Resumo Totalizador (agora com a classe resumo-box para evitar quebra)
     html += `
-        <div style="margin-top: 30px; border: 1px solid #ccc; padding: 15px; background-color: #fafafa;">
+        <div class="resumo-box">
             <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Resumo Consolidado</h3>
             <ul style="list-style-type: none; padding-left: 0; font-size: 13px; line-height: 1.6;">
                 ${opcoes.heDiaria ? `<li><strong>Horas Extras Diárias (> ${configAtual.horasDiarias}h):</strong> ${minParaHHMM(laudo.totais.heDiariasMin)}</li>` : ''}
@@ -1511,19 +1519,17 @@ window.executarMontagemPDF = function(opcoes, laudo) {
 
     papelVirtual.innerHTML = html;
 
-    // 5. Gera o PDF usando html2pdf (Verifique se a biblioteca está no seu HTML)
-    // Se a biblioteca html2pdf não estiver configurada, isto dará um erro no console.
     if (typeof html2pdf === 'function') {
         const opt = {
             margin:       10,
             filename:     `Laudo_CartaoPonto_${configAtual.reclamante.replace(/\s+/g, '_')}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['css', 'legacy'] } // LIGA A QUEBRA DE PÁGINAS MÚLTIPLAS
         };
         html2pdf().set(opt).from(papelVirtual).save();
     } else {
-        alert("Atenção: A biblioteca 'html2pdf' não foi encontrada. O console imprimirá os dados do relatório.");
-        console.error("Faltando biblioteca html2pdf! Adicione a tag <script> no app.html.");
+        alert("Atenção: A biblioteca 'html2pdf' não foi encontrada.");
     }
 };
