@@ -6,25 +6,54 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+const MODO_TESTE = false; // MUDE PARA FALSE QUANDO FOR PARA PRODUÇÃO
 const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
-let configAtual = {};
-let cartaoAtual = null; // Tem que ser global para a gerarFolha ver
 window.batidasGlobal = {};
-let usuarioLogado = null;
 let listaFeriadosGlobais = [];
 let anoVisualizacaoAtual = null;
+let configAtual = {};
+let cartaoAtual = null;
+let usuarioLogado = null;
 
 // 1. Inicia buscando da Nuvem
 document.addEventListener('DOMContentLoaded', () => {
+    
+    // --- BYPASS DE TESTE LOCAL ---
+    if (MODO_TESTE) {
+        console.warn("MODO TESTE ATIVADO no app.js: Carregando dados fictícios.");
+        usuarioLogado = { uid: "usuario_teste_123" };
+        cartaoAtual = {
+            id: "cartao_teste",
+            userId: "usuario_teste_123",
+            progresso: 0,
+            batidas: {},
+            config: {
+                reclamante: "João da Silva (Ambiente de Teste)",
+                dataInicio: "2024-01-01",
+                dataFim: "2024-01-31",
+                escala: "seg-sex",
+                horasDiarias: 8,
+                horasSemanais: 44
+            }
+        };
+        configAtual = cartaoAtual.config;
+        
+        // Elemento pode não existir na página, então checamos antes
+        const elReclamante = document.getElementById('info-reclamante');
+        if (elReclamante) elReclamante.innerText = configAtual.reclamante;
+        
+        gerarFolha(configAtual);
+        return; // Encerra aqui, impedindo que o Firebase seja acionado!
+    }
+    // ------------------------------
+
     onAuthStateChanged(auth, async (user) => {
         if (user) {
         usuarioLogado = user;
         
-        // 1. Primeiro buscamos o PERFIL de quem está logado para saber se é colaborador
         const perfilDoc = await getDoc(doc(db, "usuarios", user.uid));
         const dadosPerfil = perfilDoc.data();
 
-        // 2. Passamos o perfil para a função de carregar o cartão
         await carregarCartaoDaNuvem(dadosPerfil);
         } else {
             window.location.href = "index.html";
@@ -263,6 +292,14 @@ async function salvarProgressoAuto() {
     if (cartaoAtual.progresso > 100) cartaoAtual.progresso = 100; // Trava de segurança
     
     cartaoAtual.dataEdicao = Date.now();
+
+    // --- BLOQUEIO DE SALVAMENTO PARA MODO TESTE ---
+    if (MODO_TESTE) {
+        console.log(`✅ Simulação de Salvo (MODO TESTE)! Progresso: ${cartaoAtual.progresso}%`);
+        console.log("Batidas na memória:", cartaoAtual.batidas);
+        return; // O "return" faz a função parar aqui, protegendo o Firebase real
+    }
+    // ----------------------------------------------
 
     try {
         const docRef = doc(db, "cartoes", idAtual);
@@ -612,205 +649,388 @@ function pularLinha(trAtual) {
     }
 }
 
-function calcularLinha(tr) {
-    const ins = tr.querySelectorAll('.ponto');
-    const dataString = tr.getAttribute('data-dia');
-    const isFeriado = tr.classList.contains('destaque-feriado') || tr.classList.contains('destaque-vermelho');
-    
-    const [dia, mes, ano] = dataString.split('/');
-    const dataObj = new Date(`${ano}-${mes}-${dia}T00:00:00`);
-    const diaSemana = dataObj.getDay(); 
-
-    let totalTrabalhadoMin = 0;
-    let totalIntervaloMin = 0;
-
-    // Cálculo do tempo trabalhado e intervalos
-    for (let i = 0; i < ins.length; i += 2) {
-        const e = hhmmParaMin(ins[i]?.value);
-        const s = hhmmParaMin(ins[i+1]?.value);
-        
-        if (e > 0 && s > 0) {
-            totalTrabalhadoMin += (s - e);
-            
-            // Intervalo (Saída atual vs Próxima Entrada)
-            const proximaE = hhmmParaMin(ins[i+2]?.value);
-            if (proximaE > 0) {
-                totalIntervaloMin += (proximaE - s);
-            }
-        }
-    }
-
-    const horasTrabalhadasDec = totalTrabalhadoMin / 60;
-    const limiteDiario = parseFloat(configAtual.horasDiarias) || 8;
-    
-    let extraDiaria = 0;
-    let art71 = 0;
-
-    // Art. 71 - Intrajornada
-    if (horasTrabalhadasDec > 6 && totalIntervaloMin < 60) {
-        art71 = (60 - totalIntervaloMin) / 60;
-    } else if (horasTrabalhadasDec > 4 && horasTrabalhadasDec <= 6 && totalIntervaloMin < 15) {
-        art71 = (15 - totalIntervaloMin) / 60;
-    }
-
-    // Extra Diária (Só se não for Domingo/Feriado)
-    const isDF = (isFeriado || diaSemana === 0);
-    if (!isDF && horasTrabalhadasDec > limiteDiario) {
-        extraDiaria = horasTrabalhadasDec - limiteDiario;
-    }
-
-    // Atualiza o visual da linha
-    const campoTotalLinha = tr.querySelector('.total-dia');
-    if (campoTotalLinha) campoTotalLinha.innerText = minParaHHMM(totalTrabalhadoMin);
-    
-    // Salva os dados brutos na linha para o totalizador ler
-    tr.dataset.totalBruto = horasTrabalhadasDec.toFixed(4);
-    tr.dataset.extraDiaria = extraDiaria.toFixed(4);
-    tr.dataset.art71 = art71.toFixed(4);
-    tr.dataset.isDF = isDF ? "sim" : "nao";
-    tr.dataset.isSab = (diaSemana === 6) ? "sim" : "nao";
-
-    // CHAMA O TOTALIZADOR DO RODAPÉ
-    atualizarTotalGeral();
-}
-
-function hhmmParaMin(t) {
-    if (!t || t.length < 5) return 0;
-    const [h, m] = t.split(':').map(Number);
+function hhmmParaMin(horario) {
+    if (!horario || horario.length < 5) return 0;
+    const [h, m] = horario.split(':').map(Number);
     return (h * 60) + m;
 }
 
-function minParaHHMM(t) { return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; }
-
-function atualizarTotalGeral() {
-    let totTrabalhado = 0;
-    let totDiaria = 0;
-    let totSemanal = 0;
-    let totDF = 0;
-    let totArt71 = 0;
-    let totArt66 = 0;
-    
-    let acumuladorSemanal = 0;
-    const limiteSemanal = parseFloat(configAtual.horasSemanais) || 44;
-    const limiteDiario = parseFloat(configAtual.horasDiarias) || 8;
-
-    const linhas = Array.from(document.querySelectorAll('.linha-ponto'));
-
-    linhas.forEach((tr, index) => {
-        const bruto = parseFloat(tr.dataset.totalBruto || 0);
-        const diaria = parseFloat(tr.dataset.extraDiaria || 0);
-        const art71 = parseFloat(tr.dataset.art71 || 0);
-        const isDF = tr.dataset.isDF === "sim";
-        const isSab = tr.dataset.isSab === "sim";
-
-        totTrabalhado += bruto;
-        totArt71 += art71;
-
-        if (isDF) {
-            totDF += bruto;
-        } else {
-            totDiaria += diaria;
-            // Para a semanal, somamos o que é "normal" (até o limite diário)
-            acumuladorSemanal += (bruto - diaria);
-        }
-
-        // Fechamento da Semana no Sábado
-        if (isSab) {
-            if (acumuladorSemanal > limiteSemanal) {
-                totSemanal += (acumuladorSemanal - limiteSemanal);
-            }
-            acumuladorSemanal = 0; // Reseta para a próxima semana
-        }
-
-        // Art. 66 (Interjornada - 11h)
-        const proxTr = linhas[index + 1];
-        if (proxTr) {
-            const inputsHoje = tr.querySelectorAll('.ponto');
-            const inputsAmanha = proxTr.querySelectorAll('.ponto');
-            
-            // Pega a última saída preenchida de hoje
-            let ultimaSaida = 0;
-            for(let i=inputsHoje.length-1; i>=0; i--) {
-                if(hhmmParaMin(inputsHoje[i].value) > 0) {
-                    ultimaSaida = hhmmParaMin(inputsHoje[i].value);
-                    break;
-                }
-            }
-            
-            // Pega a primeira entrada de amanhã
-            const primeiraEntrada = hhmmParaMin(inputsAmanha[0]?.value);
-
-            if (ultimaSaida > 0 && primeiraEntrada > 0) {
-                let descanso = (1440 - ultimaSaida) + primeiraEntrada;
-                if (descanso < 660) { // 660min = 11h
-                    totArt66 += (660 - descanso) / 60;
-                }
-            }
-        }
-    });
-
-    // Atualiza os IDs do novo HTML
-    const setTxt = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.innerText = decimalParaHHMM(val);
-    };
-
-    setTxt('total-geral-periodo', totTrabalhado);
-    setTxt('total-extra-diaria', totDiaria);
-    setTxt('total-extra-semanal', totSemanal);
-    setTxt('total-dom-feriado', totDF);
-    setTxt('total-art71', totArt71);
-    setTxt('total-art66', totArt66);
-    
-    console.log("Totais atualizados!", { totTrabalhado, totDiaria });
+function minParaHHMM(minutos) {
+    if (isNaN(minutos) || minutos < 0) return "00:00";
+    const h = Math.floor(minutos / 60);
+    const m = Math.floor(minutos % 60);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-function ehFeriadoNacional(data) {
-    const ano = data.getFullYear();
-    const fixos = ['01/01', '21/04', '01/05', '07/09', '12/10', '02/11', '15/11', '25/12'];
-    let a=ano%19,b=Math.floor(ano/100),c=ano%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;
-    let pascoa = new Date(ano, mes-1, dia), carnaval = new Date(pascoa); carnaval.setDate(pascoa.getDate()-47);
-    let sextaSanta = new Date(pascoa); sextaSanta.setDate(pascoa.getDate()-2);
-    let corpus = new Date(pascoa); corpus.setDate(pascoa.getDate()+60);
-    const formata = dt => String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
-    return fixos.includes(formata(data)) || [formata(carnaval), formata(sextaSanta), formata(pascoa), formata(corpus)].includes(formata(data));
-}
-function calcularTurno(entradaMin, saidaMin) {
-    if (saidaMin <= entradaMin) saidaMin += 1440; // Virou a noite
+// Função que calcula a duração entre duas batidas, separando Noturno e Diurno
+function calcularIntervaloDiferenciado(entrada, saida) {
+    if(!entrada || !saida) return { diurno: 0, noturno: 0, totalTrabalhado: 0 };
+    let inicio = hhmmParaMin(entrada);
+    let fim = hhmmParaMin(saida);
     
-    let minDiurno = 0;
-    let minNoturno = 0;
+    // Se a saída for menor que a entrada, assumimos que virou a meia-noite
+    if (fim < inicio) fim += 1440; 
 
-    // Varre minuto a minuto (método mais seguro para lidar com madrugadas)
-    for (let m = entradaMin; m < saidaMin; m++) {
-        let minutoDoDia = m % 1440; // Garante que 24h vire 00h
+    let minDiurnos = 0;
+    let minNoturnos = 0;
+
+    for (let m = inicio; m < fim; m++) {
+        let minutoDoDia = m % 1440; // Garante que 1440 vire 0 (meia-noite)
         
-        // Regra Noturna: Entre 22:00 (1320) e 05:00 (300)
+        // Intervalo Noturno: 22:00 (1320min) até 05:00 (300min)
         if (minutoDoDia >= 1320 || minutoDoDia < 300) {
-            minNoturno++;
+            minNoturnos++;
         } else {
-            minDiurno++;
+            minDiurnos++;
         }
     }
 
-    // Aplica a Redução da Hora Noturna (Hora Ficta)
-    // 1 minuto relógio = 1.142857 minutos trabalhistas
-    let minNoturnoFicto = minNoturno * (60 / 52.5);
+    // Aplicação da Hora Ficta Noturna (Art. 73, §1º da CLT)
+    // 60 min de relógio = 52.5 min de trabalho (Multiplicador de 1.142857)
+    const minNoturnosReduzidos = Math.floor(minNoturnos * (8 / 7));
 
     return {
-        diurno: minDiurno,
-        noturnoRelogio: minNoturno,
-        noturnoFicto: minNoturnoFicto,
-        totalFicto: minDiurno + minNoturnoFicto
+        diurno: minDiurnos,
+        noturno: minNoturnosReduzidos,
+        totalTrabalhado: minDiurnos + minNoturnosReduzidos
     };
 }
 
-function decimalParaHHMM(decimal) {
-    if (!decimal || isNaN(decimal)) return "00:00";
-    const horas = Math.floor(decimal);
-    const minutos = Math.round((decimal - horas) * 60);
-    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+function calcularLinha(tr) {
+    if (!tr) return;
+    
+    const campoTotal = tr.querySelector('.total-dia');
+
+    // Se a linha for uma folga, zera tudo
+    if (tr.classList.contains('folga') || tr.classList.contains('afastamento')) {
+        if (campoTotal) campoTotal.innerText = "00:00";
+        tr.dataset.totalDiurnoMin = 0;
+        tr.dataset.totalNoturnoMin = 0;
+        tr.dataset.totalBruto = 0;
+        return;
+    }
+
+    const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
+    let totalDiurnoMin = 0;
+    let totalNoturnoMin = 0;
+
+    // Pega os pares de entrada e saída
+    for (let i = 0; i < inputs.length; i += 2) {
+        let ent = inputs[i];
+        let sai = inputs[i + 1];
+        if (ent && sai && ent.length === 5 && sai.length === 5) {
+            let res = calcularIntervaloDiferenciado(ent, sai);
+            totalDiurnoMin += res.diurno;
+            totalNoturnoMin += res.noturno;
+        }
+    }
+
+    const totalTrabalhadoMin = totalDiurnoMin + totalNoturnoMin;
+    const horasTrabalhadasDec = totalTrabalhadoMin / 60;
+
+    // Atualiza o visual da linha (Total de horas convertido de volta para HH:MM)
+    if (campoTotal) campoTotal.innerText = minParaHHMM(totalTrabalhadoMin);
+
+    // Salva os dados brutos no "dataset" da linha HTML para os totais e relatórios lerem depois
+    tr.dataset.totalDiurnoMin = totalDiurnoMin;
+    tr.dataset.totalNoturnoMin = totalNoturnoMin;
+    tr.dataset.totalBruto = horasTrabalhadasDec.toFixed(4); // Mantendo para compatibilidade
+    
+    // Chama o totalizador do rodapé
+    if(typeof atualizarTotalGeral === 'function') {
+       atualizarTotalGeral();
+    }
 }
+
+// -------------------------------------------------------------------------
+// MOTOR JURÍDICO: APURAÇÃO DE HORAS EXTRAS (DIÁRIAS E SEMANAIS)
+// -------------------------------------------------------------------------
+
+/**
+ * Analisa um array de dias de uma mesma semana de segunda a domingo.
+ * @param {Array} diasDaSemana - Array de objetos contendo os minutos trabalhados no dia.
+ * @param {Number} limiteDiarioMin - Padrão: 480 min (8 horas).
+ * @param {Number} limiteSemanalMin - Padrão: 2640 min (44 horas).
+ */
+function apurarHorasExtrasSemana(diasDaSemana, limiteDiarioMin = 480, limiteSemanalMin = 2640) {
+    let totalSemanaMin = 0;
+    let heDiariasMin = 0;
+    let heSemanaisMin = 0;
+
+    // 1. Apuração Diária
+    diasDaSemana.forEach(dia => {
+        let trabMin = dia.totalTrabalhadoMin || 0; 
+        let heDoDia = 0;
+
+        // Se trabalhou mais que o limite diário (ex: 8h), gera HE Diária
+        if (trabMin > limiteDiarioMin) {
+            heDoDia = trabMin - limiteDiarioMin;
+            heDiariasMin += heDoDia;
+        }
+
+        totalSemanaMin += trabMin;
+    });
+
+    // 2. Apuração Semanal (Evitando Bis in Idem)
+    // O que sobra após tirarmos as HEs diárias? São as "Horas Normais" da semana.
+    let horasNormaisSemana = totalSemanaMin - heDiariasMin; 
+    
+    // Se essas "Horas Normais" ultrapassarem 44h, o excesso é HE Semanal
+    if (horasNormaisSemana > limiteSemanalMin) {
+        heSemanaisMin = horasNormaisSemana - limiteSemanalMin;
+    }
+
+    return {
+        totalTrabalhadoSemana: totalSemanaMin,
+        heDiarias: heDiariasMin,
+        heSemanais: heSemanaisMin,
+        totalHe: heDiariasMin + heSemanaisMin
+    };
+}
+
+// -------------------------------------------------------------------------
+// MOTOR JURÍDICO: APURAÇÃO DO ART. 66 (INTERJORNADA - 11 HORAS)
+// -------------------------------------------------------------------------
+
+/**
+ * Calcula se houve violação do descanso de 11 horas (660 min) entre duas jornadas.
+ * Base legal: Art. 66 da CLT c/c Súmula 110 TST / OJ 355 SDI-1.
+ * * @param {String} ultimaSaidaOntem - HH:MM da última batida do dia anterior
+ * @param {String} primeiraEntradaHoje - HH:MM da primeira batida do dia atual
+ * @param {Boolean} saiuDeMadrugada - True se a saída de ontem passou da meia-noite
+ * @returns {Number} Minutos de horas extras (ofensa ao intervalo)
+ */
+function apurarArtigo66(ultimaSaidaOntem, primeiraEntradaHoje, saiuDeMadrugada = false) {
+    if (!ultimaSaidaOntem || !primeiraEntradaHoje) return 0;
+
+    let minSaidaAnterior = hhmmParaMin(ultimaSaidaOntem);
+    let minEntradaHoje = hhmmParaMin(primeiraEntradaHoje);
+
+    // Se o funcionário saiu de madrugada (ex: 02:00), somamos 1440 min (24h) 
+    // para colocar a saída na linha do tempo correta.
+    if (saiuDeMadrugada) {
+        minSaidaAnterior += 1440; 
+    }
+
+    // Cálculo do descanso: Tempo restante do dia anterior + Tempo até a entrada de hoje
+    let minutosDescanso = (1440 - minSaidaAnterior) + minEntradaHoje;
+
+    // O limite legal é 11 horas fechadas (660 minutos)
+    if (minutosDescanso < 660) {
+        // Paga-se apenas o tempo suprimido (o que faltou para completar as 11h)
+        let minutosViolados = 660 - minutosDescanso;
+        return minutosViolados; 
+    }
+
+    return 0; // Respeitou o intervalo perfeitamente
+}
+
+// -------------------------------------------------------------------------
+// MOTOR JURÍDICO: APURAÇÃO DO ART. 71 (INTRAJORNADA - ALMOÇO)
+// -------------------------------------------------------------------------
+
+/**
+ * Calcula se houve violação do intervalo de refeição/descanso.
+ * Base legal: Art. 71 da CLT.
+ * @param {Array} batidas - Array de strings com as batidas do dia (ex: ["08:00", "12:00", "13:00", "18:00"])
+ * @param {Number} totalTrabalhadoMin - Total de minutos efetivamente trabalhados no dia
+ * @returns {Object} Objeto com o tempo realizado e os minutos violados (Diferença ou Fixo)
+ */
+function apurarArtigo71(batidas, totalTrabalhadoMin) {
+    // Retira campos vazios e deixa apenas batidas válidas
+    const batidasValidas = batidas.filter(b => b && b.length === 5);
+
+    if (batidasValidas.length < 4) {
+        // Se tem menos de 4 batidas (ex: trabalhou direto sem registar almoço)
+        return calcularViolacaoIntrajornada(0, totalTrabalhadoMin);
+    }
+
+    let totalIntervaloMin = 0;
+
+    // Analisa os espaços entre a saída de um turno e a entrada do próximo (dentro do dia)
+    for (let i = 1; i < batidasValidas.length - 1; i += 2) {
+        let saidaTurno = hhmmParaMin(batidasValidas[i]);
+        let entradaProximoTurno = hhmmParaMin(batidasValidas[i+1]);
+
+        if (saidaTurno > 0 && entradaProximoTurno > 0) {
+            let descanso = entradaProximoTurno - saidaTurno;
+            // Se cruzou a meia-noite durante o descanso
+            if (descanso < 0) descanso += 1440; 
+            totalIntervaloMin += descanso;
+        }
+    }
+
+    return calcularViolacaoIntrajornada(totalIntervaloMin, totalTrabalhadoMin);
+}
+
+/**
+ * Lógica auxiliar para definir qual é o limite de horas exigido e calcular a ofensa.
+ */
+function calcularViolacaoIntrajornada(intervaloRealizado, totalTrabalhado) {
+    let intervaloExigido = 0;
+
+    // Jornada superior a 6h exige 1 hora (60 min) de intervalo
+    if (totalTrabalhado > 360) {
+        intervaloExigido = 60;
+    } 
+    // Jornada entre 4h e 6h exige 15 min de intervalo
+    else if (totalTrabalhado > 240 && totalTrabalhado <= 360) {
+        intervaloExigido = 15;
+    }
+
+    let violacaoDiferenca = 0;
+    let violacaoFixo = 0;
+
+    if (intervaloRealizado < intervaloExigido) {
+        violacaoDiferenca = intervaloExigido - intervaloRealizado; // Apenas o que faltou
+        violacaoFixo = intervaloExigido; // Paga a hora/minutos cheios da lei
+    }
+
+    return {
+        intervaloExigido: intervaloExigido,
+        intervaloRealizado: intervaloRealizado,
+        violadosDiferenca: violacaoDiferenca, // Cobre o Item 22 da sua lista
+        violadosFixo: violacaoFixo            // Cobre o Item 23 da sua lista
+    };
+}
+
+// -------------------------------------------------------------------------
+// MOTOR JURÍDICO: CONSOLIDADOR DO PERÍODO (LAUDO TÉCNICO)
+// -------------------------------------------------------------------------
+
+/**
+ * Lê todas as batidas do mês e gera um relatório completo com todas as infrações.
+ * @param {Object} batidasObj - Objeto com as batidas salvas no Firebase
+ * @param {Object} config - Configurações do cartão (limites de horas)
+ * @returns {Object} Relatório estruturado para exportação (PDF/Excel)
+ */
+function gerarLaudoTecnico(batidasObj, config) {
+    let relatorio = {
+        dias: [], semanas: [],
+        totais: {
+            horasNormaisMin: 0, heDiariasMin: 0, heSemanaisMin: 0,
+            adicionalNoturnoMin: 0, artigo66Min: 0, artigo71DiferencaMin: 0, artigo71FixoMin: 0
+        }
+    };
+
+    if (!config || !config.dataInicio || !config.dataFim) return relatorio;
+
+    // 1. Gera o calendário COMPLETO do período (ex: 01/01 a 31/01)
+    let dataAtual = new Date(config.dataInicio + "T00:00:00");
+    let dataFinal = new Date(config.dataFim + "T00:00:00");
+    
+    let calendarioCompleto = [];
+    
+    while (dataAtual <= dataFinal) {
+        let ano = dataAtual.getFullYear();
+        let mes = String(dataAtual.getMonth() + 1).padStart(2, '0');
+        let dia = String(dataAtual.getDate()).padStart(2, '0');
+        
+        // Montamos a data no formato BR (DD/MM/YYYY) e EUA (YYYY-MM-DD)
+        let dataBR = `${dia}/${mes}/${ano}`;
+        let dataEUA = `${ano}-${mes}-${dia}`;
+        
+        // Tenta achar os dados daquele dia no banco (seja qual for o formato salvo)
+        let dadosDoDia = {};
+        if (batidasObj && batidasObj[dataBR]) dadosDoDia = batidasObj[dataBR];
+        else if (batidasObj && batidasObj[dataEUA]) dadosDoDia = batidasObj[dataEUA];
+
+        calendarioCompleto.push({
+            dataParaImprimir: dataBR, // Vai sair bonito no PDF
+            dados: dadosDoDia,
+            dataDate: new Date(`${ano}-${mes}-${dia}T00:00:00`) // Para saber quando é Domingo
+        });
+        
+        dataAtual.setDate(dataAtual.getDate() + 1); // Vai para o próximo dia
+    }
+    
+    let semanaAtual = [];
+    let ultimaSaidaAnterior = null;
+    let saiuDeMadrugadaAnterior = false;
+
+    // 2. Agora processamos TODOS os dias, um por um
+    calendarioCompleto.forEach((diaItem, index) => {
+        let batidasDia = Array.isArray(diaItem.dados.h) ? diaItem.dados.h : []; 
+        
+        let minutosTrabalhadosDia = 0;
+        let diurnoDia = 0;
+        let noturnoDia = 0;
+        let ultimaSaidaHoje = null;
+        let primeiraEntradaHoje = batidasDia.find(b => b && b.length === 5) || null;
+        let saiuDeMadrugadaHoje = false;
+
+        // Apurar horas trabalhadas
+        for (let i = 0; i < batidasDia.length; i += 2) {
+            let ent = batidasDia[i];
+            let sai = batidasDia[i + 1];
+            if (ent && sai && ent.length === 5 && sai.length === 5) {
+                let calc = calcularIntervaloDiferenciado(ent, sai);
+                diurnoDia += calc.diurno;
+                noturnoDia += calc.noturno;
+                minutosTrabalhadosDia += calc.totalTrabalhado;
+                
+                ultimaSaidaHoje = sai;
+                if (hhmmParaMin(sai) < hhmmParaMin(ent)) saiuDeMadrugadaHoje = true;
+            }
+        }
+
+        // Apurar Artigos 71 e 66
+        let art71 = apurarArtigo71(batidasDia, minutosTrabalhadosDia);
+        let art66Minutos = 0;
+        if (ultimaSaidaAnterior && primeiraEntradaHoje) {
+            art66Minutos = apurarArtigo66(ultimaSaidaAnterior, primeiraEntradaHoje, saiuDeMadrugadaAnterior);
+        }
+
+        // Resumo diário
+        let objDia = {
+            data: diaItem.dataParaImprimir,
+            isFolga: diaItem.dados.f || false,
+            isFeriado: diaItem.dados.fer || false,
+            batidas: batidasDia,
+            totalTrabalhadoMin: minutosTrabalhadosDia,
+            noturnoMin: noturnoDia,
+            art71: art71,
+            art66Minutos: art66Minutos
+        };
+
+        relatorio.dias.push(objDia);
+        semanaAtual.push(objDia);
+
+        // Soma os totais gerais
+        relatorio.totais.adicionalNoturnoMin += noturnoDia;
+        relatorio.totais.artigo66Min += art66Minutos;
+        relatorio.totais.artigo71DiferencaMin += art71.violadosDiferenca;
+        relatorio.totais.artigo71FixoMin += art71.violadosFixo;
+
+        if (ultimaSaidaHoje) {
+            ultimaSaidaAnterior = ultimaSaidaHoje;
+            saiuDeMadrugadaAnterior = saiuDeMadrugadaHoje;
+        } else {
+            ultimaSaidaAnterior = null;
+            saiuDeMadrugadaAnterior = false;
+        }
+
+        // Fecho da Semana (Verifica se é Domingo ou último dia do laudo)
+        let diaSemana = diaItem.dataDate.getDay(); 
+
+        if (diaSemana === 0 || index === calendarioCompleto.length - 1) {
+            let limiteDiarioMin = (parseFloat(config.horasDiarias) || 8) * 60;
+            let limiteSemanalMin = (parseFloat(config.horasSemanais) || 44) * 60;
+            
+            let calcSemana = apurarHorasExtrasSemana(semanaAtual, limiteDiarioMin, limiteSemanalMin);
+            relatorio.semanas.push(calcSemana);
+
+            relatorio.totais.heDiariasMin += calcSemana.heDiarias;
+            relatorio.totais.heSemanaisMin += calcSemana.heSemanais;
+            relatorio.totais.horasNormaisMin += (calcSemana.totalTrabalhadoSemana - calcSemana.totalHe);
+
+            semanaAtual = []; 
+        }
+    });
+
+    return relatorio;
+}
+
 // ==========================================================================
 // FUNÇÕES DO MENU DE CONFIGURAÇÃO E AFASTAMENTOS
 // ==========================================================================
@@ -1126,54 +1346,137 @@ window.aplicarAjusteDatas = function() {
     
     alert("Período atualizado com sucesso!");
 };
-// Abre o modal em vez de gerar o PDF direto
+// -------------------------------------------------------------------------
+// CONTROLES DO MODAL DE EXPORTAÇÃO
+// -------------------------------------------------------------------------
+
+// Abre o modal de opções quando o usuário clica em "Exportar"
 window.gerarPDF = function() {
-    document.getElementById('modal-exportar-tecnico').classList.remove('escondido');
+    const modal = document.getElementById('modal-exportar-tecnico');
+    if (modal) modal.classList.remove('escondido');
 };
 
+// Fecha o modal
 window.fecharModalExportar = function() {
-    document.getElementById('modal-exportar-tecnico').classList.add('escondido');
+    const modal = document.getElementById('modal-exportar-tecnico');
+    if (modal) modal.classList.add('escondido');
 };
 
-async function processarPDFTecnico() {
-    // 1. Coletar Opções Selecionadas
+// O Botão de "Confirmar" dentro do modal chama esta função
+window.processarPDFTecnico = async function() {
+    // 1. Coletar Opções Selecionadas no Modal
     const opcoes = {
-        heDiaria: document.getElementById('opt-he-diurna').checked,
-        heSemanal: document.getElementById('opt-he-semanal').checked,
-        art71: document.getElementById('opt-art71').checked,
-        art66: document.getElementById('opt-art66').checked,
-        art67: document.getElementById('opt-art67').checked,
-        sumula85: document.getElementById('opt-sumula85').checked,
-        adcNoturno: document.getElementById('opt-adc-noturno').checked,
-        domFer: document.getElementById('opt-dom-fer').checked
+        heDiaria: document.getElementById('opt-he-diurna')?.checked || false,
+        heSemanal: document.getElementById('opt-he-semanal')?.checked || false,
+        art71: document.getElementById('opt-art71')?.checked || false,
+        art66: document.getElementById('opt-art66')?.checked || false,
+        art67: document.getElementById('opt-art67')?.checked || false,
+        sumula85: document.getElementById('opt-sumula85')?.checked || false,
+        adcNoturno: document.getElementById('opt-adc-noturno')?.checked || false,
+        domFer: document.getElementById('opt-dom-fer')?.checked || false
     };
 
     fecharModalExportar();
     
-    // Início do processo de montagem do laudo
-    const { reclamante, reclamada, dataInicio, dataFim, horasDiarias, horasSemanais } = configAtual;
-    const elemento = document.createElement('div');
-    elemento.style.padding = '20px';
-    elemento.style.fontFamily = 'Arial, sans-serif';
+    // 2. O NOSSO CÉREBRO ENTRA EM AÇÃO AQUI
+    // Lê todas as batidas e a configuração do cartão atual e gera a matemática completa.
+    const laudoTecnico = gerarLaudoTecnico(cartaoAtual.batidas, configAtual);
 
-    // Variáveis de Acúmulo Totalizador do Laudo
-    let totaisLaudo = { he: 0, art71: 0, art66: 0, domFer: 0, noturno: 0 };
-
-    // ... Aqui entra a lógica de loop que percorre os meses ...
-    // Para cada dia, ele verifica se 'opcoes.art71' está ativo. 
-    // Se sim, ele calcula a verba e adiciona numa coluna extra do PDF.
-
-    // EX: Lógica Art 71 no PDF
-    /* if(opcoes.art71 && intervalo < 60) {
-          totaisLaudo.art71 += (60 - intervalo) / 60;
-          // Adiciona na célula da tabela do PDF
-       }
-    */
-
-    // No final, ele gera o PDF com html2pdf como fazíamos antes.
-    alert("Gerando laudo com os parâmetros selecionados...");
+    // Dica de Debug: Pressione F12 e veja a aba Console para ver os cálculos perfeitos!
+    console.log("LAUDO GERADO COM SUCESSO: ", laudoTecnico);
     
-    // CHAMADA DA FUNÇÃO DE PDF REAL (Aquela que montamos anteriormente, 
-    // mas agora passando o objeto 'opcoes' para ela saber o que imprimir)
-    executarMontagemPDF(opcoes);
-}
+    // 3. Passamos as opções escolhidas E o laudo calculado para a função que desenha o PDF
+    if (typeof executarMontagemPDF === 'function') {
+        executarMontagemPDF(opcoes, laudoTecnico);
+    } else {
+        alert("Erro interno: A função de montagem do PDF não foi carregada.");
+        console.error("Função executarMontagemPDF não encontrada!");
+    }
+};
+
+// -------------------------------------------------------------------------
+// EXPORTAÇÃO: DESENHO DO LAUDO EM PDF
+// -------------------------------------------------------------------------
+
+window.executarMontagemPDF = function(opcoes, laudo) {
+    const papelVirtual = document.createElement('div');
+    papelVirtual.style.padding = '20px';
+    papelVirtual.style.fontFamily = 'Arial, sans-serif';
+    papelVirtual.style.color = '#333';
+
+    // Adicionamos um estilo para garantir que as linhas não sejam cortadas pela metade na troca de página
+    let html = `
+        <style>
+            tr { page-break-inside: avoid; }
+            .resumo-box { page-break-inside: avoid; margin-top: 30px; border: 1px solid #ccc; padding: 15px; background-color: #fafafa; }
+        </style>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="margin: 0;">Laudo Técnico de Apuração de Horas</h2>
+            <p style="margin: 5px 0;"><strong>Reclamante:</strong> ${configAtual.reclamante || 'Não informado'}</p>
+        </div>
+        
+        <table border="1" style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px;">
+            <thead style="background-color: #f4f4f4;">
+                <tr>
+                    <th style="padding: 5px;">Data</th>
+                    <th style="padding: 5px;">Batidas</th>
+                    <th style="padding: 5px;">Trabalhado</th>
+                    ${opcoes.adcNoturno ? '<th style="padding: 5px;">Noturno</th>' : ''}
+                    ${opcoes.art71 ? '<th style="padding: 5px;">Art. 71</th>' : ''}
+                    ${opcoes.art66 ? '<th style="padding: 5px;">Art. 66</th>' : ''}
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    laudo.dias.forEach(dia => {
+        let batidasStr = dia.batidas.filter(b => b && b.length === 5).join(' - ') || 'Folga / Sem batidas';
+        let valorArt71 = minParaHHMM(dia.art71.violadosDiferenca);
+
+        html += `
+            <tr>
+                <td style="padding: 5px;">${dia.data.split('-').reverse().join('/')}</td>
+                <td style="padding: 5px;">${batidasStr}</td>
+                <td style="padding: 5px;">${minParaHHMM(dia.totalTrabalhadoMin)}</td>
+                ${opcoes.adcNoturno ? `<td style="padding: 5px; color: ${dia.noturnoMin > 0 ? 'red' : 'black'};">${minParaHHMM(dia.noturnoMin)}</td>` : ''}
+                ${opcoes.art71 ? `<td style="padding: 5px; color: ${dia.art71.violadosDiferenca > 0 ? 'red' : 'black'};">${valorArt71}</td>` : ''}
+                ${opcoes.art66 ? `<td style="padding: 5px; color: ${dia.art66Minutos > 0 ? 'red' : 'black'};">${minParaHHMM(dia.art66Minutos)}</td>` : ''}
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+    `;
+
+    // Resumo Totalizador (agora com a classe resumo-box para evitar quebra)
+    html += `
+        <div class="resumo-box">
+            <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Resumo Consolidado</h3>
+            <ul style="list-style-type: none; padding-left: 0; font-size: 13px; line-height: 1.6;">
+                ${opcoes.heDiaria ? `<li><strong>Horas Extras Diárias (> ${configAtual.horasDiarias}h):</strong> ${minParaHHMM(laudo.totais.heDiariasMin)}</li>` : ''}
+                ${opcoes.heSemanal ? `<li><strong>Horas Extras Semanais (> ${configAtual.horasSemanais}h):</strong> ${minParaHHMM(laudo.totais.heSemanaisMin)}</li>` : ''}
+                ${opcoes.adcNoturno ? `<li><strong>Adicional Noturno (com redução):</strong> ${minParaHHMM(laudo.totais.adicionalNoturnoMin)}</li>` : ''}
+                ${opcoes.art71 ? `<li><strong>Violação Art. 71 (Diferença):</strong> ${minParaHHMM(laudo.totais.artigo71DiferencaMin)}</li>` : ''}
+                ${opcoes.art66 ? `<li><strong>Violação Art. 66 (Interjornada):</strong> ${minParaHHMM(laudo.totais.artigo66Min)}</li>` : ''}
+            </ul>
+        </div>
+    `;
+
+    papelVirtual.innerHTML = html;
+
+    if (typeof html2pdf === 'function') {
+        const opt = {
+            margin:       10,
+            filename:     `Laudo_CartaoPonto_${configAtual.reclamante.replace(/\s+/g, '_')}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['css', 'legacy'] } // LIGA A QUEBRA DE PÁGINAS MÚLTIPLAS
+        };
+        html2pdf().set(opt).from(papelVirtual).save();
+    } else {
+        alert("Atenção: A biblioteca 'html2pdf' não foi encontrada.");
+    }
+};
