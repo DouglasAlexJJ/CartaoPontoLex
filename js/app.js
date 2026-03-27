@@ -707,7 +707,6 @@ function calcularLinha(tr) {
         tr.dataset.totalDiurnoMin = 0;
         tr.dataset.totalNoturnoMin = 0;
         tr.dataset.totalBruto = 0;
-        if(typeof atualizarTotalGeral === 'function') atualizarTotalGeral();
         return;
     }
 
@@ -1032,58 +1031,6 @@ function gerarLaudoTecnico(batidasObj, config) {
     return relatorio;
 }
 
-function atualizarTotalGeral() {
-    // Desativado: O cálculo em tempo real do rodapé visual foi removido.
-    // Os cálculos agora são feitos no Motor Jurídico para a exportação (PDF/Excel).
-    return;
-}
-
-function ehFeriadoNacional(data) {
-    const ano = data.getFullYear();
-    const fixos = ['01/01', '21/04', '01/05', '07/09', '12/10', '02/11', '15/11', '25/12'];
-    let a=ano%19,b=Math.floor(ano/100),c=ano%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mes=Math.floor((h+l-7*m+114)/31),dia=((h+l-7*m+114)%31)+1;
-    let pascoa = new Date(ano, mes-1, dia), carnaval = new Date(pascoa); carnaval.setDate(pascoa.getDate()-47);
-    let sextaSanta = new Date(pascoa); sextaSanta.setDate(pascoa.getDate()-2);
-    let corpus = new Date(pascoa); corpus.setDate(pascoa.getDate()+60);
-    const formata = dt => String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0');
-    return fixos.includes(formata(data)) || [formata(carnaval), formata(sextaSanta), formata(pascoa), formata(corpus)].includes(formata(data));
-}
-function calcularTurno(entradaMin, saidaMin) {
-    if (saidaMin <= entradaMin) saidaMin += 1440; // Virou a noite
-    
-    let minDiurno = 0;
-    let minNoturno = 0;
-
-    // Varre minuto a minuto (método mais seguro para lidar com madrugadas)
-    for (let m = entradaMin; m < saidaMin; m++) {
-        let minutoDoDia = m % 1440; // Garante que 24h vire 00h
-        
-        // Regra Noturna: Entre 22:00 (1320) e 05:00 (300)
-        if (minutoDoDia >= 1320 || minutoDoDia < 300) {
-            minNoturno++;
-        } else {
-            minDiurno++;
-        }
-    }
-
-    // Aplica a Redução da Hora Noturna (Hora Ficta)
-    // 1 minuto relógio = 1.142857 minutos trabalhistas
-    let minNoturnoFicto = minNoturno * (60 / 52.5);
-
-    return {
-        diurno: minDiurno,
-        noturnoRelogio: minNoturno,
-        noturnoFicto: minNoturnoFicto,
-        totalFicto: minDiurno + minNoturnoFicto
-    };
-}
-
-function decimalParaHHMM(decimal) {
-    if (!decimal || isNaN(decimal)) return "00:00";
-    const horas = Math.floor(decimal);
-    const minutos = Math.round((decimal - horas) * 60);
-    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
-}
 // ==========================================================================
 // FUNÇÕES DO MENU DE CONFIGURAÇÃO E AFASTAMENTOS
 // ==========================================================================
