@@ -6,7 +6,7 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-const MODO_TESTE = true; // MUDE PARA FALSE QUANDO FOR PARA PRODUÇÃO
+const MODO_TESTE = false; // MUDE PARA FALSE QUANDO FOR PARA PRODUÇÃO
 const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 window.batidasGlobal = {};
 let listaFeriadosGlobais = [];
