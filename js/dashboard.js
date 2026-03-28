@@ -5,37 +5,51 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
+const MODO_TESTE = false; // LIGA O MODO DE TESTE NA DASHBOARD
+
 // Estado Global
 let usuarioAtual = null;
 let dadosUsuarioGlobal = null;
 let salvosNuvem = [];
 
 /* ==========================================================================
-   1. MONITORAMENTO DE AUTENTICAÇÃO
+   1. MONITORAMENTO DE AUTENTICAÇÃO E MODO TESTE
    ========================================================================== */
 
-onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-        window.location.href = "index.html";
-        return;
-    }
-
-    usuarioAtual = user;
-    try {
-        const docRef = doc(db, "usuarios", user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            dadosUsuarioGlobal = docSnap.data();
-            configurarInterfacePorPerfil();
-            carregarDashboard();
-        } else {
-            iniciarOnboarding(user);
+if (MODO_TESTE) {
+    console.warn("⚠️ MODO TESTE ATIVADO: Ignorando login no Firebase.");
+    usuarioAtual = { uid: "test-user-123", email: "teste@cartaopontolex.com" };
+    dadosUsuarioGlobal = { nome: "Advogado Teste", plano: "Premium" };
+    
+    // Simula a interface carregada
+    setTimeout(() => {
+        document.getElementById('sidebar-nome-exibicao').innerText = dadosUsuarioGlobal.nome;
+        document.getElementById('sidebar-status-conta').innerText = dadosUsuarioGlobal.plano;
+    }, 500);
+} else {
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = "index.html";
+            return;
         }
-    } catch (error) {
-        console.error("Erro ao carregar perfil:", error);
-    }
-});
+
+        usuarioAtual = user;
+        try {
+            const docRef = doc(db, "usuarios", user.uid);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                dadosUsuarioGlobal = docSnap.data();
+                if(typeof configurarInterfacePorPerfil === 'function') configurarInterfacePorPerfil();
+                if(typeof carregarDashboard === 'function') carregarDashboard();
+            } else {
+                if(typeof iniciarOnboarding === 'function') iniciarOnboarding(user);
+            }
+        } catch (error) {
+            console.error("Erro ao carregar perfil:", error);
+        }
+    });
+}
 
 /* ==========================================================================
    2. CONFIGURAÇÃO DA INTERFACE
@@ -813,3 +827,89 @@ function configurarBuscaCidades() {
 
 // Chame a função para ela começar a observar os campos
 configurarBuscaCidades();
+
+/* ==========================================================================
+   IMPORTADOR JURISPONTO (.TXT)
+   ========================================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+    const inputImportar = document.getElementById('input-importar-jurisponto');
+    
+    if (inputImportar) {
+        inputImportar.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evento) {
+                const conteudo = evento.target.result;
+                processarArquivoJurisponto(conteudo);
+                // Limpa o input para permitir importar o mesmo ficheiro duas vezes seguidas se necessário
+                inputImportar.value = ''; 
+            };
+            reader.readAsText(file);
+        });
+    }
+});
+
+async function processarArquivoJurisponto(texto) {
+    const linhas = texto.split('\n');
+    if (linhas.length === 0) return alert("Ficheiro vazio!");
+
+    const linhaCabecalho = linhas[0];
+    const pedacos = linhaCabecalho.split(/\s{2,}/);
+    
+    let reclamante = "Não identificado";
+    let reclamada = "Não identificada";
+
+    if (pedacos.length >= 4) {
+        reclamante = pedacos[3].replace(/^[0-9]+/, '').trim();
+        reclamada = pedacos[4] ? pedacos[4].trim() : "Não identificada";
+    }
+
+    const novoCartao = {
+        dataCriacao: new Date().toISOString(),
+        config: {
+            reclamante: reclamante,
+            reclamada: reclamada,
+            horasDiarias: 8,
+            horasSemanais: 44,
+            escala: "Livre"
+        },
+        batidas: {} 
+    };
+
+    if (MODO_TESTE) {
+        novoCartao.id = "import_" + Date.now();
+        let cartoesTeste = JSON.parse(localStorage.getItem('cartoes_teste') || '[]');
+        cartoesTeste.push(novoCartao);
+        localStorage.setItem('cartoes_teste', JSON.stringify(cartoesTeste));
+        
+        alert(`Sucesso! Importado Reclamante: ${reclamante}\nEmpresa: ${reclamada}`);
+        window.location.href = `app.html?id=${novoCartao.id}`;
+    } else {
+        // --- NOVA LÓGICA DE PRODUÇÃO (FIREBASE) ---
+        try {
+            if (!usuarioAtual) {
+                alert("Erro: A sua sessão expirou. Por favor, faça login novamente.");
+                return;
+            }
+            
+            // Grava na coleção 'cartoes' do Firebase
+            const docRef = await addDoc(collection(db, "cartoes"), {
+                uid: usuarioAtual.uid,
+                dataCriacao: novoCartao.dataCriacao,
+                config: novoCartao.config,
+                batidas: novoCartao.batidas,
+                status: "Em andamento"
+            });
+
+            alert(`Sucesso! Importado Reclamante: ${reclamante}\nEmpresa: ${reclamada}`);
+            // Redireciona para a mesa de trabalho oficial com o ID real da nuvem!
+            window.location.href = `app.html?id=${docRef.id}`;
+
+        } catch (error) {
+            console.error("Erro ao salvar no Firebase:", error);
+            alert("Erro ao importar o ficheiro para a nuvem. Verifique a sua ligação.");
+        }
+    }
+}

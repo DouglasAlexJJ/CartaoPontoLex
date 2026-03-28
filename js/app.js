@@ -6,7 +6,7 @@ import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-const MODO_TESTE = true; // MUDE PARA FALSE QUANDO FOR PARA PRODUÇÃO
+const MODO_TESTE = false; // MUDE PARA FALSE QUANDO FOR PARA PRODUÇÃO
 const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 window.batidasGlobal = {};
 let listaFeriadosGlobais = [];
@@ -663,36 +663,40 @@ function minParaHHMM(minutos) {
 }
 
 // Função que calcula a duração entre duas batidas, separando Noturno e Diurno
-function calcularIntervaloDiferenciado(entrada, saida) {
-    if(!entrada || !saida) return { diurno: 0, noturno: 0, totalTrabalhado: 0 };
-    let inicio = hhmmParaMin(entrada);
-    let fim = hhmmParaMin(saida);
-    
-    // Se a saída for menor que a entrada, assumimos que virou a meia-noite
-    if (fim < inicio) fim += 1440; 
+function calcularIntervaloDiferenciado(ent, sai, aplicaSumula60 = false) {
+    let entMin = hhmmParaMin(ent);
+    let saiMin = hhmmParaMin(sai);
+    if (saiMin <= entMin) saiMin += 1440; // Virou a noite
 
-    let minDiurnos = 0;
-    let minNoturnos = 0;
+    let minDiurno = 0;
+    let minNoturno = 0;
+    let entrouNaMadrugada = false; // Radar da Súmula 60
 
-    for (let m = inicio; m < fim; m++) {
-        let minutoDoDia = m % 1440; // Garante que 1440 vire 0 (meia-noite)
+    for (let m = entMin; m < saiMin; m++) {
+        let minutoDoDia = m % 1440; 
         
-        // Intervalo Noturno: 22:00 (1320min) até 05:00 (300min)
-        if (minutoDoDia >= 1320 || minutoDoDia < 300) {
-            minNoturnos++;
+        let isNoturno = (minutoDoDia >= 1320 || minutoDoDia < 300);
+        
+        if (isNoturno) {
+            minNoturno++;
+            entrouNaMadrugada = true; // O motor detetou que ele trabalhou de noite
         } else {
-            minDiurnos++;
+            // Se já passou das 05h da manhã (minuto >= 300) e ele veio da madrugada,
+            // e o advogado pediu a Súmula 60, essa hora vira noturna!
+            if (aplicaSumula60 && entrouNaMadrugada && minutoDoDia >= 300 && minutoDoDia < 1320) {
+                minNoturno++; 
+            } else {
+                minDiurno++;
+            }
         }
     }
 
-    // Aplicação da Hora Ficta Noturna (Art. 73, §1º da CLT)
-    // 60 min de relógio = 52.5 min de trabalho (Multiplicador de 1.142857)
-    const minNoturnosReduzidos = Math.floor(minNoturnos * (8 / 7));
+    let minNoturnoFicto = minNoturno * (60 / 52.5);
 
     return {
-        diurno: minDiurnos,
-        noturno: minNoturnosReduzidos,
-        totalTrabalhado: minDiurnos + minNoturnosReduzidos
+        diurno: minDiurno,
+        noturno: minNoturnoFicto,
+        totalTrabalhado: minDiurno + minNoturnoFicto
     };
 }
 
@@ -905,14 +909,14 @@ function calcularViolacaoIntrajornada(intervaloRealizado, totalTrabalhado) {
  * @returns {Object} Relatório estruturado para exportação (PDF/Excel)
  */
 
-function gerarLaudoTecnico(batidasObj, config) {
+function gerarLaudoTecnico(batidasObj, config, opcoes = {}) {
     let relatorio = {
         dias: [], semanas: [],
         totais: {
             horasNormaisMin: 0, heDiariasMin: 0, heSemanaisMin: 0,
             adicionalNoturnoMin: 0, artigo66Min: 0, artigo71DiferencaMin: 0, artigo71FixoMin: 0,
-            domingosFeriadosMin: 0, 
-            sumula85AdicionalMin: 0, sumula85CheiaMin: 0 // NOVOS TOTALIZADORES
+            domingosFeriadosMin: 0, sumula85AdicionalMin: 0, sumula85CheiaMin: 0,
+            artigo67Min: 0 // NOVO: Cofre do Artigo 67
         }
     };
 
@@ -940,6 +944,7 @@ function gerarLaudoTecnico(batidasObj, config) {
     let semanaAtual = [];
     let ultimaSaidaAnterior = null;
     let saiuDeMadrugadaAnterior = false;
+    let ultimaSaidaDate = null; // Cronómetro absoluto para o Art. 67
 
     calendarioCompleto.forEach((diaItem, index) => {
         let batidasDia = Array.isArray(diaItem.dados.h) ? diaItem.dados.h : []; 
@@ -947,12 +952,24 @@ function gerarLaudoTecnico(batidasObj, config) {
         let ultimaSaidaHoje = null, primeiraEntradaHoje = batidasDia.find(b => b && b.length === 5) || null;
         let saiuDeMadrugadaHoje = false;
 
+        // CRONÓMETRO: Calcula o descanso desde a saída do dia anterior até a entrada de hoje
+        let descansoPrevioMin = 0;
+        if (ultimaSaidaDate && primeiraEntradaHoje) {
+            let entradaDate = new Date(diaItem.dataDate.getTime() + hhmmParaMin(primeiraEntradaHoje) * 60000);
+            descansoPrevioMin = (entradaDate - ultimaSaidaDate) / 60000;
+        }
+
         for (let i = 0; i < batidasDia.length; i += 2) {
             let ent = batidasDia[i], sai = batidasDia[i + 1];
             if (ent && sai && ent.length === 5 && sai.length === 5) {
-                let calc = calcularIntervaloDiferenciado(ent, sai);
-                diurnoDia += calc.diurno; noturnoDia += calc.noturno; minutosTrabalhadosDia += calc.totalTrabalhado;
-                ultimaSaidaHoje = sai; if (hhmmParaMin(sai) < hhmmParaMin(ent)) saiuDeMadrugadaHoje = true;
+                // AGORA ELE PASSA A SÚMULA 60 PARA A MATEMÁTICA!
+                let calc = calcularIntervaloDiferenciado(ent, sai, opcoes.sumula60); 
+                
+                diurnoDia += calc.diurno; 
+                noturnoDia += calc.noturno; 
+                minutosTrabalhadosDia += calc.totalTrabalhado;
+                ultimaSaidaHoje = sai; 
+                if (hhmmParaMin(sai) < hhmmParaMin(ent)) saiuDeMadrugadaHoje = true;
             }
         }
 
@@ -970,13 +987,14 @@ function gerarLaudoTecnico(batidasObj, config) {
             isFolga: diaItem.dados.f || false,
             isFeriado: isFeriado,
             isDomingo: (diaSemanaData === 0),
-            // Feriados são sempre 100%. O Domingo será avaliado no fim da semana.
             domFerMin: isFeriado ? minutosTrabalhadosDia : 0, 
             batidas: batidasDia,
             totalTrabalhadoMin: minutosTrabalhadosDia,
             noturnoMin: noturnoDia,
             art71: art71,
-            art66Minutos: art66Minutos
+            art66Minutos: art66Minutos,
+            descansoPrevioMin: descansoPrevioMin, // Guarda o descanso para a análise da semana
+            art67Minutos: 0 // Será preenchido no domingo se houver violação
         };
 
         relatorio.dias.push(objDia); 
@@ -987,45 +1005,57 @@ function gerarLaudoTecnico(batidasObj, config) {
         relatorio.totais.artigo71DiferencaMin += art71.violadosDiferenca; 
         relatorio.totais.artigo71FixoMin += art71.violadosFixo;
 
-        if (ultimaSaidaHoje) { ultimaSaidaAnterior = ultimaSaidaHoje; saiuDeMadrugadaAnterior = saiuDeMadrugadaHoje; } 
-        else { ultimaSaidaAnterior = null; saiuDeMadrugadaAnterior = false; }
+        if (ultimaSaidaHoje) { 
+            ultimaSaidaAnterior = ultimaSaidaHoje; 
+            saiuDeMadrugadaAnterior = saiuDeMadrugadaHoje; 
+            
+            // Regista a hora exata da saída para o cronómetro do dia seguinte
+            let minSai = hhmmParaMin(ultimaSaidaHoje);
+            if (saiuDeMadrugadaHoje) minSai += 1440;
+            ultimaSaidaDate = new Date(diaItem.dataDate.getTime() + minSai * 60000);
+        } else { 
+            ultimaSaidaAnterior = null; 
+            saiuDeMadrugadaAnterior = false; 
+            // Se foi folga, NÃO apagamos o ultimaSaidaDate, o cronómetro continua a rodar!
+        }
 
         // --- FECHAMENTO DA SEMANA ---
         if (diaSemanaData === 0 || index === calendarioCompleto.length - 1) {
             
-            // 1. DINAMISMO DO DOMINGO COMPENSADO
             let diasTrabalhadosNaSemana = semanaAtual.filter(d => d.totalTrabalhadoMin > 0).length;
-            // Se ele trabalhou menos dias do que o total da semana, significa que teve folga.
             let teveFolgaNaSemana = (diasTrabalhadosNaSemana < semanaAtual.length);
 
-            let domingo = semanaAtual.find(d => d.isDomingo);
-            if (domingo && domingo.totalTrabalhadoMin > 0 && !domingo.isFeriado) {
-                if (!teveFolgaNaSemana) {
-                    // Trabalhou todos os dias. O Domingo é pago a 100%!
-                    domingo.domFerMin = domingo.totalTrabalhadoMin;
-                } else {
-                    // Teve folga na semana. O Domingo vira dia normal e entra nas 44h.
-                    domingo.domFerMin = 0; 
+            // --- LÓGICA DO ARTIGO 67 (Súmula 110) ---
+            if (!teveFolgaNaSemana) {
+                // Se trabalhou os 7 dias, procuramos a maior janela de descanso que ele teve.
+                let maiorDescanso = Math.max(...semanaAtual.map(d => d.descansoPrevioMin));
+                let limiteArt67Min = 35 * 60; // 35 horas = 2100 minutos
+                
+                if (maiorDescanso < limiteArt67Min) {
+                    let violacaoArt67 = limiteArt67Min - maiorDescanso;
+                    relatorio.totais.artigo67Min += violacaoArt67;
+                    // Lança a violação no último dia da semana (Domingo)
+                    semanaAtual[semanaAtual.length - 1].art67Minutos = violacaoArt67;
                 }
             }
 
-            // 2. SOMA DOS DOMINGOS E FERIADOS GERAIS DA SEMANA
-            semanaAtual.forEach(d => {
-                relatorio.totais.domingosFeriadosMin += d.domFerMin || 0;
-            });
+            let domingo = semanaAtual.find(d => d.isDomingo);
+            if (domingo && domingo.totalTrabalhadoMin > 0 && !domingo.isFeriado) {
+                if (!teveFolgaNaSemana) domingo.domFerMin = domingo.totalTrabalhadoMin;
+                else domingo.domFerMin = 0; 
+            }
 
-            // 3. APURAÇÃO DAS HORAS EXTRAS NORMAIS (Ignorando os dias 100%)
+            semanaAtual.forEach(d => { relatorio.totais.domingosFeriadosMin += d.domFerMin || 0; });
+
             let limiteDiarioMin = (parseFloat(config.horasDiarias) || 8) * 60;
             let limiteSemanalMin = (parseFloat(config.horasSemanais) || 44) * 60;
-            
             let calcSemana = apurarHorasExtrasSemana(semanaAtual, limiteDiarioMin, limiteSemanalMin);
-            relatorio.semanas.push(calcSemana);
             
+            relatorio.semanas.push(calcSemana);
             relatorio.totais.heDiariasMin += calcSemana.heDiarias; 
             relatorio.totais.heSemanaisMin += calcSemana.heSemanais;
             relatorio.totais.horasNormaisMin += (calcSemana.totalTrabalhadoSemana - calcSemana.totalHe);
             
-            // SOMATÓRIO DA SÚMULA 85
             relatorio.totais.sumula85AdicionalMin += calcSemana.sumulaAdicional;
             relatorio.totais.sumula85CheiaMin += calcSemana.sumulaCheia;
             
@@ -1381,17 +1411,20 @@ window.processarPDFTecnico = async function() {
         heDiaria: document.getElementById('opt-he-diurna')?.checked || false,
         heSemanal: document.getElementById('opt-he-semanal')?.checked || false,
         art71: document.getElementById('opt-art71')?.checked || false,
+        art71Tipo: document.getElementById('opt-art71-tipo')?.value || 'suprimido',
         art66: document.getElementById('opt-art66')?.checked || false,
         art67: document.getElementById('opt-art67')?.checked || false,
         sumula85: document.getElementById('opt-sumula85')?.checked || false,
+        sumula340: document.getElementById('opt-sumula340')?.checked || false,
         adcNoturno: document.getElementById('opt-adc-noturno')?.checked || false,
+        sumula60: document.getElementById('opt-sumula60')?.checked || false,
         domFer: document.getElementById('opt-dom-fer')?.checked || false
     };
 
     fecharModalExportar();
     
     // 3. O NOSSO CÉREBRO ENTRA EM AÇÃO
-    const laudoTecnico = gerarLaudoTecnico(cartaoAtual.batidas, configAtual);
+    const laudoTecnico = gerarLaudoTecnico(cartaoAtual.batidas, configAtual, opcoes);
     
     // 4. Desenha o PDF
     if (typeof executarMontagemPDF === 'function') {
@@ -1431,6 +1464,7 @@ window.executarMontagemPDF = function(opcoes, laudo) {
                     ${opcoes.adcNoturno ? '<th style="padding: 5px;">Noturno</th>' : ''}
                     ${opcoes.art71 ? '<th style="padding: 5px;">Art. 71</th>' : ''}
                     ${opcoes.art66 ? '<th style="padding: 5px;">Art. 66</th>' : ''}
+                    ${opcoes.art67 ? '<th style="padding: 5px;">Art. 67</th>' : ''}
                 </tr>
             </thead>
             <tbody>
@@ -1442,7 +1476,8 @@ window.executarMontagemPDF = function(opcoes, laudo) {
         else if (dia.isFolga) textoVazio = 'Folga Compensatória';
 
         let batidasStr = dia.batidas.filter(b => b && b.length === 5).join(' - ') || textoVazio;
-        let valorArt71 = minParaHHMM(dia.art71.violadosDiferenca);
+        let minArt71 = opcoes.art71Tipo === 'integral' ? dia.art71.violadosFixo : dia.art71.violadosDiferenca;
+        let valorArt71 = minParaHHMM(minArt71);
 
         html += `
             <tr>
@@ -1451,8 +1486,9 @@ window.executarMontagemPDF = function(opcoes, laudo) {
                 <td style="padding: 5px;">${minParaHHMM(dia.totalTrabalhadoMin)}</td>
                 ${opcoes.domFer ? `<td style="padding: 5px; color: ${dia.domFerMin > 0 ? 'red' : 'black'};">${minParaHHMM(dia.domFerMin)}</td>` : ''}
                 ${opcoes.adcNoturno ? `<td style="padding: 5px; color: ${dia.noturnoMin > 0 ? 'red' : 'black'};">${minParaHHMM(dia.noturnoMin)}</td>` : ''}
-                ${opcoes.art71 ? `<td style="padding: 5px; color: ${dia.art71.violadosDiferenca > 0 ? 'red' : 'black'};">${valorArt71}</td>` : ''}
+                ${opcoes.art71 ? `<td style="padding: 5px; color: ${minArt71 > 0 ? 'red' : 'black'};">${valorArt71}</td>` : ''}
                 ${opcoes.art66 ? `<td style="padding: 5px; color: ${dia.art66Minutos > 0 ? 'red' : 'black'};">${minParaHHMM(dia.art66Minutos)}</td>` : ''}
+                ${opcoes.art67 ? `<td style="padding: 5px; color: ${dia.art67Minutos > 0 ? 'red' : 'black'}; font-weight: ${dia.art67Minutos > 0 ? 'bold' : 'normal'};">${minParaHHMM(dia.art67Minutos)}</td>` : ''}
             </tr>
         `;
     });
@@ -1462,20 +1498,32 @@ window.executarMontagemPDF = function(opcoes, laudo) {
         </table>
     `;
 
+    // 1. COLOQUE AS VARIÁVEIS AQUI, antes de começar o HTML do resumo:
+    let totalArt71 = opcoes.art71Tipo === 'integral' ? laudo.totais.artigo71FixoMin : laudo.totais.artigo71DiferencaMin;
+    let textoArt71 = opcoes.art71Tipo === 'integral' ? 'Integral (1h)' : 'Suprimido (Diferença)';
+    let totalSumula340 = laudo.totais.heDiariasMin + laudo.totais.heSemanaisMin;
+
+    // 2. AGORA SIM, injetamos as variáveis na lista do HTML:
     html += `
         <div class="resumo-box">
             <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Resumo Consolidado</h3>
             <ul style="list-style-type: none; padding-left: 0; font-size: 13px; line-height: 1.6;">
-                ${opcoes.heDiaria && !opcoes.sumula85 ? `<li><strong>Horas Extras Diárias (> ${configAtual.horasDiarias}h):</strong> ${minParaHHMM(laudo.totais.heDiariasMin)}</li>` : ''}
-                ${opcoes.heSemanal && !opcoes.sumula85 ? `<li><strong>Horas Extras Semanais (> ${configAtual.horasSemanais}h):</strong> ${minParaHHMM(laudo.totais.heSemanaisMin)}</li>` : ''}
                 
-                ${opcoes.sumula85 ? `<li><strong>Súmula 85 TST (Apenas Adicional):</strong> ${minParaHHMM(laudo.totais.sumula85AdicionalMin)}</li>` : ''}
-                ${opcoes.sumula85 ? `<li><strong>Súmula 85 TST (Hora Extra Cheia):</strong> ${minParaHHMM(laudo.totais.sumula85CheiaMin)}</li>` : ''}
+                ${opcoes.heDiaria && !opcoes.sumula85 && !opcoes.sumula340 ? `<li><strong>Horas Extras Diárias (> ${configAtual.horasDiarias}h):</strong> ${minParaHHMM(laudo.totais.heDiariasMin)}</li>` : ''}
+                ${opcoes.heSemanal && !opcoes.sumula85 && !opcoes.sumula340 ? `<li><strong>Horas Extras Semanais (> ${configAtual.horasSemanais}h):</strong> ${minParaHHMM(laudo.totais.heSemanaisMin)}</li>` : ''}
+                
+                ${opcoes.sumula85 && !opcoes.sumula340 ? `<li><strong>Súmula 85 TST (Apenas Adicional):</strong> ${minParaHHMM(laudo.totais.sumula85AdicionalMin)}</li>` : ''}
+                ${opcoes.sumula85 && !opcoes.sumula340 ? `<li><strong>Súmula 85 TST (Hora Extra Cheia):</strong> ${minParaHHMM(laudo.totais.sumula85CheiaMin)}</li>` : ''}
+                
+                ${opcoes.sumula340 ? `<li><strong>Súmula 340 TST (Comissionista - Apenas Adicional):</strong> ${minParaHHMM(totalSumula340)}</li>` : ''}
                 
                 ${opcoes.domFer ? `<li><strong>Domingos e Feriados Trabalhados (100%):</strong> ${minParaHHMM(laudo.totais.domingosFeriadosMin)}</li>` : ''}
                 ${opcoes.adcNoturno ? `<li><strong>Adicional Noturno (com redução):</strong> ${minParaHHMM(laudo.totais.adicionalNoturnoMin)}</li>` : ''}
-                ${opcoes.art71 ? `<li><strong>Violação Art. 71 (Diferença):</strong> ${minParaHHMM(laudo.totais.artigo71DiferencaMin)}</li>` : ''}
+                
+                ${opcoes.art71 ? `<li><strong>Violação Art. 71 (${textoArt71}):</strong> ${minParaHHMM(totalArt71)}</li>` : ''}
+                
                 ${opcoes.art66 ? `<li><strong>Violação Art. 66 (Interjornada):</strong> ${minParaHHMM(laudo.totais.artigo66Min)}</li>` : ''}
+                ${opcoes.art67 ? `<li><strong>Violação Art. 67 (Descanso 35h Semanal):</strong> ${minParaHHMM(laudo.totais.artigo67Min)}</li>` : ''}
             </ul>
         </div>
     `;

@@ -5,7 +5,7 @@
 import { auth } from './firebase-config.js'; // Apenas importe
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-const MODO_TESTE = true; // MUDE PARA FALSE QUANDO FOR PARA PRODUÇÃO
+const MODO_TESTE = false; // MUDE PARA FALSE QUANDO FOR PARA PRODUÇÃO
 
 // O "Segurança": Fica vigiando quem tenta entrar
 onAuthStateChanged(auth, (user) => {
