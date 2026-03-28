@@ -372,84 +372,91 @@ window.restaurarCartao = async function(id) {
 window.fazerLogout = () => auth.signOut().then(() => window.location.href = "index.html");
 
 window.editarCartao = function(id) {
-    // 1. Busca o cartão inteiro na memória que acabou de ser baixado do Firebase
+    // 1. Busca o cartão inteiro na memória
     const cartao = salvosNuvem.find(c => c.id === id);
     if (!cartao) return;
 
-    const config = cartao.config;
+    const config = cartao.config || {};
 
     // 2. Muda a cara do modal para modo "Edição"
     document.getElementById('titulo-modal-cartao').innerText = "✏️ Editar Parâmetros";
     document.getElementById('btn-salvar-cartao').innerText = "Salvar Alterações";
     document.getElementById('cartao-edit-id').value = id;
 
-    // 3. Preenche os campos principais
-    document.getElementById('reclamante').value = config.reclamante || '';
-    document.getElementById('reclamada').value = config.reclamada || '';
-    document.getElementById('dataInicio').value = config.dataInicio || '';
-    document.getElementById('dataFim').value = config.dataFim || '';
-    document.getElementById('escala').value = config.escala || 'seg-sex';
-    document.getElementById('dataFolgaInicial').value = config.dataFolgaInicial || '';
+    // 3. Preenche os campos principais (com proteção contra null)
+    const preencherCampo = (idElemento, valor) => {
+        const el = document.getElementById(idElemento);
+        if (el) el.value = valor;
+    };
+
+    preencherCampo('reclamante', config.reclamante || '');
+    preencherCampo('reclamada', config.reclamada || '');
+    preencherCampo('dataInicio', config.dataInicio || '');
+    preencherCampo('dataFim', config.dataFim || '');
+    preencherCampo('escala', config.escala || 'seg-sex');
+    preencherCampo('dataFolgaInicial', config.dataFolgaInicial || '');
     
     // Mostra ou esconde o campo de folga dependendo da escala
     if (typeof toggleFolgaInicial === 'function') toggleFolgaInicial();
 
     // 4. Intervalos e Batidas
-    document.getElementById('padraoE').value = config.padraoE || '12:00';
-    document.getElementById('padraoS').value = config.padraoS || '13:00';
+    preencherCampo('padraoE', config.padraoE || '12:00');
+    preencherCampo('padraoS', config.padraoS || '13:00');
     
     const checkIntervalo = document.getElementById('intervaloFixo');
-    checkIntervalo.checked = !!config.intervaloFixo;
-    if (typeof toggleIntervaloFixo === 'function') toggleIntervaloFixo();
+    if (checkIntervalo) {
+        checkIntervalo.checked = !!config.intervaloFixo;
+        if (typeof toggleIntervaloFixo === 'function') toggleIntervaloFixo();
+    }
 
     const checkBatidas = document.getElementById('checkBatidas');
     const inputQtdBatidas = document.getElementById('qtdBatidas');
-    if (config.qtdBatidas && config.qtdBatidas !== 4) {
-        checkBatidas.checked = true;
-        inputQtdBatidas.value = config.qtdBatidas;
-    } else {
-        checkBatidas.checked = false;
-        inputQtdBatidas.value = 4;
+    if (checkBatidas && inputQtdBatidas) {
+        if (config.qtdBatidas && config.qtdBatidas !== 4) {
+            checkBatidas.checked = true;
+            inputQtdBatidas.value = config.qtdBatidas;
+        } else {
+            checkBatidas.checked = false;
+            inputQtdBatidas.value = 4;
+        }
+        if (typeof toggleBatidas === 'function') toggleBatidas();
     }
-    if (typeof toggleBatidas === 'function') toggleBatidas();
 
-    // 5. Parâmetros Sindicais (Onde a mágica acontece)
-    document.getElementById('config-adc-noturno').value = config.adcNoturno || '20';
-    document.getElementById('config-he-folga1').value = config.heFolga1 || '50';
-    document.getElementById('config-he-folga2').value = config.heFolga2 || '100';
-    
+    // --- 5. NOVOS PARÂMETROS (Substituindo os antigos sindicais) ---
+    preencherCampo('horasDiarias', config.horasDiarias || '8');
+    preencherCampo('horasSemanais', config.horasSemanais || '44');
+
+    // Removemos a chamada antiga das regras extras para evitar bugs de elementos apagados no HTML
     const containerRegras = document.getElementById('container-regras-extras');
-    containerRegras.innerHTML = ""; // Limpa a tabela
-
-    if (config.regrasExtra && config.regrasExtra.length > 0) {
-        // Se já tiver regra gravada, escreve todas elas na tela
-        config.regrasExtra.forEach(regra => {
-            window.adicionarRegraExtra(regra.limite, regra.porcento);
-        });
-    } else {
-        // Se for um cartão velho que não tinha regra, coloca 50% como padrão
-        window.adicionarRegraExtra('', '50'); 
+    if (containerRegras) {
+        containerRegras.innerHTML = "";
     }
 
-    // 6. UF e Cidade Inteligente (Espera a API do IBGE carregar)
+    // 6. UF e Cidade Inteligente
     const ufSelect = document.getElementById('novo-cartao-uf');
-    ufSelect.value = config.uf || '';
-    
-    if (config.uf) {
-        // "Engana" o navegador dizendo que o usuário escolheu o estado para ele puxar as cidades
-        ufSelect.dispatchEvent(new Event('change'));
+    if (ufSelect) {
+        ufSelect.value = config.uf || '';
         
-        // Aguarda 800ms para a BrasilAPI devolver as cidades e então seleciona
-        setTimeout(() => {
-            document.getElementById('novo-cartao-cidade').value = config.cidade || '';
-        }, 800);
-    } else {
-        document.getElementById('novo-cartao-cidade').innerHTML = '<option value="">Selecione a Cidade</option>';
-        document.getElementById('novo-cartao-cidade').disabled = true;
+        if (config.uf) {
+            // "Engana" o navegador dizendo que o usuário escolheu o estado para ele puxar as cidades
+            ufSelect.dispatchEvent(new Event('change'));
+            
+            // Aguarda 800ms para a BrasilAPI devolver as cidades e então seleciona
+            setTimeout(() => {
+                preencherCampo('novo-cartao-cidade', config.cidade || '');
+            }, 800);
+        } else {
+            const cidadeSelect = document.getElementById('novo-cartao-cidade');
+            if (cidadeSelect) {
+                cidadeSelect.innerHTML = '<option value="">Selecione a Cidade</option>';
+                cidadeSelect.disabled = true;
+            }
+        }
     }
 
     // 7. Abre o modal!
-    document.getElementById('modal-novo').classList.remove('escondido');
+    const modalNovo = document.getElementById('modal-novo');
+    if (modalNovo) modalNovo.classList.remove('escondido');
 };
 
 // Gestão de Equipe
