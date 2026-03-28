@@ -876,6 +876,9 @@ async function processarArquivoJurisponto(texto) {
     let batidasExtraidas = {};
     let dataInicio = "2099-12-31";
     let dataFim = "1900-01-01";
+    
+    // 1. O RADAR: Começa com 4 (padrão mínimo), mas pode crescer ao infinito!
+    let maxBatidasGlobais = 4;
 
     for (let i = 1; i < linhas.length; i++) {
         let linha = linhas[i];
@@ -883,15 +886,27 @@ async function processarArquivoJurisponto(texto) {
         if (linha.startsWith("01") && linha.length > 80) {
             let dataBR = linha.substring(2, 12);
             
-            // 1. A MÁGICA: Recorta APENAS o pedaço do texto onde ficam as primeiras 6 batidas
-            // Isso impede que o sistema leia os totais (07:14) ou as escalas (22:00) lá do final da linha
-            let blocoHoras = linha.substring(26, 120);
-            
-            // 2. Procura automaticamente qualquer padrão de hora (HH:MM) dentro desse bloco
+            // Lemos uma área gigante da linha para caber até 16 batidas se for preciso
+            let blocoHoras = linha.substring(26, 250);
             let todosHorarios = blocoHoras.match(/\d{2}:\d{2}/g) || [];
             
-            // 3. Filtra os "00:00" que o Jurisponto usa para preencher espaços vazios
-            let horarios = todosHorarios.filter(h => h !== "00:00");
+            let horarios = [];
+            
+            // 2. EXTRAÇÃO INTELIGENTE: Pega as horas até encontrar o primeiro "00:00"
+            for (let h of todosHorarios) {
+                if (h !== "00:00") {
+                    horarios.push(h);
+                } else {
+                    // Achou um "00:00"? As batidas do dia acabaram, corta aqui para ignorar os totais!
+                    break; 
+                }
+            }
+
+            // 3. ATUALIZA O RADAR: Se este dia teve mais batidas que o limite atual, o limite cresce!
+            // E o Math.ceil garante que ele cresce sempre aos pares (ex: se achou 5 batidas, arredonda para 6 colunas)
+            if (horarios.length > maxBatidasGlobais) {
+                maxBatidasGlobais = Math.ceil(horarios.length / 2) * 2;
+            }
 
             if (horarios.length > 0) {
                 batidasExtraidas[dataBR] = { h: horarios };
@@ -905,7 +920,7 @@ async function processarArquivoJurisponto(texto) {
                 if (dataISO < dataInicio) dataInicio = dataISO;
                 if (dataISO > dataFim) dataFim = dataISO;
             }
-        }
+        } 
         else if (linha.startsWith("02") && linha.length > 20) {
             let dataBR = linha.substring(2, 12);
             let ocorrencia = linha.substring(21).trim().toUpperCase();
@@ -919,20 +934,12 @@ async function processarArquivoJurisponto(texto) {
         }
     }
 
-    // --- A INTEGRAÇÃO COM A SUA ARQUITETURA ---
     try {
         const currentUser = auth.currentUser;
-        if (!currentUser) {
-            alert("Aguarde o sistema carregar e tente novamente.");
-            return;
-        }
-
-        // 1. Descobre o dono real do cartão (igual à sua função salvarEIniciar)
+        if (!currentUser) return alert("Aguarde o sistema carregar e tente novamente.");
+        
         const donoDoCartaoId = (dadosUsuarioGlobal && dadosUsuarioGlobal.tipoConta === 'colaborador') 
-                                ? dadosUsuarioGlobal.adminId 
-                                : currentUser.uid;
-
-        // 2. Gera o ID do mesmo jeito que o seu sistema gera
+                                ? dadosUsuarioGlobal.adminId : currentUser.uid;
         const novoId = Date.now().toString();
 
         const config = {
@@ -944,10 +951,11 @@ async function processarArquivoJurisponto(texto) {
             dataInicio: dataInicio !== "2099-12-31" ? dataInicio : "",
             dataFim: dataFim !== "1900-01-01" ? dataFim : "",
             uf: "",
-            cidade: ""
+            cidade: "",
+            qtdBatidas: maxBatidasGlobais, // <-- O CARTÃO NASCE EXATAMENTE COM O TAMANHO QUE PRECISA!
+            intervaloFixo: false
         };
 
-        // 3. Monta o cartão exatamente como a sua função faria
         const novoCartao = {
             id: novoId,
             userId: donoDoCartaoId,
@@ -960,24 +968,17 @@ async function processarArquivoJurisponto(texto) {
             batidas: batidasExtraidas
         };
 
-        // 4. Salva no Firebase usando setDoc (forçando o nosso ID)
         await setDoc(doc(db, "cartoes", novoId), novoCartao);
-
-        alert(`Ficheiro importado com sucesso!\n\nReclamante: ${reclamante}\n\nO painel será aberto para que você preencha o Estado, Cidade e Escala.`);
-
-        // 5. Injeta o cartão perfeito na memória para a tela de edição conseguir ler
+        alert(`Ficheiro importado com sucesso!\n\nReclamante: ${reclamante}\nBatidas detetadas: ${maxBatidasGlobais} colunas.`);
         salvosNuvem.push(novoCartao);
 
-        // 6. Chama a sua função de Editar Cartão!
         if (typeof window.editarCartao === 'function') {
             window.editarCartao(novoId);
         } else {
-            console.error("Função editarCartao não encontrada.");
             window.location.reload();
         }
 
     } catch (error) {
-        console.error("Erro ao salvar no Firebase:", error);
-        alert("Erro ao importar o ficheiro para a nuvem. Verifique a sua conexão.");
+        console.error("Erro ao salvar:", error);
     }
 }
