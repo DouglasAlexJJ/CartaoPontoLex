@@ -925,26 +925,44 @@ async function processarArquivoJurisponto(texto) {
     };
 
     try {
-        // CORREÇÃO CRÍTICA DO FIREBASE (Pega o dono da conta real)
         const currentUser = auth.currentUser;
         if (!currentUser) {
             alert("Aguarde 2 segundos para o sistema carregar o seu utilizador e tente novamente.");
             return;
         }
         
+        // 1. Grava na nuvem com o seu UID
         const docRef = await addDoc(collection(db, "cartoes"), {
-            uid: currentUser.uid, // <-- Agora salva com o seu ID corretamente!
+            uid: currentUser.uid,
             dataCriacao: novoCartao.dataCriacao,
             config: novoCartao.config,
             batidas: novoCartao.batidas,
             status: "Em andamento"
         });
 
-        // Passamos o "&importado=true" na URL
-        window.location.href = `app.html?id=${docRef.id}&importado=true`;
+        alert(`Ficheiro importado com sucesso!\n\nReclamante: ${reclamante}\n\nO painel será aberto para que você preencha o Estado, Cidade e Escala.`);
+
+        // 2. Injeta o cartão recém-criado na memória local para a função editarCartao conseguir encontrá-lo!
+        salvosNuvem.push({
+            id: docRef.id,
+            config: novoCartao.config,
+            batidas: novoCartao.batidas
+        });
+
+        // 3. Atualiza os cartões lá no fundo da tela
+        if (typeof carregarDashboard === 'function') {
+            carregarDashboard();
+        }
+
+        // 4. A SUA IDEIA: Chama a função que abre o modal de edição!
+        if (typeof window.editarCartao === 'function') {
+            window.editarCartao(docRef.id);
+        } else {
+            console.error("Função editarCartao não encontrada.");
+        }
 
     } catch (error) {
         console.error("Erro ao salvar no Firebase:", error);
-        alert("Erro ao importar o ficheiro para a nuvem.");
+        alert("Erro ao importar o ficheiro para a nuvem. Verifique a sua ligação.");
     }
 }

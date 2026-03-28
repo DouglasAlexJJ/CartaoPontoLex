@@ -1548,32 +1548,3 @@ window.executarMontagemPDF = function(opcoes, laudo) {
         alert("Atenção: A biblioteca 'html2pdf' não foi encontrada.");
     }
 };
-/* ==========================================================================
-   VERIFICADOR DE IMPORTAÇÃO (Abre as configurações automaticamente)
-   ========================================================================== */
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. O detetive olha para a URL
-    const parametros = new URLSearchParams(window.location.search);
-    
-    // 2. Se ele encontrar o "importado=true"
-    if (parametros.get('importado') === 'true') {
-        
-        // 3. Limpa a URL (esconde o importado=true) para que se o utilizador apertar F5, não volte a aparecer o alerta
-        const idDoCartao = parametros.get('id');
-        window.history.replaceState({}, document.title, window.location.pathname + "?id=" + idDoCartao);
-        
-        // 4. Espera 1 segundo (para a tabela terminar de ser desenhada no fundo) e ataca!
-        setTimeout(() => {
-            alert("Ficheiro importado com sucesso!\n\nPor favor, preencha o Estado, a Cidade e confirme a Escala para prosseguir.");
-            
-            // Chama a função que abre o modal de configurações
-            if (typeof abrirModalConfig === 'function') {
-                abrirModalConfig();
-            } else if (typeof window.abrirModalConfig === 'function') {
-                window.abrirModalConfig();
-            } else {
-                console.warn("Função abrirModalConfig não encontrada, o utilizador terá de clicar no botão manualmente.");
-            }
-        }, 1000);
-    }
-});
