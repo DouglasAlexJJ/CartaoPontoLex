@@ -855,15 +855,63 @@ async function processarArquivoJurisponto(texto) {
     const linhas = texto.split('\n');
     if (linhas.length === 0) return alert("Ficheiro vazio!");
 
+    // 1. Extrair Cabeçalho (Nomes)
     const linhaCabecalho = linhas[0];
     const pedacos = linhaCabecalho.split(/\s{2,}/);
     
     let reclamante = "Não identificado";
     let reclamada = "Não identificada";
 
+    // CORREÇÃO DOS ÍNDICES: O nome estava na posição 2 e a empresa na 3!
     if (pedacos.length >= 4) {
-        reclamante = pedacos[3].replace(/^[0-9]+/, '').trim();
-        reclamada = pedacos[4] ? pedacos[4].trim() : "Não identificada";
+        reclamante = pedacos[2].replace(/^[0-9]+/, '').trim();
+        reclamada = pedacos[3] ? pedacos[3].trim() : "Não identificada";
+    }
+
+    let batidasExtraidas = {};
+    let dataInicio = "2099-12-31";
+    let dataFim = "1900-01-01";
+
+    // 2. Extrair Batidas (Linhas 01) e Ocorrências (Linhas 02)
+    for (let i = 1; i < linhas.length; i++) {
+        let linha = linhas[i];
+
+        // LER OS DIAS E HORÁRIOS
+        if (linha.startsWith("01") && linha.length > 80) {
+            let dataBR = linha.substring(2, 12); // Ex: 17/11/2017
+            let e1 = linha.substring(27, 32).trim();
+            let s1 = linha.substring(43, 48).trim();
+            let e2 = linha.substring(59, 64).trim();
+            let s2 = linha.substring(75, 80).trim();
+
+            let horarios = [e1, s1, e2, s2].filter(h => h.length === 5 && h.includes(':'));
+
+            if (horarios.length > 0) {
+                batidasExtraidas[dataBR] = { h: horarios };
+            } else {
+                batidasExtraidas[dataBR] = { h: [] }; // Dia vazio
+            }
+
+            // Descobrir a menor e maior data para configurar o calendário
+            let partesData = dataBR.split('/');
+            if (partesData.length === 3) {
+                let dataISO = `${partesData[2]}-${partesData[1]}-${partesData[0]}`;
+                if (dataISO < dataInicio) dataInicio = dataISO;
+                if (dataISO > dataFim) dataFim = dataISO;
+            }
+        } 
+        // LER FALTAS E ATESTADOS
+        else if (linha.startsWith("02") && linha.length > 20) {
+            let dataBR = linha.substring(2, 12);
+            let ocorrencia = linha.substring(21).trim().toUpperCase();
+
+            if (!batidasExtraidas[dataBR]) batidasExtraidas[dataBR] = { h: [] };
+
+            if (ocorrencia.includes("FALTA")) batidasExtraidas[dataBR].f = true;
+            if (ocorrencia.includes("ATESTADO") || ocorrencia.includes("FERIAS") || ocorrencia.includes("LICENCA")) {
+                batidasExtraidas[dataBR].a = true; // Afastamento justificado
+            }
+        }
     }
 
     const novoCartao = {
@@ -873,43 +921,34 @@ async function processarArquivoJurisponto(texto) {
             reclamada: reclamada,
             horasDiarias: 8,
             horasSemanais: 44,
-            escala: "Livre"
+            escala: "Livre",
+            dataInicio: dataInicio !== "2099-12-31" ? dataInicio : "",
+            dataFim: dataFim !== "1900-01-01" ? dataFim : ""
         },
-        batidas: {} 
+        batidas: batidasExtraidas
     };
 
-    if (MODO_TESTE) {
-        novoCartao.id = "import_" + Date.now();
-        let cartoesTeste = JSON.parse(localStorage.getItem('cartoes_teste') || '[]');
-        cartoesTeste.push(novoCartao);
-        localStorage.setItem('cartoes_teste', JSON.stringify(cartoesTeste));
-        
-        alert(`Sucesso! Importado Reclamante: ${reclamante}\nEmpresa: ${reclamada}`);
-        window.location.href = `app.html?id=${novoCartao.id}`;
-    } else {
-        // --- NOVA LÓGICA DE PRODUÇÃO (FIREBASE) ---
-        try {
-            if (!usuarioAtual) {
-                alert("Erro: A sua sessão expirou. Por favor, faça login novamente.");
-                return;
-            }
-            
-            // Grava na coleção 'cartoes' do Firebase
-            const docRef = await addDoc(collection(db, "cartoes"), {
-                uid: usuarioAtual.uid,
-                dataCriacao: novoCartao.dataCriacao,
-                config: novoCartao.config,
-                batidas: novoCartao.batidas,
-                status: "Em andamento"
-            });
-
-            alert(`Sucesso! Importado Reclamante: ${reclamante}\nEmpresa: ${reclamada}`);
-            // Redireciona para a mesa de trabalho oficial com o ID real da nuvem!
-            window.location.href = `app.html?id=${docRef.id}`;
-
-        } catch (error) {
-            console.error("Erro ao salvar no Firebase:", error);
-            alert("Erro ao importar o ficheiro para a nuvem. Verifique a sua ligação.");
+    try {
+        if (!usuarioAtual) {
+            alert("Erro: A sua sessão expirou. Por favor, faça login novamente.");
+            return;
         }
+        
+        // Grava na coleção 'cartoes' do Firebase
+        const docRef = await addDoc(collection(db, "cartoes"), {
+            uid: usuarioAtual.uid,
+            dataCriacao: novoCartao.dataCriacao,
+            config: novoCartao.config,
+            batidas: novoCartao.batidas,
+            status: "Em andamento"
+        });
+
+        alert(`Sucesso! Importado Reclamante: ${reclamante}\nEmpresa: ${reclamada}`);
+        // Redireciona para a mesa de trabalho oficial com os dados preenchidos!
+        window.location.href = `app.html?id=${docRef.id}`;
+
+    } catch (error) {
+        console.error("Erro ao salvar no Firebase:", error);
+        alert("Erro ao importar o ficheiro para a nuvem. Verifique a sua ligação.");
     }
 }
