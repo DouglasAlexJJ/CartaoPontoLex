@@ -882,12 +882,12 @@ async function processarArquivoJurisponto(texto) {
 
         if (linha.startsWith("01") && linha.length > 80) {
             let dataBR = linha.substring(2, 12);
-            let e1 = linha.substring(27, 32).trim();
-            let s1 = linha.substring(43, 48).trim();
-            let e2 = linha.substring(59, 64).trim();
-            let s2 = linha.substring(75, 80).trim();
-
-            let horarios = [e1, s1, e2, s2].filter(h => h.length === 5 && h.includes(':') && h !== "00:00");
+            
+            // A MÁGICA: Procura automaticamente todos os padrões "HH:MM" na linha!
+            let todosHorarios = linha.substring(12).match(/\d{2}:\d{2}/g) || [];
+            
+            // Pega os 4 primeiros e filtra os "00:00" de preenchimento do Jurisponto
+            let horarios = todosHorarios.slice(0, 4).filter(h => h !== "00:00");
 
             if (horarios.length > 0) {
                 batidasExtraidas[dataBR] = { h: horarios };
@@ -901,7 +901,7 @@ async function processarArquivoJurisponto(texto) {
                 if (dataISO < dataInicio) dataInicio = dataISO;
                 if (dataISO > dataFim) dataFim = dataISO;
             }
-        } 
+        }
         else if (linha.startsWith("02") && linha.length > 20) {
             let dataBR = linha.substring(2, 12);
             let ocorrencia = linha.substring(21).trim().toUpperCase();
