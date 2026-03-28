@@ -880,13 +880,12 @@ async function processarArquivoJurisponto(texto) {
             let e2 = linha.substring(59, 64).trim();
             let s2 = linha.substring(75, 80).trim();
 
-            // CORREÇÃO: Ignora as horas que vieram como "00:00" para deixar os dias vazios de verdade
             let horarios = [e1, s1, e2, s2].filter(h => h.length === 5 && h.includes(':') && h !== "00:00");
 
             if (horarios.length > 0) {
                 batidasExtraidas[dataBR] = { h: horarios };
             } else {
-                batidasExtraidas[dataBR] = { h: [] }; // Dia zerado / Falta
+                batidasExtraidas[dataBR] = { h: [] }; 
             }
 
             let partesData = dataBR.split('/');
@@ -903,66 +902,71 @@ async function processarArquivoJurisponto(texto) {
             if (!batidasExtraidas[dataBR]) batidasExtraidas[dataBR] = { h: [] };
 
             if (ocorrencia.includes("FALTA")) batidasExtraidas[dataBR].f = true;
-            // CORREÇÃO ATESTADO: Marca como 'a' de afastamento
             if (ocorrencia.includes("ATESTADO") || ocorrencia.includes("FERIAS") || ocorrencia.includes("LICENCA")) {
                 batidasExtraidas[dataBR].a = true; 
             }
         }
     }
 
-    const novoCartao = {
-        dataCriacao: new Date().toISOString(),
-        config: {
+    // --- A INTEGRAÇÃO COM A SUA ARQUITETURA ---
+    try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            alert("Aguarde o sistema carregar e tente novamente.");
+            return;
+        }
+
+        // 1. Descobre o dono real do cartão (igual à sua função salvarEIniciar)
+        const donoDoCartaoId = (dadosUsuarioGlobal && dadosUsuarioGlobal.tipoConta === 'colaborador') 
+                                ? dadosUsuarioGlobal.adminId 
+                                : currentUser.uid;
+
+        // 2. Gera o ID do mesmo jeito que o seu sistema gera
+        const novoId = Date.now().toString();
+
+        const config = {
             reclamante: reclamante,
             reclamada: reclamada,
             horasDiarias: 8,
             horasSemanais: 44,
             escala: "Livre",
             dataInicio: dataInicio !== "2099-12-31" ? dataInicio : "",
-            dataFim: dataFim !== "1900-01-01" ? dataFim : ""
-        },
-        batidas: batidasExtraidas
-    };
+            dataFim: dataFim !== "1900-01-01" ? dataFim : "",
+            uf: "",
+            cidade: ""
+        };
 
-    try {
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-            alert("Aguarde 2 segundos para o sistema carregar o seu utilizador e tente novamente.");
-            return;
-        }
-        
-        // 1. Grava na nuvem com o seu UID
-        const docRef = await addDoc(collection(db, "cartoes"), {
-            uid: currentUser.uid,
-            dataCriacao: novoCartao.dataCriacao,
-            config: novoCartao.config,
-            batidas: novoCartao.batidas,
-            status: "Em andamento"
-        });
+        // 3. Monta o cartão exatamente como a sua função faria
+        const novoCartao = {
+            id: novoId,
+            userId: donoDoCartaoId,
+            criadoPor: currentUser.email,
+            dataEdicao: Date.now(),
+            progresso: 0,
+            config: config,
+            cidade: "",
+            uf: "",
+            batidas: batidasExtraidas
+        };
+
+        // 4. Salva no Firebase usando setDoc (forçando o nosso ID)
+        await setDoc(doc(db, "cartoes", novoId), novoCartao);
 
         alert(`Ficheiro importado com sucesso!\n\nReclamante: ${reclamante}\n\nO painel será aberto para que você preencha o Estado, Cidade e Escala.`);
 
-        // 2. Injeta o cartão recém-criado na memória local para a função editarCartao conseguir encontrá-lo!
-        salvosNuvem.push({
-            id: docRef.id,
-            config: novoCartao.config,
-            batidas: novoCartao.batidas
-        });
+        // 5. Injeta o cartão perfeito na memória para a tela de edição conseguir ler
+        salvosNuvem.push(novoCartao);
 
-        // 3. Atualiza os cartões lá no fundo da tela
-        if (typeof carregarDashboard === 'function') {
-            carregarDashboard();
-        }
-
-        // 4. A SUA IDEIA: Chama a função que abre o modal de edição!
+        // 6. Chama a sua função de Editar Cartão!
         if (typeof window.editarCartao === 'function') {
-            window.editarCartao(docRef.id);
+            window.editarCartao(novoId);
         } else {
             console.error("Função editarCartao não encontrada.");
+            window.location.reload();
         }
 
     } catch (error) {
         console.error("Erro ao salvar no Firebase:", error);
-        alert("Erro ao importar o ficheiro para a nuvem. Verifique a sua ligação.");
+        alert("Erro ao importar o ficheiro para a nuvem. Verifique a sua conexão.");
     }
 }
