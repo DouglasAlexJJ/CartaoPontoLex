@@ -57,11 +57,18 @@
                     <small>Começar do zero</small>
                 </button>
                 
-                <button class="btn-gigante">
-                    <span class="icone-gigante">📥</span>
-                    <strong>Importar Ficheiro</strong>
-                    <small>Continuar um trabalho anterior (.json)</small>
-                </button>
+                <div class="btn-gigante" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; border: 2px dashed #ccc; border-radius: 10px; cursor: default;">
+                    <span class="icone-gigante" style="font-size: 2em;">📥</span>
+                    <strong style="margin: 10px 0;">Importar Ficheiro</strong>
+    
+                    <input type="file" id="input-importar-jurisponto" accept=".txt" style="display: none;">
+    
+                    <button onclick="document.getElementById('input-importar-jurisponto').click()" style="padding: 8px 16px; margin-bottom: 5px; cursor: pointer; border-radius: 5px; border: 1px solid #ccc;">
+                    Importar Jurisponto (.txt)
+                    </button>
+    
+                    <small style="color: #666;">Continuar um trabalho anterior (.json)</small>
+                </div>
             </div>
 
             <div id="banner-assinatura" class="escondido" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">

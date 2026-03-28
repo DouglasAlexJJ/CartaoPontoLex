@@ -663,36 +663,40 @@ function minParaHHMM(minutos) {
 }
 
 // Função que calcula a duração entre duas batidas, separando Noturno e Diurno
-function calcularIntervaloDiferenciado(entrada, saida) {
-    if(!entrada || !saida) return { diurno: 0, noturno: 0, totalTrabalhado: 0 };
-    let inicio = hhmmParaMin(entrada);
-    let fim = hhmmParaMin(saida);
-    
-    // Se a saída for menor que a entrada, assumimos que virou a meia-noite
-    if (fim < inicio) fim += 1440; 
+function calcularIntervaloDiferenciado(ent, sai, aplicaSumula60 = false) {
+    let entMin = hhmmParaMin(ent);
+    let saiMin = hhmmParaMin(sai);
+    if (saiMin <= entMin) saiMin += 1440; // Virou a noite
 
-    let minDiurnos = 0;
-    let minNoturnos = 0;
+    let minDiurno = 0;
+    let minNoturno = 0;
+    let entrouNaMadrugada = false; // Radar da Súmula 60
 
-    for (let m = inicio; m < fim; m++) {
-        let minutoDoDia = m % 1440; // Garante que 1440 vire 0 (meia-noite)
+    for (let m = entMin; m < saiMin; m++) {
+        let minutoDoDia = m % 1440; 
         
-        // Intervalo Noturno: 22:00 (1320min) até 05:00 (300min)
-        if (minutoDoDia >= 1320 || minutoDoDia < 300) {
-            minNoturnos++;
+        let isNoturno = (minutoDoDia >= 1320 || minutoDoDia < 300);
+        
+        if (isNoturno) {
+            minNoturno++;
+            entrouNaMadrugada = true; // O motor detetou que ele trabalhou de noite
         } else {
-            minDiurnos++;
+            // Se já passou das 05h da manhã (minuto >= 300) e ele veio da madrugada,
+            // e o advogado pediu a Súmula 60, essa hora vira noturna!
+            if (aplicaSumula60 && entrouNaMadrugada && minutoDoDia >= 300 && minutoDoDia < 1320) {
+                minNoturno++; 
+            } else {
+                minDiurno++;
+            }
         }
     }
 
-    // Aplicação da Hora Ficta Noturna (Art. 73, §1º da CLT)
-    // 60 min de relógio = 52.5 min de trabalho (Multiplicador de 1.142857)
-    const minNoturnosReduzidos = Math.floor(minNoturnos * (8 / 7));
+    let minNoturnoFicto = minNoturno * (60 / 52.5);
 
     return {
-        diurno: minDiurnos,
-        noturno: minNoturnosReduzidos,
-        totalTrabalhado: minDiurnos + minNoturnosReduzidos
+        diurno: minDiurno,
+        noturno: minNoturnoFicto,
+        totalTrabalhado: minDiurno + minNoturnoFicto
     };
 }
 
@@ -700,9 +704,13 @@ function calcularLinha(tr) {
     if (!tr) return;
     
     const campoTotal = tr.querySelector('.total-dia');
+    const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
+    
+    // Verifica se existe pelo menos uma batida preenchida nesta linha
+    const temBatida = inputs.some(v => v && v.length === 5);
 
-    // Se a linha for uma folga, zera tudo
-    if (tr.classList.contains('folga') || tr.classList.contains('afastamento')) {
+    // MUDANÇA AQUI: Só zera a linha se for folga E NÃO tiver batidas digitadas!
+    if (!temBatida && (tr.classList.contains('folga') || tr.classList.contains('afastamento'))) {
         if (campoTotal) campoTotal.innerText = "00:00";
         tr.dataset.totalDiurnoMin = 0;
         tr.dataset.totalNoturnoMin = 0;
@@ -710,11 +718,9 @@ function calcularLinha(tr) {
         return;
     }
 
-    const inputs = Array.from(tr.querySelectorAll('.ponto')).map(i => i.value);
     let totalDiurnoMin = 0;
     let totalNoturnoMin = 0;
 
-    // Pega os pares de entrada e saída
     for (let i = 0; i < inputs.length; i += 2) {
         let ent = inputs[i];
         let sai = inputs[i + 1];
@@ -728,18 +734,11 @@ function calcularLinha(tr) {
     const totalTrabalhadoMin = totalDiurnoMin + totalNoturnoMin;
     const horasTrabalhadasDec = totalTrabalhadoMin / 60;
 
-    // Atualiza o visual da linha (Total de horas convertido de volta para HH:MM)
     if (campoTotal) campoTotal.innerText = minParaHHMM(totalTrabalhadoMin);
 
-    // Salva os dados brutos no "dataset" da linha HTML para os totais e relatórios lerem depois
     tr.dataset.totalDiurnoMin = totalDiurnoMin;
     tr.dataset.totalNoturnoMin = totalNoturnoMin;
-    tr.dataset.totalBruto = horasTrabalhadasDec.toFixed(4); // Mantendo para compatibilidade
-    
-    // Chama o totalizador do rodapé
-    if(typeof atualizarTotalGeral === 'function') {
-       atualizarTotalGeral();
-    }
+    tr.dataset.totalBruto = horasTrabalhadasDec.toFixed(4); 
 }
 
 // -------------------------------------------------------------------------
@@ -757,34 +756,39 @@ function apurarHorasExtrasSemana(diasDaSemana, limiteDiarioMin = 480, limiteSema
     let heDiariasMin = 0;
     let heSemanaisMin = 0;
 
-    // 1. Apuração Diária
     diasDaSemana.forEach(dia => {
+        if (dia.domFerMin > 0) return; 
+
         let trabMin = dia.totalTrabalhadoMin || 0; 
-        let heDoDia = 0;
-
-        // Se trabalhou mais que o limite diário (ex: 8h), gera HE Diária
         if (trabMin > limiteDiarioMin) {
-            heDoDia = trabMin - limiteDiarioMin;
-            heDiariasMin += heDoDia;
+            heDiariasMin += (trabMin - limiteDiarioMin);
         }
-
         totalSemanaMin += trabMin;
     });
 
-    // 2. Apuração Semanal (Evitando Bis in Idem)
-    // O que sobra após tirarmos as HEs diárias? São as "Horas Normais" da semana.
     let horasNormaisSemana = totalSemanaMin - heDiariasMin; 
-    
-    // Se essas "Horas Normais" ultrapassarem 44h, o excesso é HE Semanal
     if (horasNormaisSemana > limiteSemanalMin) {
         heSemanaisMin = horasNormaisSemana - limiteSemanalMin;
+    }
+
+    // --- LÓGICA DA SÚMULA 85 (INCISO IV) ---
+    // Tudo que passar das 44h brutas é "Hora Extra Cheia"
+    let sumulaCheiaMin = totalSemanaMin > limiteSemanalMin ? (totalSemanaMin - limiteSemanalMin) : 0;
+    
+    // O "Apenas Adicional" são as horas diárias que foram "compensadas", ou seja, o que sobra 
+    // das Extras Diárias depois de tirarmos as Extras Cheias.
+    let sumulaAdicionalMin = heDiariasMin;
+    if (sumulaCheiaMin > 0) {
+        sumulaAdicionalMin = Math.max(0, heDiariasMin - sumulaCheiaMin);
     }
 
     return {
         totalTrabalhadoSemana: totalSemanaMin,
         heDiarias: heDiariasMin,
         heSemanais: heSemanaisMin,
-        totalHe: heDiariasMin + heSemanaisMin
+        totalHe: heDiariasMin + heSemanaisMin,
+        sumulaAdicional: sumulaAdicionalMin, // NOVO: Só o adicional
+        sumulaCheia: sumulaCheiaMin          // NOVO: Hora extra completa
     };
 }
 
@@ -904,126 +908,157 @@ function calcularViolacaoIntrajornada(intervaloRealizado, totalTrabalhado) {
  * @param {Object} config - Configurações do cartão (limites de horas)
  * @returns {Object} Relatório estruturado para exportação (PDF/Excel)
  */
-function gerarLaudoTecnico(batidasObj, config) {
+
+function gerarLaudoTecnico(batidasObj, config, opcoes = {}) {
     let relatorio = {
         dias: [], semanas: [],
         totais: {
             horasNormaisMin: 0, heDiariasMin: 0, heSemanaisMin: 0,
-            adicionalNoturnoMin: 0, artigo66Min: 0, artigo71DiferencaMin: 0, artigo71FixoMin: 0
+            adicionalNoturnoMin: 0, artigo66Min: 0, artigo71DiferencaMin: 0, artigo71FixoMin: 0,
+            domingosFeriadosMin: 0, sumula85AdicionalMin: 0, sumula85CheiaMin: 0,
+            artigo67Min: 0 // NOVO: Cofre do Artigo 67
         }
     };
 
     if (!config || !config.dataInicio || !config.dataFim) return relatorio;
 
-    // 1. Gera o calendário COMPLETO do período (ex: 01/01 a 31/01)
     let dataAtual = new Date(config.dataInicio + "T00:00:00");
     let dataFinal = new Date(config.dataFim + "T00:00:00");
-    
     let calendarioCompleto = [];
     
     while (dataAtual <= dataFinal) {
         let ano = dataAtual.getFullYear();
         let mes = String(dataAtual.getMonth() + 1).padStart(2, '0');
         let dia = String(dataAtual.getDate()).padStart(2, '0');
-        
-        // Montamos a data no formato BR (DD/MM/YYYY) e EUA (YYYY-MM-DD)
         let dataBR = `${dia}/${mes}/${ano}`;
         let dataEUA = `${ano}-${mes}-${dia}`;
         
-        // Tenta achar os dados daquele dia no banco (seja qual for o formato salvo)
         let dadosDoDia = {};
         if (batidasObj && batidasObj[dataBR]) dadosDoDia = batidasObj[dataBR];
         else if (batidasObj && batidasObj[dataEUA]) dadosDoDia = batidasObj[dataEUA];
 
-        calendarioCompleto.push({
-            dataParaImprimir: dataBR, // Vai sair bonito no PDF
-            dados: dadosDoDia,
-            dataDate: new Date(`${ano}-${mes}-${dia}T00:00:00`) // Para saber quando é Domingo
-        });
-        
-        dataAtual.setDate(dataAtual.getDate() + 1); // Vai para o próximo dia
+        calendarioCompleto.push({ dataParaImprimir: dataBR, dados: dadosDoDia, dataDate: new Date(`${ano}-${mes}-${dia}T00:00:00`) });
+        dataAtual.setDate(dataAtual.getDate() + 1); 
     }
     
     let semanaAtual = [];
     let ultimaSaidaAnterior = null;
     let saiuDeMadrugadaAnterior = false;
+    let ultimaSaidaDate = null; // Cronómetro absoluto para o Art. 67
 
-    // 2. Agora processamos TODOS os dias, um por um
     calendarioCompleto.forEach((diaItem, index) => {
         let batidasDia = Array.isArray(diaItem.dados.h) ? diaItem.dados.h : []; 
-        
-        let minutosTrabalhadosDia = 0;
-        let diurnoDia = 0;
-        let noturnoDia = 0;
-        let ultimaSaidaHoje = null;
-        let primeiraEntradaHoje = batidasDia.find(b => b && b.length === 5) || null;
+        let minutosTrabalhadosDia = 0, diurnoDia = 0, noturnoDia = 0;
+        let ultimaSaidaHoje = null, primeiraEntradaHoje = batidasDia.find(b => b && b.length === 5) || null;
         let saiuDeMadrugadaHoje = false;
 
-        // Apurar horas trabalhadas
+        // CRONÓMETRO: Calcula o descanso desde a saída do dia anterior até a entrada de hoje
+        let descansoPrevioMin = 0;
+        if (ultimaSaidaDate && primeiraEntradaHoje) {
+            let entradaDate = new Date(diaItem.dataDate.getTime() + hhmmParaMin(primeiraEntradaHoje) * 60000);
+            descansoPrevioMin = (entradaDate - ultimaSaidaDate) / 60000;
+        }
+
         for (let i = 0; i < batidasDia.length; i += 2) {
-            let ent = batidasDia[i];
-            let sai = batidasDia[i + 1];
+            let ent = batidasDia[i], sai = batidasDia[i + 1];
             if (ent && sai && ent.length === 5 && sai.length === 5) {
-                let calc = calcularIntervaloDiferenciado(ent, sai);
-                diurnoDia += calc.diurno;
-                noturnoDia += calc.noturno;
-                minutosTrabalhadosDia += calc.totalTrabalhado;
+                // AGORA ELE PASSA A SÚMULA 60 PARA A MATEMÁTICA!
+                let calc = calcularIntervaloDiferenciado(ent, sai, opcoes.sumula60); 
                 
-                ultimaSaidaHoje = sai;
+                diurnoDia += calc.diurno; 
+                noturnoDia += calc.noturno; 
+                minutosTrabalhadosDia += calc.totalTrabalhado;
+                ultimaSaidaHoje = sai; 
                 if (hhmmParaMin(sai) < hhmmParaMin(ent)) saiuDeMadrugadaHoje = true;
             }
         }
 
-        // Apurar Artigos 71 e 66
         let art71 = apurarArtigo71(batidasDia, minutosTrabalhadosDia);
         let art66Minutos = 0;
         if (ultimaSaidaAnterior && primeiraEntradaHoje) {
             art66Minutos = apurarArtigo66(ultimaSaidaAnterior, primeiraEntradaHoje, saiuDeMadrugadaAnterior);
         }
 
-        // Resumo diário
+        let diaSemanaData = diaItem.dataDate.getDay(); 
+        let isFeriado = diaItem.dados.fer || false;
+
         let objDia = {
             data: diaItem.dataParaImprimir,
             isFolga: diaItem.dados.f || false,
-            isFeriado: diaItem.dados.fer || false,
+            isFeriado: isFeriado,
+            isDomingo: (diaSemanaData === 0),
+            domFerMin: isFeriado ? minutosTrabalhadosDia : 0, 
             batidas: batidasDia,
             totalTrabalhadoMin: minutosTrabalhadosDia,
             noturnoMin: noturnoDia,
             art71: art71,
-            art66Minutos: art66Minutos
+            art66Minutos: art66Minutos,
+            descansoPrevioMin: descansoPrevioMin, // Guarda o descanso para a análise da semana
+            art67Minutos: 0 // Será preenchido no domingo se houver violação
         };
 
-        relatorio.dias.push(objDia);
+        relatorio.dias.push(objDia); 
         semanaAtual.push(objDia);
-
-        // Soma os totais gerais
-        relatorio.totais.adicionalNoturnoMin += noturnoDia;
+        
+        relatorio.totais.adicionalNoturnoMin += noturnoDia; 
         relatorio.totais.artigo66Min += art66Minutos;
-        relatorio.totais.artigo71DiferencaMin += art71.violadosDiferenca;
+        relatorio.totais.artigo71DiferencaMin += art71.violadosDiferenca; 
         relatorio.totais.artigo71FixoMin += art71.violadosFixo;
 
-        if (ultimaSaidaHoje) {
-            ultimaSaidaAnterior = ultimaSaidaHoje;
-            saiuDeMadrugadaAnterior = saiuDeMadrugadaHoje;
-        } else {
-            ultimaSaidaAnterior = null;
-            saiuDeMadrugadaAnterior = false;
+        if (ultimaSaidaHoje) { 
+            ultimaSaidaAnterior = ultimaSaidaHoje; 
+            saiuDeMadrugadaAnterior = saiuDeMadrugadaHoje; 
+            
+            // Regista a hora exata da saída para o cronómetro do dia seguinte
+            let minSai = hhmmParaMin(ultimaSaidaHoje);
+            if (saiuDeMadrugadaHoje) minSai += 1440;
+            ultimaSaidaDate = new Date(diaItem.dataDate.getTime() + minSai * 60000);
+        } else { 
+            ultimaSaidaAnterior = null; 
+            saiuDeMadrugadaAnterior = false; 
+            // Se foi folga, NÃO apagamos o ultimaSaidaDate, o cronómetro continua a rodar!
         }
 
-        // Fecho da Semana (Verifica se é Domingo ou último dia do laudo)
-        let diaSemana = diaItem.dataDate.getDay(); 
+        // --- FECHAMENTO DA SEMANA ---
+        if (diaSemanaData === 0 || index === calendarioCompleto.length - 1) {
+            
+            let diasTrabalhadosNaSemana = semanaAtual.filter(d => d.totalTrabalhadoMin > 0).length;
+            let teveFolgaNaSemana = (diasTrabalhadosNaSemana < semanaAtual.length);
 
-        if (diaSemana === 0 || index === calendarioCompleto.length - 1) {
+            // --- LÓGICA DO ARTIGO 67 (Súmula 110) ---
+            if (!teveFolgaNaSemana) {
+                // Se trabalhou os 7 dias, procuramos a maior janela de descanso que ele teve.
+                let maiorDescanso = Math.max(...semanaAtual.map(d => d.descansoPrevioMin));
+                let limiteArt67Min = 35 * 60; // 35 horas = 2100 minutos
+                
+                if (maiorDescanso < limiteArt67Min) {
+                    let violacaoArt67 = limiteArt67Min - maiorDescanso;
+                    relatorio.totais.artigo67Min += violacaoArt67;
+                    // Lança a violação no último dia da semana (Domingo)
+                    semanaAtual[semanaAtual.length - 1].art67Minutos = violacaoArt67;
+                }
+            }
+
+            let domingo = semanaAtual.find(d => d.isDomingo);
+            if (domingo && domingo.totalTrabalhadoMin > 0 && !domingo.isFeriado) {
+                if (!teveFolgaNaSemana) domingo.domFerMin = domingo.totalTrabalhadoMin;
+                else domingo.domFerMin = 0; 
+            }
+
+            semanaAtual.forEach(d => { relatorio.totais.domingosFeriadosMin += d.domFerMin || 0; });
+
             let limiteDiarioMin = (parseFloat(config.horasDiarias) || 8) * 60;
             let limiteSemanalMin = (parseFloat(config.horasSemanais) || 44) * 60;
-            
             let calcSemana = apurarHorasExtrasSemana(semanaAtual, limiteDiarioMin, limiteSemanalMin);
+            
             relatorio.semanas.push(calcSemana);
-
-            relatorio.totais.heDiariasMin += calcSemana.heDiarias;
+            relatorio.totais.heDiariasMin += calcSemana.heDiarias; 
             relatorio.totais.heSemanaisMin += calcSemana.heSemanais;
             relatorio.totais.horasNormaisMin += (calcSemana.totalTrabalhadoSemana - calcSemana.totalHe);
-
+            
+            relatorio.totais.sumula85AdicionalMin += calcSemana.sumulaAdicional;
+            relatorio.totais.sumula85CheiaMin += calcSemana.sumulaCheia;
+            
             semanaAtual = []; 
         }
     });
@@ -1364,33 +1399,38 @@ window.fecharModalExportar = function() {
 
 // O Botão de "Confirmar" dentro do modal chama esta função
 window.processarPDFTecnico = async function() {
-    // 1. Coletar Opções Selecionadas no Modal
+    // 1. FORÇA O SALVAMENTO DA ÚLTIMA DIGITAÇÃO
+    if (document.activeElement) {
+        document.activeElement.blur(); // Tira o foco do input para acionar o auto-save
+    }
+    // Aguarda 500 milissegundos para dar tempo de atualizar o cartaoAtual.batidas
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 2. Coletar Opções Selecionadas no Modal
     const opcoes = {
         heDiaria: document.getElementById('opt-he-diurna')?.checked || false,
         heSemanal: document.getElementById('opt-he-semanal')?.checked || false,
         art71: document.getElementById('opt-art71')?.checked || false,
+        art71Tipo: document.getElementById('opt-art71-tipo')?.value || 'suprimido',
         art66: document.getElementById('opt-art66')?.checked || false,
         art67: document.getElementById('opt-art67')?.checked || false,
         sumula85: document.getElementById('opt-sumula85')?.checked || false,
+        sumula340: document.getElementById('opt-sumula340')?.checked || false,
         adcNoturno: document.getElementById('opt-adc-noturno')?.checked || false,
+        sumula60: document.getElementById('opt-sumula60')?.checked || false,
         domFer: document.getElementById('opt-dom-fer')?.checked || false
     };
 
     fecharModalExportar();
     
-    // 2. O NOSSO CÉREBRO ENTRA EM AÇÃO AQUI
-    // Lê todas as batidas e a configuração do cartão atual e gera a matemática completa.
-    const laudoTecnico = gerarLaudoTecnico(cartaoAtual.batidas, configAtual);
-
-    // Dica de Debug: Pressione F12 e veja a aba Console para ver os cálculos perfeitos!
-    console.log("LAUDO GERADO COM SUCESSO: ", laudoTecnico);
+    // 3. O NOSSO CÉREBRO ENTRA EM AÇÃO
+    const laudoTecnico = gerarLaudoTecnico(cartaoAtual.batidas, configAtual, opcoes);
     
-    // 3. Passamos as opções escolhidas E o laudo calculado para a função que desenha o PDF
+    // 4. Desenha o PDF
     if (typeof executarMontagemPDF === 'function') {
         executarMontagemPDF(opcoes, laudoTecnico);
     } else {
         alert("Erro interno: A função de montagem do PDF não foi carregada.");
-        console.error("Função executarMontagemPDF não encontrada!");
     }
 };
 
@@ -1404,7 +1444,6 @@ window.executarMontagemPDF = function(opcoes, laudo) {
     papelVirtual.style.fontFamily = 'Arial, sans-serif';
     papelVirtual.style.color = '#333';
 
-    // Adicionamos um estilo para garantir que as linhas não sejam cortadas pela metade na troca de página
     let html = `
         <style>
             tr { page-break-inside: avoid; }
@@ -1421,26 +1460,35 @@ window.executarMontagemPDF = function(opcoes, laudo) {
                     <th style="padding: 5px;">Data</th>
                     <th style="padding: 5px;">Batidas</th>
                     <th style="padding: 5px;">Trabalhado</th>
+                    ${opcoes.domFer ? '<th style="padding: 5px;">Dom/Fer (100%)</th>' : ''}
                     ${opcoes.adcNoturno ? '<th style="padding: 5px;">Noturno</th>' : ''}
                     ${opcoes.art71 ? '<th style="padding: 5px;">Art. 71</th>' : ''}
                     ${opcoes.art66 ? '<th style="padding: 5px;">Art. 66</th>' : ''}
+                    ${opcoes.art67 ? '<th style="padding: 5px;">Art. 67</th>' : ''}
                 </tr>
             </thead>
             <tbody>
     `;
 
     laudo.dias.forEach(dia => {
-        let batidasStr = dia.batidas.filter(b => b && b.length === 5).join(' - ') || 'Folga / Sem batidas';
-        let valorArt71 = minParaHHMM(dia.art71.violadosDiferenca);
+        let textoVazio = 'Sem batidas (Falta)';
+        if (dia.isDomFer) textoVazio = 'Domingo / Feriado';
+        else if (dia.isFolga) textoVazio = 'Folga Compensatória';
+
+        let batidasStr = dia.batidas.filter(b => b && b.length === 5).join(' - ') || textoVazio;
+        let minArt71 = opcoes.art71Tipo === 'integral' ? dia.art71.violadosFixo : dia.art71.violadosDiferenca;
+        let valorArt71 = minParaHHMM(minArt71);
 
         html += `
             <tr>
-                <td style="padding: 5px;">${dia.data.split('-').reverse().join('/')}</td>
+                <td style="padding: 5px;">${dia.data}</td>
                 <td style="padding: 5px;">${batidasStr}</td>
                 <td style="padding: 5px;">${minParaHHMM(dia.totalTrabalhadoMin)}</td>
+                ${opcoes.domFer ? `<td style="padding: 5px; color: ${dia.domFerMin > 0 ? 'red' : 'black'};">${minParaHHMM(dia.domFerMin)}</td>` : ''}
                 ${opcoes.adcNoturno ? `<td style="padding: 5px; color: ${dia.noturnoMin > 0 ? 'red' : 'black'};">${minParaHHMM(dia.noturnoMin)}</td>` : ''}
-                ${opcoes.art71 ? `<td style="padding: 5px; color: ${dia.art71.violadosDiferenca > 0 ? 'red' : 'black'};">${valorArt71}</td>` : ''}
+                ${opcoes.art71 ? `<td style="padding: 5px; color: ${minArt71 > 0 ? 'red' : 'black'};">${valorArt71}</td>` : ''}
                 ${opcoes.art66 ? `<td style="padding: 5px; color: ${dia.art66Minutos > 0 ? 'red' : 'black'};">${minParaHHMM(dia.art66Minutos)}</td>` : ''}
+                ${opcoes.art67 ? `<td style="padding: 5px; color: ${dia.art67Minutos > 0 ? 'red' : 'black'}; font-weight: ${dia.art67Minutos > 0 ? 'bold' : 'normal'};">${minParaHHMM(dia.art67Minutos)}</td>` : ''}
             </tr>
         `;
     });
@@ -1450,16 +1498,32 @@ window.executarMontagemPDF = function(opcoes, laudo) {
         </table>
     `;
 
-    // Resumo Totalizador (agora com a classe resumo-box para evitar quebra)
+    // 1. COLOQUE AS VARIÁVEIS AQUI, antes de começar o HTML do resumo:
+    let totalArt71 = opcoes.art71Tipo === 'integral' ? laudo.totais.artigo71FixoMin : laudo.totais.artigo71DiferencaMin;
+    let textoArt71 = opcoes.art71Tipo === 'integral' ? 'Integral (1h)' : 'Suprimido (Diferença)';
+    let totalSumula340 = laudo.totais.heDiariasMin + laudo.totais.heSemanaisMin;
+
+    // 2. AGORA SIM, injetamos as variáveis na lista do HTML:
     html += `
         <div class="resumo-box">
             <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Resumo Consolidado</h3>
             <ul style="list-style-type: none; padding-left: 0; font-size: 13px; line-height: 1.6;">
-                ${opcoes.heDiaria ? `<li><strong>Horas Extras Diárias (> ${configAtual.horasDiarias}h):</strong> ${minParaHHMM(laudo.totais.heDiariasMin)}</li>` : ''}
-                ${opcoes.heSemanal ? `<li><strong>Horas Extras Semanais (> ${configAtual.horasSemanais}h):</strong> ${minParaHHMM(laudo.totais.heSemanaisMin)}</li>` : ''}
+                
+                ${opcoes.heDiaria && !opcoes.sumula85 && !opcoes.sumula340 ? `<li><strong>Horas Extras Diárias (> ${configAtual.horasDiarias}h):</strong> ${minParaHHMM(laudo.totais.heDiariasMin)}</li>` : ''}
+                ${opcoes.heSemanal && !opcoes.sumula85 && !opcoes.sumula340 ? `<li><strong>Horas Extras Semanais (> ${configAtual.horasSemanais}h):</strong> ${minParaHHMM(laudo.totais.heSemanaisMin)}</li>` : ''}
+                
+                ${opcoes.sumula85 && !opcoes.sumula340 ? `<li><strong>Súmula 85 TST (Apenas Adicional):</strong> ${minParaHHMM(laudo.totais.sumula85AdicionalMin)}</li>` : ''}
+                ${opcoes.sumula85 && !opcoes.sumula340 ? `<li><strong>Súmula 85 TST (Hora Extra Cheia):</strong> ${minParaHHMM(laudo.totais.sumula85CheiaMin)}</li>` : ''}
+                
+                ${opcoes.sumula340 ? `<li><strong>Súmula 340 TST (Comissionista - Apenas Adicional):</strong> ${minParaHHMM(totalSumula340)}</li>` : ''}
+                
+                ${opcoes.domFer ? `<li><strong>Domingos e Feriados Trabalhados (100%):</strong> ${minParaHHMM(laudo.totais.domingosFeriadosMin)}</li>` : ''}
                 ${opcoes.adcNoturno ? `<li><strong>Adicional Noturno (com redução):</strong> ${minParaHHMM(laudo.totais.adicionalNoturnoMin)}</li>` : ''}
-                ${opcoes.art71 ? `<li><strong>Violação Art. 71 (Diferença):</strong> ${minParaHHMM(laudo.totais.artigo71DiferencaMin)}</li>` : ''}
+                
+                ${opcoes.art71 ? `<li><strong>Violação Art. 71 (${textoArt71}):</strong> ${minParaHHMM(totalArt71)}</li>` : ''}
+                
                 ${opcoes.art66 ? `<li><strong>Violação Art. 66 (Interjornada):</strong> ${minParaHHMM(laudo.totais.artigo66Min)}</li>` : ''}
+                ${opcoes.art67 ? `<li><strong>Violação Art. 67 (Descanso 35h Semanal):</strong> ${minParaHHMM(laudo.totais.artigo67Min)}</li>` : ''}
             </ul>
         </div>
     `;
@@ -1473,8 +1537,12 @@ window.executarMontagemPDF = function(opcoes, laudo) {
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2 },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak:    { mode: ['css', 'legacy'] } // LIGA A QUEBRA DE PÁGINAS MÚLTIPLAS
+            pagebreak:    { mode: ['css', 'legacy'] }
         };
+        
+        // CORREÇÃO DO BUG: Sobe a tela para o topo para a biblioteca não se perder nas coordenadas!
+        window.scrollTo(0, 0);
+        
         html2pdf().set(opt).from(papelVirtual).save();
     } else {
         alert("Atenção: A biblioteca 'html2pdf' não foi encontrada.");
