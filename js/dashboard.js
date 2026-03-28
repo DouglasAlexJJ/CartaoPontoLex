@@ -855,14 +855,12 @@ async function processarArquivoJurisponto(texto) {
     const linhas = texto.split('\n');
     if (linhas.length === 0) return alert("Ficheiro vazio!");
 
-    // 1. Extrair Cabeçalho (Nomes)
     const linhaCabecalho = linhas[0];
     const pedacos = linhaCabecalho.split(/\s{2,}/);
     
     let reclamante = "Não identificado";
     let reclamada = "Não identificada";
 
-    // CORREÇÃO DOS ÍNDICES: O nome estava na posição 2 e a empresa na 3!
     if (pedacos.length >= 4) {
         reclamante = pedacos[2].replace(/^[0-9]+/, '').trim();
         reclamada = pedacos[3] ? pedacos[3].trim() : "Não identificada";
@@ -872,27 +870,25 @@ async function processarArquivoJurisponto(texto) {
     let dataInicio = "2099-12-31";
     let dataFim = "1900-01-01";
 
-    // 2. Extrair Batidas (Linhas 01) e Ocorrências (Linhas 02)
     for (let i = 1; i < linhas.length; i++) {
         let linha = linhas[i];
 
-        // LER OS DIAS E HORÁRIOS
         if (linha.startsWith("01") && linha.length > 80) {
-            let dataBR = linha.substring(2, 12); // Ex: 17/11/2017
+            let dataBR = linha.substring(2, 12);
             let e1 = linha.substring(27, 32).trim();
             let s1 = linha.substring(43, 48).trim();
             let e2 = linha.substring(59, 64).trim();
             let s2 = linha.substring(75, 80).trim();
 
-            let horarios = [e1, s1, e2, s2].filter(h => h.length === 5 && h.includes(':'));
+            // CORREÇÃO: Ignora as horas que vieram como "00:00" para deixar os dias vazios de verdade
+            let horarios = [e1, s1, e2, s2].filter(h => h.length === 5 && h.includes(':') && h !== "00:00");
 
             if (horarios.length > 0) {
                 batidasExtraidas[dataBR] = { h: horarios };
             } else {
-                batidasExtraidas[dataBR] = { h: [] }; // Dia vazio
+                batidasExtraidas[dataBR] = { h: [] }; // Dia zerado / Falta
             }
 
-            // Descobrir a menor e maior data para configurar o calendário
             let partesData = dataBR.split('/');
             if (partesData.length === 3) {
                 let dataISO = `${partesData[2]}-${partesData[1]}-${partesData[0]}`;
@@ -900,7 +896,6 @@ async function processarArquivoJurisponto(texto) {
                 if (dataISO > dataFim) dataFim = dataISO;
             }
         } 
-        // LER FALTAS E ATESTADOS
         else if (linha.startsWith("02") && linha.length > 20) {
             let dataBR = linha.substring(2, 12);
             let ocorrencia = linha.substring(21).trim().toUpperCase();
@@ -908,8 +903,9 @@ async function processarArquivoJurisponto(texto) {
             if (!batidasExtraidas[dataBR]) batidasExtraidas[dataBR] = { h: [] };
 
             if (ocorrencia.includes("FALTA")) batidasExtraidas[dataBR].f = true;
+            // CORREÇÃO ATESTADO: Marca como 'a' de afastamento
             if (ocorrencia.includes("ATESTADO") || ocorrencia.includes("FERIAS") || ocorrencia.includes("LICENCA")) {
-                batidasExtraidas[dataBR].a = true; // Afastamento justificado
+                batidasExtraidas[dataBR].a = true; 
             }
         }
     }
@@ -929,26 +925,26 @@ async function processarArquivoJurisponto(texto) {
     };
 
     try {
-        if (!usuarioAtual) {
-            alert("Erro: A sua sessão expirou. Por favor, faça login novamente.");
+        // CORREÇÃO CRÍTICA DO FIREBASE (Pega o dono da conta real)
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            alert("Aguarde 2 segundos para o sistema carregar o seu utilizador e tente novamente.");
             return;
         }
         
-        // Grava na coleção 'cartoes' do Firebase
         const docRef = await addDoc(collection(db, "cartoes"), {
-            uid: usuarioAtual.uid,
+            uid: currentUser.uid, // <-- Agora salva com o seu ID corretamente!
             dataCriacao: novoCartao.dataCriacao,
             config: novoCartao.config,
             batidas: novoCartao.batidas,
             status: "Em andamento"
         });
 
-        alert(`Sucesso! Importado Reclamante: ${reclamante}\nEmpresa: ${reclamada}`);
-        // Redireciona para a mesa de trabalho oficial com os dados preenchidos!
-        window.location.href = `app.html?id=${docRef.id}`;
+        // Passamos o "&importado=true" na URL
+        window.location.href = `app.html?id=${docRef.id}&importado=true`;
 
     } catch (error) {
         console.error("Erro ao salvar no Firebase:", error);
-        alert("Erro ao importar o ficheiro para a nuvem. Verifique a sua ligação.");
+        alert("Erro ao importar o ficheiro para a nuvem.");
     }
 }
