@@ -883,11 +883,15 @@ async function processarArquivoJurisponto(texto) {
         if (linha.startsWith("01") && linha.length > 80) {
             let dataBR = linha.substring(2, 12);
             
-            // A MÁGICA: Procura automaticamente todos os padrões "HH:MM" na linha!
-            let todosHorarios = linha.substring(12).match(/\d{2}:\d{2}/g) || [];
+            // 1. A MÁGICA: Recorta APENAS o pedaço do texto onde ficam as primeiras 6 batidas
+            // Isso impede que o sistema leia os totais (07:14) ou as escalas (22:00) lá do final da linha
+            let blocoHoras = linha.substring(26, 120);
             
-            // Pega os 4 primeiros e filtra os "00:00" de preenchimento do Jurisponto
-            let horarios = todosHorarios.slice(0, 4).filter(h => h !== "00:00");
+            // 2. Procura automaticamente qualquer padrão de hora (HH:MM) dentro desse bloco
+            let todosHorarios = blocoHoras.match(/\d{2}:\d{2}/g) || [];
+            
+            // 3. Filtra os "00:00" que o Jurisponto usa para preencher espaços vazios
+            let horarios = todosHorarios.filter(h => h !== "00:00");
 
             if (horarios.length > 0) {
                 batidasExtraidas[dataBR] = { h: horarios };
